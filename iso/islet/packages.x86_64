@@ -176,3 +176,7 @@ zram-generator
 plymouth
 python
 wl-clipboard
+pacman-contrib
+satty
+wf-recorder
+sound-theme-freedesktop

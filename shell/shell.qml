@@ -16,6 +16,7 @@ import "store"
 import "lock"
 import "notifications"
 import "settings"
+import "snap"
 import "services"
 import "theme"
 
@@ -48,6 +49,7 @@ ShellRoot {
     LazyLoader { activeAsync: true; Store {} }
     LazyLoader { activeAsync: true; Settings {} }
     LazyLoader { activeAsync: true; NotifCenter {} }
+    LazyLoader { activeAsync: true; Snap {} }
 
     // áp màu nhấn / màn hình đã lưu vào Hyprland ngay khi shell chạy
     readonly property string hyprSync: HyprSync.file

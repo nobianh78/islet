@@ -4,6 +4,7 @@
     vm-mouse.py move X Y [X2 Y2 STEPS]   di chuột (toạ độ màn hình 1280x800)
     vm-mouse.py click X Y
     vm-mouse.py rclick X Y               chuột phải
+    vm-mouse.py drag X1 Y1 X2 Y2 STEPS [HOLD] [super]   nhấn giữ, kéo, giữ HOLD giây rồi thả (super: giữ phím Super)
 """
 import json, os, socket, sys, time
 
@@ -27,7 +28,7 @@ def move(x, y):
     cmd("input-send-event", events=abs_ev(x, y))
 
 op = sys.argv[1]
-a = [float(v) for v in sys.argv[2:]]
+a = [float(v) for v in sys.argv[2:] if v.replace(".", "", 1).lstrip("-").isdigit()]
 if op == "move":
     if len(a) >= 5:
         x1, y1, x2, y2, n = a[:5]
@@ -36,6 +37,21 @@ if op == "move":
             move(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t); time.sleep(0.016)
     else:
         move(a[0], a[1])
+elif op == "drag":
+    x1, y1, x2, y2, n = a[:5]
+    hold = a[5] if len(a) > 5 else 0.4
+    sup = "super" in sys.argv
+    if sup:
+        cmd("input-send-event", events=[{"type": "key", "data": {"down": True, "key": {"type": "qcode", "data": "meta_l"}}}])
+    move(x1, y1); time.sleep(0.05)
+    cmd("input-send-event", events=[{"type": "btn", "data": {"down": True, "button": "left"}}])
+    for i in range(int(n) + 1):
+        t = i / n
+        move(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t); time.sleep(0.016)
+    time.sleep(hold)
+    cmd("input-send-event", events=[{"type": "btn", "data": {"down": False, "button": "left"}}])
+    if sup:
+        cmd("input-send-event", events=[{"type": "key", "data": {"down": False, "key": {"type": "qcode", "data": "meta_l"}}}])
 elif op in ("click", "rclick"):
     btn = "right" if op == "rclick" else "left"
     move(a[0], a[1]); time.sleep(0.05)

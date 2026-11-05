@@ -146,6 +146,7 @@ hl.layer_rule({ name = "islet-store-noanim", match = { namespace = "^islet-store
 hl.layer_rule({ name = "islet-installer-noanim", match = { namespace = "^islet-installer$" }, no_anim = true })
 hl.layer_rule({ name = "islet-taskmgr-noanim", match = { namespace = "^islet-taskmgr$" }, no_anim = true })
 hl.layer_rule({ name = "islet-settings-noanim", match = { namespace = "^islet-settings$" }, no_anim = true })
+hl.layer_rule({ name = "islet-snap-noanim", match = { namespace = "^islet-snap" }, no_anim = true })
 hl.layer_rule({ name = "islet-notifs-noanim", match = { namespace = "^islet-notifs$" }, no_anim = true })
 hl.layer_rule({ name = "islet-power-noanim",  match = { namespace = "^islet-power$" },     no_anim = true })
 hl.layer_rule({ name = "islet-launcher-noanim", match = { namespace = "^islet-launcher$" }, no_anim = true })
@@ -154,7 +155,7 @@ hl.layer_rule({ name = "islet-tabs-noanim",   match = { namespace = "^islet-tabs
 -- Kính mờ thật: nhoè phần phía sau dock, trung tâm điều khiển và widget đồng hồ.
 hl.layer_rule({
     name  = "islet-glass",
-    match = { namespace = "^islet-(dock|dockmenu|cc|tabs|launcher|power|taskmgr|installer|store|settings|notifs)$" },
+    match = { namespace = "^islet-(dock|dockmenu|cc|tabs|launcher|power|taskmgr|installer|store|settings|notifs|snappicker)$" },
     blur  = true,
     ignore_alpha = 0.05,
 })
@@ -191,10 +192,10 @@ local shot = 'f=~/Pictures/islet-$(date +%Y%m%d-%H%M%S).png; mkdir -p ~/Pictures
 hl.bind("Print",         hl.dsp.exec_cmd("sh -c '" .. shot .. "grim \"$f\" && notify-send -a \"Screenshot\" \"Saved\" \"$f\"'"))
 hl.bind("SHIFT + Print", hl.dsp.exec_cmd("sh -c '" .. shot .. "grim -g \"$(slurp)\" \"$f\" && notify-send -a \"Screenshot\" \"Saved\" \"$f\"'"))
 
-hl.bind(mod .. " + left",  hl.dsp.focus({ direction = "left" }))
-hl.bind(mod .. " + right", hl.dsp.focus({ direction = "right" }))
-hl.bind(mod .. " + up",    hl.dsp.focus({ direction = "up" }))
-hl.bind(mod .. " + down",  hl.dsp.focus({ direction = "down" }))
+hl.bind(mod .. " + ALT + left", hl.dsp.focus({ direction = "left" }))
+hl.bind(mod .. " + ALT + right", hl.dsp.focus({ direction = "right" }))
+hl.bind(mod .. " + ALT + up", hl.dsp.focus({ direction = "up" }))
+hl.bind(mod .. " + ALT + down", hl.dsp.focus({ direction = "down" }))
 
 for i = 1, 10 do
     local key = i % 10
@@ -238,6 +239,168 @@ hl.on("window.minimize", function(w)
 end)
 
 hl.window_rule({ name = "islet-float-all", match = { class = ".*" }, float = true, center = true })
+
+-- ============================================================================
+-- Xếp cửa sổ kiểu Windows 11 + giữ cửa sổ trong vùng làm việc
+--   · cửa sổ mới to quá vùng trống (trừ thanh trên + dock) → thu lại cho vừa, đặt giữa
+--   · kéo cửa sổ ra mép trái/phải = nửa màn hình, 4 góc = 1/4, mép trên = phóng to;
+--     trong lúc kéo shell vẽ khung xem trước (islet-ipc snap show/hide)
+--   · Super+←/→/↑ xếp nhanh, Super+↓ trả về cỡ cũ, Super+Z mở lưới bố cục
+--   · kéo cửa sổ đang xếp ra chỗ khác → về lại cỡ trước khi xếp
+-- ============================================================================
+local SNAP_GAP = 10
+local snapPrev = {}          -- address → {x, y, w, h} trước khi xếp
+local snapped = {}           -- address → tên vùng
+
+local function workarea(m)
+    local s = m.scale or 1
+    local r = m.reserved or {}
+    local top, bottom, left, right = r.top or 0, r.bottom or 0, r.left or 0, r.right or 0
+    local W, H = m.width / s, m.height / s
+    return { x = m.x + left + SNAP_GAP, y = m.y + top + SNAP_GAP,
+             w = W - left - right - 2 * SNAP_GAP, h = H - top - bottom - 2 * SNAP_GAP }
+end
+
+local function zoneRect(z, a)
+    local G = SNAP_GAP
+    local hw, hh = (a.w - G) / 2, (a.h - G) / 2
+    local tw = (a.w - 2 * G) / 3
+    local R = {
+        max = { a.x, a.y, a.w, a.h },
+        left = { a.x, a.y, hw, a.h },             right = { a.x + hw + G, a.y, hw, a.h },
+        tl = { a.x, a.y, hw, hh },                tr = { a.x + hw + G, a.y, hw, hh },
+        bl = { a.x, a.y + hh + G, hw, hh },       br = { a.x + hw + G, a.y + hh + G, hw, hh },
+        l3 = { a.x, a.y, tw, a.h },               c3 = { a.x + tw + G, a.y, tw, a.h },
+        r3 = { a.x + 2 * (tw + G), a.y, tw, a.h },
+        l23 = { a.x, a.y, 2 * tw + G, a.h },      r23 = { a.x + tw + G, a.y, 2 * tw + G, a.h },
+        top = { a.x, a.y, a.w, hh },              bottom = { a.x, a.y + hh + G, a.w, hh },
+    }
+    return R[z]
+end
+
+local drag = { addr = nil, x = 0, y = 0, sw = 0, sh = 0, moving = false, still = 0, zone = nil, shown = nil, ignore = 0 }
+
+local function setGeom(addr, g)
+    drag.ignore = 8          -- bỏ qua vài nhịp: đây là mình dời, không phải người dùng kéo
+    hl.dispatch(hl.dsp.window.resize({ x = math.floor(g[3]), y = math.floor(g[4]), window = "address:" .. addr }))
+    hl.dispatch(hl.dsp.window.move({ x = math.floor(g[1]), y = math.floor(g[2]), window = "address:" .. addr }))
+end
+
+local function findWindow(addr)
+    if not addr or addr == "" then return hl.get_active_window() end
+    for _, w in ipairs(hl.get_windows() or {}) do
+        if w.address == addr then return w end
+    end
+    return nil
+end
+
+-- islet_snap("left" | "tl" | ... | "max" | "restore", address?) — dùng cả từ shell (hyprctl eval)
+function islet_snap(z, addr)
+    local w = findWindow(addr)
+    if not w or not w.monitor then return end
+    if (w.fullscreen or 0) ~= 0 then hl.dispatch(hl.dsp.window.fullscreen({ mode = "maximized" })) end
+    if z == "restore" then
+        local p = snapPrev[w.address]
+        if p then setGeom(w.address, p) end
+        snapPrev[w.address], snapped[w.address] = nil, nil
+        return
+    end
+    local g = zoneRect(z, workarea(w.monitor))
+    if not g then return end
+    if not snapped[w.address] then snapPrev[w.address] = { w.at.x, w.at.y, w.size.x, w.size.y } end
+    snapped[w.address] = z
+    setGeom(w.address, g)
+end
+
+local function zoneAt(m, c)
+    local s = m.scale or 1
+    local W, H = m.width / s, m.height / s
+    local cx, cy = c.x - m.x, c.y - m.y
+    local e, corner = 6, H * 0.2
+    if cx <= e then return (cy < corner and "tl") or (cy > H - corner and "bl") or "left" end
+    if cx >= W - e then return (cy < corner and "tr") or (cy > H - corner and "br") or "right" end
+    if cy <= e then return "max" end
+    return nil
+end
+
+local function preview(z, m)
+    if z == drag.shown then return end
+    drag.shown = z
+    if not z or not m then
+        hl.exec_cmd("islet-ipc snap hide")
+        return
+    end
+    local g = zoneRect(z, workarea(m))
+    hl.exec_cmd(string.format("islet-ipc snap show %d %d %d %d", math.floor(g[1]), math.floor(g[2]), math.floor(g[3]), math.floor(g[4])))
+end
+
+hl.timer(function()
+    local w = hl.get_active_window()
+    if not w or not w.floating or (w.fullscreen or 0) ~= 0 then
+        if drag.shown then preview(nil) end
+        drag.addr, drag.moving = nil, false
+        return
+    end
+    local x, y, sw, sh = w.at.x, w.at.y, w.size.x, w.size.y
+    if w.address ~= drag.addr then
+        drag.addr, drag.x, drag.y, drag.sw, drag.sh, drag.moving, drag.still = w.address, x, y, sw, sh, false, 0
+        return
+    end
+    if drag.ignore > 0 then
+        drag.ignore = drag.ignore - 1
+        drag.x, drag.y, drag.sw, drag.sh = x, y, sw, sh
+        return
+    end
+    local moved = (x ~= drag.x or y ~= drag.y) and sw == drag.sw and sh == drag.sh
+    drag.x, drag.y, drag.sw, drag.sh = x, y, sw, sh
+    if moved then
+        if not drag.moving then
+            drag.moving = true
+            -- kéo cửa sổ đang xếp ra → về lại cỡ trước khi xếp (giữ con trỏ ở giữa thanh tiêu đề)
+            local p = snapPrev[w.address]
+            if snapped[w.address] and p then
+                local c = hl.get_cursor_pos()
+                snapped[w.address], snapPrev[w.address] = nil, nil
+                setGeom(w.address, { c.x - p[3] / 2, c.y - 20, p[3], p[4] })
+                drag.moving = true
+            end
+        end
+        drag.still = 0
+        local m = hl.get_monitor_at_cursor() or w.monitor
+        drag.zone = zoneAt(m, hl.get_cursor_pos())
+        preview(drag.zone, m)
+    elseif drag.moving then
+        drag.still = drag.still + 1
+        -- con trỏ đứng yên ~0.25 s = đã thả chuột
+        if drag.still >= 6 then
+            drag.moving = false
+            local z = drag.zone
+            preview(nil)
+            if z then islet_snap(z, w.address) end
+        end
+    end
+end, { timeout = 40, type = "repeat" })
+
+-- cửa sổ mới to quá vùng làm việc → thu lại, đặt giữa (không chui dưới thanh trên / dock)
+hl.on("window.open", function(w)
+    if not w or not w.address then return end
+    local addr = w.address
+    hl.timer(function()
+        local win = findWindow(addr)
+        if not win or not win.floating or not win.monitor or (win.fullscreen or 0) ~= 0 then return end
+        local a = workarea(win.monitor)
+        local ww, wh = win.size.x, win.size.y
+        if ww <= a.w and wh <= a.h and win.at.y >= a.y - SNAP_GAP then return end
+        local nw, nh = math.min(ww, a.w), math.min(wh, a.h)
+        setGeom(addr, { a.x + (a.w - nw) / 2, a.y + (a.h - nh) / 2, nw, nh })
+    end, { timeout = 120, type = "oneshot" })
+end)
+
+hl.bind(mod .. " + left",  function() islet_snap("left") end)
+hl.bind(mod .. " + right", function() islet_snap("right") end)
+hl.bind(mod .. " + up",    function() islet_snap("max") end)
+hl.bind(mod .. " + down",  function() islet_snap("restore") end)
+hl.bind(mod .. " + Z",     hl.dsp.exec_cmd(qs .. " ipc call snap picker"))
 
 -- Cài đặt riêng của người dùng (màu nhấn, màn hình) do app Cài đặt của Islet ghi ra
 local userConf = (os.getenv("HOME") or "") .. "/.config/islet/hypr-user.lua"
