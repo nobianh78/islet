@@ -20,7 +20,7 @@ Singleton {
     })
     function label(a) { return meta[a]?.label ?? a; }
     function iconOf(a) { return Qt.resolvedUrl("../assets/store/" + (meta[a]?.icon ?? "claude-code") + ".png"); }
-    function project(cwd) { const p = (cwd || "").replace(/\/+$/, ""); return p === Quickshell.env("HOME") ? "~" : p.substring(p.lastIndexOf("/") + 1) || p; }
+    function project(cwd) { const p = (cwd || "").replace(/\/+$/, ""); return p === Quickshell.env("HOME") ? "Home" : p.substring(p.lastIndexOf("/") + 1) || p; }
 
     // { key, agent, pid, cwd, state, message, since, hooked, ticks, cpu }
     property var sessions: []
@@ -62,8 +62,8 @@ Singleton {
         });
         if (prev?.state === "attention" && ev.state !== "attention") resolved(s);
         if (ev.state === "attention") attention(s);
-        // chỉ báo "xong" khi nó đã làm được một lúc (bỏ qua câu trả lời tức thì)
-        else if (ev.state === "done" && (wasWorking || ev.agent === "codex") && Date.now() - (s.workedFrom || 0) > 4000) finished(s);
+        // chỉ báo "xong" khi nó đã làm > 1,5 giây (bỏ qua phản hồi tức thì)
+        else if (ev.state === "done" && (wasWorking || ev.agent === "codex") && Date.now() - (s.workedFrom || 0) > 1500) finished(s);
     }
 
     IpcHandler {
@@ -82,7 +82,7 @@ Singleton {
                 try { list = JSON.parse(text); } catch (e) { return; }
                 const now = Date.now(), dt = Math.max(0.5, (now - root.lastPoll) / 1000);
                 root.lastPoll = now;
-                let out = [];
+                let out = [], done = [];
                 for (const p of list) {
                     // phiên đã biết (từ hook hoặc lần quét trước) ứng với tiến trình này
                     const s = root.sessions.find(x => x.agent === p.agent && (x.pid === p.pid || (x.pids || []).indexOf(p.pid) >= 0));
@@ -97,17 +97,33 @@ Singleton {
                         if (hi >= 2) state = "working";
                         else if (lo >= 2 && state === "working") state = "idle";
                     }
-                    out.push(Object.assign({ key: "pid:" + p.pid, message: "", since: now, hooked: false, workedFrom: 0 }, s || {}, {
+                    const startedWork = state === "working" && s?.state !== "working";
+                    const o = Object.assign({ key: "pid:" + p.pid, message: "", since: now, hooked: false, workedFrom: 0 }, s || {}, {
                         agent: p.agent, pid: p.pid, pids: p.pids, cwd: s?.cwd || p.cwd, ticks: p.ticks, cpu: cpu,
-                        hi: hi, lo: lo, state: state, since: s && s.state === state ? s.since : now
-                    }));
+                        hi: hi, lo: lo, state: state, since: s && s.state === state ? s.since : now,
+                        workedFrom: startedWork ? now : (s?.workedFrom ?? 0)
+                    });
+                    out.push(o);
+                    // không có hook: hết bận sau ≥ 6 giây làm việc → coi như xong
+                    if (!o.hooked && s?.state === "working" && state === "idle" && now - (s.workedFrom || now) > 6000)
+                        done.push(o);
                 }
-                // phiên từ hook mà tiến trình đã thoát → bỏ
+                // (phiên từ hook mà tiến trình đã thoát không có trong `out` → tự bị bỏ)
                 root.sessions = out;
+                for (const o of done) root.finished(o);
             }
         }
     }
     Timer { interval: 2000; running: true; repeat: true; triggeredOnStart: true; onTriggered: if (!psProc.running) psProc.running = true }
+
+    // OpenCode: nghe luồng sự kiện của server OpenCode (chạy mãi; tự chờ khi chưa có OpenCode)
+    Process {
+        id: ocWatch
+        running: true
+        command: ["islet-agent", "watch-opencode"]
+        onExited: ocRestart.restart()
+    }
+    Timer { id: ocRestart; interval: 5000; onTriggered: ocWatch.running = true }
 
     // nối Claude Code / Codex với Islet (chỉ thêm phần của Islet, chạy lại vô hại)
     function setup() { if (!setupProc.running) setupProc.running = true; }

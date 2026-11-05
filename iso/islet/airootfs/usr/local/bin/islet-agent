@@ -5,6 +5,7 @@
                                     chỉ thêm phần của Islet, không đụng cấu hình khác của bạn
     islet-agent hook claude         được Claude Code gọi (JSON sự kiện ở stdin)
     islet-agent hook codex '<json>' được Codex gọi khi xong một lượt
+    islet-agent watch-opencode      nghe luồng sự kiện của OpenCode (shell chạy nền lệnh này)
     islet-agent ps                  liệt kê agent đang chạy (JSON) — shell dùng để thấy cả agent không có hook
     islet-agent unsetup             gỡ phần của Islet khỏi cấu hình Claude Code / Codex
 
@@ -102,6 +103,19 @@ def hook_codex(arg):
     send({"agent": "codex", "session": str(d.get("thread-id") or d.get("thread_id") or ""), "state": state,
           "cwd": d.get("cwd") or os.getcwd(), "message": short(d.get("last-assistant-message", "")),
           "pids": ancestors(os.getppid())})
+
+
+def hook_opencode(arg):
+    try:
+        d = json.loads(arg)
+    except Exception:
+        return
+    state = d.get("state")
+    if state not in ("working", "attention", "done", "idle", "end"):
+        return
+    pid = int(d.get("pid") or os.getppid())
+    send({"agent": "opencode", "session": str(d.get("session") or ""), "state": state,
+          "cwd": d.get("cwd") or os.getcwd(), "message": short(d.get("message", "")), "pids": ancestors(pid)})
 
 
 # ---------------------------------------------------------------- ps
@@ -217,6 +231,121 @@ def setup_codex(remove=False):
     return "ok"
 
 
+# ---------------------------------------------------------------- OpenCode (luồng sự kiện)
+# OpenCode 2.x chạy một server nền (127.0.0.1, mật khẩu ở ~/.config/opencode/service.json); TUI và
+# `opencode run` đều nhận sự kiện qua GET /api/event?directory=<thư mục>. Islet nghe đúng luồng đó.
+OC_SERVICE = os.path.join(HOME, ".config", "opencode", "service.json")
+
+
+def oc_servers():
+    """[(port, pid)] các server opencode đang nghe trên localhost."""
+    out = subprocess.run(["ss", "-ltnpH"], capture_output=True, text=True).stdout
+    res = []
+    for line in out.splitlines():
+        if '"opencode"' not in line:
+            continue
+        m = re.search(r"127\.0\.0\.1:(\d+)", line)
+        pm = re.search(r"pid=(\d+)", line)
+        if m:
+            res.append((int(m.group(1)), int(pm.group(1)) if pm else 0))
+    return res
+
+
+def oc_dirs():
+    """{thư mục: pid} của các tiến trình opencode (TUI / run) đang mở."""
+    dirs = {}
+    for p in os.listdir("/proc"):
+        if p.isdigit() and agent_of(int(p)) == "opencode":
+            try:
+                dirs.setdefault(os.readlink(f"/proc/{p}/cwd"), int(p))
+            except Exception:
+                pass
+    return dirs
+
+
+def oc_stream(port, directory, password, alive):
+    import base64
+    import threading
+    import urllib.parse
+    import urllib.request
+    url = f"http://127.0.0.1:{port}/api/event?directory=" + urllib.parse.quote(directory)
+    auth = base64.b64encode(f"opencode:{password}".encode()).decode()
+    texts, busy = {}, {}
+    try:
+        req = urllib.request.Request(url, headers={"Authorization": "Basic " + auth, "Accept": "text/event-stream"})
+        with urllib.request.urlopen(req, timeout=None) as r:
+            for raw in r:
+                if not alive.get((port, directory)):
+                    return
+                line = raw.decode(errors="replace").strip()
+                if not line.startswith("data:"):
+                    continue
+                try:
+                    ev = json.loads(line[5:])
+                except Exception:
+                    continue
+                t, d = ev.get("type", ""), ev.get("data") or {}
+                sid = d.get("sessionID", "")
+                state, msg = None, ""
+                if t == "session.execution.started":
+                    state, busy[sid], texts[sid] = "working", True, ""
+                elif t == "session.text.ended":
+                    texts[sid] = d.get("text", "") or texts.get(sid, "")
+                elif t == "session.execution.succeeded":
+                    state, msg, busy[sid] = "done", texts.get(sid, ""), False
+                elif t == "session.execution.failed":
+                    state, msg, busy[sid] = "done", "Stopped with an error", False
+                elif t == "session.execution.interrupted":
+                    state, busy[sid] = "idle", False
+                elif t == "permission.asked":
+                    state = "attention"
+                    msg = d.get("title") or d.get("permission") or d.get("tool") or "Permission needed"
+                elif t in ("permission.replied", "permission.rejected"):
+                    state = "working" if busy.get(sid) else None
+                if state:
+                    pid = oc_dirs().get(directory, 0)
+                    send({"agent": "opencode", "session": sid, "state": state, "cwd": directory,
+                          "message": short(msg), "pids": ancestors(pid) if pid else []})
+    except Exception:
+        pass
+    finally:
+        alive.pop((port, directory), None)
+
+
+def watch_opencode():
+    import threading
+    import time
+    alive = {}
+    while True:
+        try:
+            pw = json.load(open(OC_SERVICE)).get("password", "") if os.path.exists(OC_SERVICE) else ""
+            servers = oc_servers() if pw else []
+            dirs = oc_dirs() if servers else {}
+            for port, _ in servers:
+                for d in dirs:
+                    if (port, d) not in alive:
+                        alive[(port, d)] = True
+                        threading.Thread(target=oc_stream, args=(port, d, pw, alive), daemon=True).start()
+            # thư mục không còn opencode nào → ngừng nghe
+            for k in list(alive):
+                if k[1] not in dirs or k[0] not in [p for p, _ in servers]:
+                    alive[k] = False
+        except Exception:
+            pass
+        time.sleep(3)
+
+
+def setup_opencode(remove=False):
+    # bản cũ đặt plugin ~/.config/opencode/plugins/islet.js — OpenCode 2.x không dùng, gỡ đi
+    path = os.path.join(HOME, ".config", "opencode", "plugins", "islet.js")
+    try:
+        if os.path.exists(path) and "islet-managed" in open(path).read():
+            os.remove(path)
+    except Exception:
+        pass
+    return "events" if shutil.which("opencode") else "skip"
+
+
 def main():
     a = sys.argv[1:]
     if not a:
@@ -228,14 +357,18 @@ def main():
                 hook_claude()
             elif a[1:2] == ["codex"]:
                 hook_codex(a[-1] if len(a) > 2 else "{}")
+            elif a[1:2] == ["opencode"]:
+                hook_opencode(a[-1] if len(a) > 2 else "{}")
         except Exception:
             pass
         sys.exit(0)
     if a[0] == "ps":
         ps()
+    elif a[0] == "watch-opencode":
+        watch_opencode()
     elif a[0] in ("setup", "unsetup"):
         rm = a[0] == "unsetup"
-        print(json.dumps({"claude": setup_claude(rm), "codex": setup_codex(rm)}))
+        print(json.dumps({"claude": setup_claude(rm), "codex": setup_codex(rm), "opencode": setup_opencode(rm)}))
     else:
         sys.exit(2)
 
