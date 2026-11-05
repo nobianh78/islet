@@ -4,7 +4,8 @@
     islet-agent setup               nối Claude Code (hooks) và Codex (notify) với Islet — chạy lại thoải mái,
                                     chỉ thêm phần của Islet, không đụng cấu hình khác của bạn
     islet-agent hook claude         được Claude Code gọi (JSON sự kiện ở stdin)
-    islet-agent hook codex '<json>' được Codex gọi khi xong một lượt
+    islet-agent hook codex '<json>' được Codex gọi khi xong một lượt / cần duyệt
+    islet-agent hook gemini         được Gemini CLI gọi (hooks trong ~/.gemini/settings.json)
     islet-agent watch-opencode      nghe luồng sự kiện của OpenCode (shell chạy nền lệnh này)
     islet-agent ps                  liệt kê agent đang chạy (JSON) — shell dùng để thấy cả agent không có hook
     islet-agent unsetup             gỡ phần của Islet khỏi cấu hình Claude Code / Codex
@@ -89,6 +90,34 @@ def hook_claude():
         return
     send({"agent": "claude", "session": d.get("session_id", ""), "state": state, "cwd": d.get("cwd") or os.getcwd(),
           "message": msg, "pids": ancestors(os.getppid())})
+
+
+def hook_gemini():
+    # Gemini CLI đọc stdout như JSON → luôn trả "{}" (không chặn, không đổi gì)
+    try:
+        d = json.load(sys.stdin)
+    except Exception:
+        d = {}
+    finally:
+        print("{}")
+        sys.stdout.flush()
+    name = d.get("hook_event_name", "")
+    state, msg = None, ""
+    if name == "SessionStart":
+        state = "idle"
+    elif name == "BeforeAgent":
+        state, msg = "working", short(d.get("prompt", ""), 120)
+    elif name == "BeforeTool":
+        state, msg = "working", d.get("tool_name", "")
+    elif name == "AfterAgent":
+        state, msg = "done", short(d.get("prompt_response", ""))
+    elif name == "Notification":
+        state, msg = "attention", short(d.get("message", "") or "Permission needed")
+    elif name == "SessionEnd":
+        state = "end"
+    if state:
+        send({"agent": "gemini", "session": d.get("session_id", ""), "state": state, "cwd": d.get("cwd") or os.getcwd(),
+              "message": msg, "pids": ancestors(os.getppid())})
 
 
 def hook_codex(arg):
@@ -195,6 +224,51 @@ def setup_claude(remove=False):
             entry = {"hooks": [{"type": "command", "command": HOOK_CMD, "timeout": 5}]}
             if ev == "PreToolUse":
                 entry["matcher"] = "*"
+            hooks[ev] = lst + [entry]
+            changed = True
+    if remove and not hooks:
+        d.pop("hooks", None)
+    if changed:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        if os.path.exists(path) and not os.path.exists(path + ".islet-backup"):
+            shutil.copy2(path, path + ".islet-backup")
+        tmp = path + ".islet-tmp"
+        with open(tmp, "w") as f:
+            json.dump(d, f, indent=2)
+            f.write("\n")
+        os.replace(tmp, path)
+    return "ok"
+
+
+GEMINI_CMD = "islet-agent hook gemini"
+GEMINI_EVENTS = ["SessionStart", "BeforeAgent", "BeforeTool", "AfterAgent", "Notification", "SessionEnd"]
+
+
+def setup_gemini(remove=False):
+    path = os.path.join(HOME, ".gemini", "settings.json")
+    if not remove and not (os.path.isdir(os.path.dirname(path)) or shutil.which("gemini")):
+        return "skip"
+    try:
+        d = json.load(open(path)) if os.path.exists(path) else {}
+    except Exception:
+        return "unreadable"
+    if not isinstance(d, dict):
+        return "unreadable"
+    hooks = d.setdefault("hooks", {})
+    changed = False
+    for ev in GEMINI_EVENTS:
+        lst = hooks.get(ev, [])
+        mine = [e for e in lst if any(h.get("command", "").startswith(GEMINI_CMD) for h in e.get("hooks", []))]
+        if remove:
+            if mine:
+                hooks[ev] = [e for e in lst if e not in mine]
+                if not hooks[ev]:
+                    del hooks[ev]
+                changed = True
+        elif not mine:
+            entry = {"hooks": [{"name": "islet-island", "type": "command", "command": GEMINI_CMD, "timeout": 5000}]}
+            if ev == "BeforeTool":
+                entry["matcher"] = ".*"
             hooks[ev] = lst + [entry]
             changed = True
     if remove and not hooks:
@@ -355,6 +429,8 @@ def main():
         try:
             if a[1:2] == ["claude"]:
                 hook_claude()
+            elif a[1:2] == ["gemini"]:
+                hook_gemini()
             elif a[1:2] == ["codex"]:
                 hook_codex(a[-1] if len(a) > 2 else "{}")
             elif a[1:2] == ["opencode"]:
@@ -368,7 +444,8 @@ def main():
         watch_opencode()
     elif a[0] in ("setup", "unsetup"):
         rm = a[0] == "unsetup"
-        print(json.dumps({"claude": setup_claude(rm), "codex": setup_codex(rm), "opencode": setup_opencode(rm)}))
+        print(json.dumps({"claude": setup_claude(rm), "codex": setup_codex(rm), "gemini": setup_gemini(rm),
+                          "opencode": setup_opencode(rm)}))
     else:
         sys.exit(2)
 
