@@ -15,6 +15,10 @@ Singleton {
     property bool settingsOpen: false    // app Cài đặt
     property string settingsPage: "wallpaper"
     property bool notifOpen: false       // trung tâm thông báo
+    property bool searchOpen: false      // Islet Search (Super+Space)
+    signal islandOpenRequested(string tab)
+    function openIsland(tab) { closeAll(); islandOpenRequested(tab); }
+    function toggleSearch() { const o = !searchOpen; closeAll(); searchOpen = o; }
     property bool locked: false          // màn hình khoá
     // Shell được Hyprland mở lúc vừa đăng nhập (ISLET_BOOT=1): màn hình khoá nối tiếp màn hình khởi động
     readonly property bool fromBoot: Quickshell.env("ISLET_BOOT") === "1"

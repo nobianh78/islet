@@ -15,3 +15,9 @@ singleton HyprSync 1.0 HyprSync.qml
 singleton ThisPC 1.0 ThisPC.qml
 singleton Clipboard 1.0 Clipboard.qml
 singleton Agents 1.0 Agents.qml
+singleton Updates 1.0 Updates.qml
+singleton Auth 1.0 Auth.qml
+singleton Chrono 1.0 Chrono.qml
+singleton Recorder 1.0 Recorder.qml
+singleton Downloads 1.0 Downloads.qml
+singleton Privacy 1.0 Privacy.qml

@@ -9,6 +9,8 @@
 #   islet-pkg install <gói...>        (root) cài (một app hoặc cả bộ lập trình); in PROGRESS · DONE · ERROR
 #                                     docker / rustup / virt-manager… tự bật dịch vụ, thêm quyền cho người dùng
 #   islet-pkg remove <gói...>         (root) gỡ cùng phụ thuộc không còn dùng
+#   islet-pkg updates                 tên<TAB>bản đang có<TAB>bản mới<TAB>repo|aur   (không cần root)
+#   islet-pkg upgrade                 (root) cập nhật toàn bộ hệ thống + app AUR; in PROGRESS · REBOOT · DONE
 #   Gói ghi "aur/<tên>" được lấy từ AUR: tải PKGBUILD, build bằng makepkg dưới quyền người dùng
 #   (makepkg không chạy bằng root), phụ thuộc lấy từ kho chính thức hoặc AUR, rồi pacman -U.
 set -uo pipefail
@@ -22,9 +24,9 @@ strip_ver() { sed -E 's/[<>=].*$//'; }
 
 # Build + cài một gói AUR (và các phụ thuộc AUR của nó). $1 = tên, $2 = độ sâu
 aur_install() {
-    local name=$1 depth=${2:-0} who=${SUDO_USER:-} dir deps d
+    local name=$1 depth=${2:-0} force=${3:-0} who=${SUDO_USER:-} dir deps d
     [ "$depth" -lt 6 ] || { echo "ERROR AUR dependency chain too deep ($name)"; return 1; }
-    pacman -Qq -- "$name" >/dev/null 2>&1 && return 0
+    [ "$force" = 1 ] || { pacman -Qq -- "$name" >/dev/null 2>&1 && return 0; }
     [ -n "$who" ] && [ "$who" != root ] || { echo "ERROR Must be run with sudo from a user account"; return 1; }
     mkdir -p "$AUR_CACHE" && chown "$who": "$AUR_CACHE"
     dir=$AUR_CACHE/$name
@@ -149,6 +151,57 @@ install)
         esac
     done
     progress 100 "Done"; echo DONE
+    ;;
+updates)
+    # gói từ kho chính thức (checkupdates dùng bản sao CSDL tạm, không cần root, không đụng hệ thống)
+    checkupdates 2>/dev/null | awk '{print $1 "\t" $2 "\t" $4 "\trepo"}' || true
+    # app cài từ AUR: so phiên bản với AUR
+    pacman -Qm 2>/dev/null | python3 -c '
+import json, subprocess, sys, urllib.parse, urllib.request
+loc = dict(l.split()[:2] for l in sys.stdin if len(l.split()) >= 2)
+if not loc: sys.exit()
+q = "&".join("arg[]=" + urllib.parse.quote(n) for n in loc)
+try:
+    res = json.load(urllib.request.urlopen("https://aur.archlinux.org/rpc/v5/info?" + q, timeout=15)).get("results", [])
+except Exception:
+    sys.exit()
+for r in res:
+    n, new = r["Name"], r["Version"]
+    old = loc.get(n)
+    if old and subprocess.run(["vercmp", new, old], capture_output=True, text=True).stdout.strip() == "1":
+        print(f"{n}\t{old}\t{new}\taur")
+' 2>/dev/null || true
+    exit 0
+    ;;
+upgrade)
+    [ "$(id -u)" = 0 ] || { echo "ERROR Administrator rights required"; exit 1; }
+    progress 2 "Refreshing package lists"
+    LC_ALL=C pacman -Sy --noconfirm >/dev/null 2>&1 || { echo "ERROR Could not refresh package lists (offline?)"; exit 1; }
+    total=$(LC_ALL=C pacman -Qu 2>/dev/null | wc -l)
+    kernel=0; LC_ALL=C pacman -Qu 2>/dev/null | grep -qE "^(linux|linux-lts|linux-zen|systemd|mesa|nvidia[^ ]*) " && kernel=1
+    if [ "$total" -gt 0 ]; then
+        progress 5 "Preparing $total updates"
+        n=0
+        LC_ALL=C stdbuf -oL pacman -Su --noconfirm --noprogressbar 2>&1 | while IFS= read -r l; do
+            case "$l" in
+                *" downloading..."*) n=$((n + 1)); echo "PROGRESS $((5 + n * 45 / total)) Downloading · $n/$total" ;;
+                "("*") installing "*|"("*") upgrading "*|"("*") reinstalling "*)
+                    i=$(sed -E 's/^\(\s*([0-9]+)\/([0-9]+)\).*/\1 \2/' <<<"$l")
+                    set -- $i; [ -n "${2:-}" ] && echo "PROGRESS $((50 + $1 * 38 / $2)) Installing · $1/$2" ;;
+                "error:"*) echo "ERROR ${l#error: }" ;;
+                *"Running post-transaction hooks"*) echo "PROGRESS 90 Finishing up" ;;
+            esac
+        done
+        [ "${PIPESTATUS[0]}" = 0 ] || exit 1
+    fi
+    # app AUR có bản mới → build lại
+    aurs=$(sudo -u "${SUDO_USER:-nobody}" "$0" updates 2>/dev/null | awk -F'\t' '$4=="aur"{print $1}')
+    if [ -n "$aurs" ]; then
+        pacman -T git base-devel >/dev/null 2>&1 || LC_ALL=C pacman -S --needed --noconfirm git base-devel >/dev/null 2>&1
+        for p in $aurs; do progress 92 "Rebuilding $p (AUR)"; aur_install "$p" 0 1 || echo "ERROR Could not update $p"; done
+    fi
+    [ "$kernel" = 1 ] && echo REBOOT
+    progress 100 "Up to date"; echo DONE
     ;;
 remove)
     [ $# -gt 0 ] || exit 2

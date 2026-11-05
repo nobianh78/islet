@@ -40,6 +40,7 @@ file_permissions=(
   ["/usr/local/bin/islet-thispc"]="0:0:755"
   ["/usr/local/bin/islet-agent"]="0:0:755"
   ["/usr/local/bin/islet-clip"]="0:0:755"
+  ["/usr/local/bin/islet-shot"]="0:0:755"
   ["/home/islet/.config/mozilla"]="1000:1000:700"
   ["/home/islet/.config/mozilla/firefox"]="1000:1000:700"
   ["/home/islet/.config/mozilla/firefox/profiles.ini"]="1000:1000:644"

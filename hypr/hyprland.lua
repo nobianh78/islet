@@ -146,6 +146,7 @@ hl.layer_rule({ name = "islet-store-noanim", match = { namespace = "^islet-store
 hl.layer_rule({ name = "islet-installer-noanim", match = { namespace = "^islet-installer$" }, no_anim = true })
 hl.layer_rule({ name = "islet-taskmgr-noanim", match = { namespace = "^islet-taskmgr$" }, no_anim = true })
 hl.layer_rule({ name = "islet-settings-noanim", match = { namespace = "^islet-settings$" }, no_anim = true })
+hl.layer_rule({ name = "islet-search-noanim", match = { namespace = "^islet-search$" }, no_anim = true })
 hl.layer_rule({ name = "islet-snap-noanim", match = { namespace = "^islet-snap" }, no_anim = true })
 hl.layer_rule({ name = "islet-notifs-noanim", match = { namespace = "^islet-notifs$" }, no_anim = true })
 hl.layer_rule({ name = "islet-power-noanim",  match = { namespace = "^islet-power$" },     no_anim = true })
@@ -155,7 +156,7 @@ hl.layer_rule({ name = "islet-tabs-noanim",   match = { namespace = "^islet-tabs
 -- Kính mờ thật: nhoè phần phía sau dock, trung tâm điều khiển và widget đồng hồ.
 hl.layer_rule({
     name  = "islet-glass",
-    match = { namespace = "^islet-(dock|dockmenu|cc|tabs|launcher|power|taskmgr|installer|store|settings|notifs|snappicker)$" },
+    match = { namespace = "^islet-(dock|dockmenu|cc|tabs|launcher|power|taskmgr|installer|store|settings|notifs|snappicker|search)$" },
     blur  = true,
     ignore_alpha = 0.05,
 })
@@ -181,16 +182,19 @@ hl.bind(mod .. " + SHIFT + M", hl.dsp.exec_cmd("hyprctl dispatch 'hl.dsp.exit()'
 -- Island
 hl.bind(mod .. " + I", hl.dsp.exec_cmd(qs .. " ipc call island toggle"))
 hl.bind(mod .. " + A", hl.dsp.exec_cmd(qs .. " ipc call cc toggle"))
-hl.bind(mod .. " + space", hl.dsp.exec_cmd(qs .. " ipc call launcher toggle"))
+hl.bind(mod .. " + space", hl.dsp.exec_cmd(qs .. " ipc call search toggle"))
+hl.bind(mod .. " + SHIFT + space", hl.dsp.exec_cmd(qs .. " ipc call launcher toggle"))
 hl.bind("CTRL + SHIFT + Escape", hl.dsp.exec_cmd(qs .. " ipc call taskmgr toggle"))
 hl.bind(mod .. " + L",         hl.dsp.exec_cmd(qs .. " ipc call lock lock"))
 hl.bind(mod .. " + SHIFT + N", hl.dsp.exec_cmd(qs .. " ipc call notifs toggle"))
 hl.bind(mod .. " + comma",     hl.dsp.exec_cmd(qs .. " ipc call settings toggle"))
 
--- Chụp màn hình (Print: cả màn hình, Shift+Print: chọn vùng); island báo khi xong.
-local shot = 'f=~/Pictures/islet-$(date +%Y%m%d-%H%M%S).png; mkdir -p ~/Pictures; '
-hl.bind("Print",         hl.dsp.exec_cmd("sh -c '" .. shot .. "grim \"$f\" && notify-send -a \"Screenshot\" \"Saved\" \"$f\"'"))
-hl.bind("SHIFT + Print", hl.dsp.exec_cmd("sh -c '" .. shot .. "grim -g \"$(slurp)\" \"$f\" && notify-send -a \"Screenshot\" \"Saved\" \"$f\"'"))
+-- Chụp màn hình: Print = cả màn hình (chép + lưu) · Shift+Print / Super+Shift+S = chọn vùng rồi vẽ (Satty)
+hl.bind("Print",              hl.dsp.exec_cmd("islet-shot full"))
+hl.bind("SHIFT + Print",      hl.dsp.exec_cmd("islet-shot area"))
+hl.bind(mod .. " + SHIFT + S", hl.dsp.exec_cmd("islet-shot area"))
+-- Quay màn hình: Super+Shift+R (chọn vùng, Esc = cả màn hình); bấm island để dừng
+hl.bind(mod .. " + SHIFT + R", hl.dsp.exec_cmd(qs .. " ipc call recorder toggle"))
 
 hl.bind(mod .. " + ALT + left", hl.dsp.focus({ direction = "left" }))
 hl.bind(mod .. " + ALT + right", hl.dsp.focus({ direction = "right" }))

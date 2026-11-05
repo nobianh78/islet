@@ -21,9 +21,52 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 8
 
+        // --- hoạt động trực tiếp (thay cột ngày): quay màn hình > đồng hồ > tải file ---
+        Row {
+            id: live
+            readonly property string kind: Recorder.recording ? "rec" : Chrono.active ? "timer" : Downloads.active ? "dl" : ""
+            visible: root.mode === "idle" && kind !== ""
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 8
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 22; height: 22; radius: 11
+                color: live.kind === "rec" ? Qt.rgba(1, 0.27, 0.27, 0.2) : live.kind === "timer" ? Theme.tint(0.25) : Qt.rgba(0.36, 0.55, 1, 0.22)
+                Rectangle {
+                    visible: live.kind === "rec"
+                    anchors.centerIn: parent
+                    width: 10; height: 10; radius: 5
+                    color: "#FF453A"
+                    SequentialAnimation on opacity {
+                        loops: Animation.Infinite; running: live.kind === "rec"
+                        NumberAnimation { to: 0.35; duration: 600; easing.type: Easing.InOutSine }
+                        NumberAnimation { to: 1; duration: 600; easing.type: Easing.InOutSine }
+                    }
+                }
+                Icon { visible: live.kind !== "rec"; anchors.centerIn: parent; name: live.kind === "timer" ? "timer" : "download"; size: 13 }
+            }
+            Column {
+                anchors.verticalCenter: parent.verticalCenter
+                Text {
+                    text: live.kind === "rec" ? "Recording" : live.kind === "timer" ? (Chrono.phase || (Chrono.mode === "stopwatch" ? "Stopwatch" : "Timer"))
+                        : (Downloads.top?.name ?? "")
+                    width: Math.min(implicitWidth, 150); elide: Text.ElideMiddle
+                    color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 10; font.weight: Font.ExtraBold; font.letterSpacing: 0.3
+                }
+                Text {
+                    text: live.kind === "rec" ? Recorder.text : live.kind === "timer" ? Chrono.text
+                        : Downloads.human(Downloads.top?.size ?? 0) + (Downloads.top?.speed ? " · " + Downloads.human(Downloads.top.speed) + "/s" : "")
+                        + (Downloads.items.length > 1 ? "  +" + (Downloads.items.length - 1) : "")
+                    color: live.kind === "rec" ? "#FF6961" : live.kind === "timer" ? Qt.lighter(Theme.accent, 1.3) : "#E5E5EA"
+                    font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Bold
+                    font.features: ({ "tnum": 1 })
+                }
+            }
+        }
+
         // --- idle: cột ngày ---
         Column {
-            visible: root.mode === "idle"
+            visible: root.mode === "idle" && live.kind === ""
             anchors.verticalCenter: parent.verticalCenter
             Text {
                 text: Time.weekdayUpper
@@ -88,6 +131,17 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         width: (root.mode === "idle" ? clock.implicitWidth + 4 : eq.width) + (agentPill.visible ? agentPill.width + 8 : 0)
         height: parent.height
+
+        // micro (cam) / camera (xanh) đang được dùng — chấm nhỏ góc trên như iPhone
+        Row {
+            anchors.right: parent.right
+            anchors.rightMargin: -6
+            anchors.top: parent.top
+            anchors.topMargin: 5
+            spacing: 3
+            Rectangle { visible: Privacy.camera; width: 6; height: 6; radius: 3; color: "#30D158" }
+            Rectangle { visible: Privacy.mic; width: 6; height: 6; radius: 3; color: "#FF9F0A" }
+        }
 
         // agent lập trình đang chạy: icon agent + vòng quay (đang làm) / chấm cam nhấp nháy (cần bạn)
         Item {

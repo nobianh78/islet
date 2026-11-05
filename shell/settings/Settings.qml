@@ -4,6 +4,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Services.Pipewire
+import Quickshell.Bluetooth
 import "../theme"
 import "../services"
 import "../common"
@@ -34,7 +35,10 @@ PanelWindow {
         { id: "accent",    label: "Accent color",   icon: "sparkle",  tint: "#FF6B97" },
         { id: "wifi",      label: "Wi-Fi",      icon: "wifi",     tint: "#3B8BFF" },
         { id: "sound",     label: "Sound",   icon: "volume",   tint: "#FF5C7A" },
+        { id: "bluetooth", label: "Bluetooth",  icon: "bluetooth", tint: "#3B8BFF" },
         { id: "display",   label: "Displays",   icon: "sun",      tint: "#FFB547" },
+        { id: "account",   label: "Account",    icon: "user",     tint: "#34C77B" },
+        { id: "updates",   label: "Updates",    icon: "download", tint: "#5B8CFF" },
         { id: "about",     label: "About", icon: "islet",    tint: "#8B7CFF" }
     ]
 
@@ -45,6 +49,10 @@ PanelWindow {
         if (page === "wifi") wifi.refresh(true);
         if (page === "display") mons.running = true;
         if (page === "about") about.running = true;
+        if (page === "updates" && Date.now() - Updates.lastCheck > 10 * 60 * 1000) Updates.check();
+        if (page === "account") gecos.running = true;
+        if (page === "bluetooth" && win.bt && win.bt.enabled) win.bt.discovering = true;
+        if (page !== "bluetooth" && win.bt && win.bt.discovering) win.bt.discovering = false;
     }
 
     HyprlandFocusGrab {
@@ -159,6 +167,62 @@ PanelWindow {
             wst.running = true; wlist.running = true; Net.refresh();
         }
     }
+
+    // Bluetooth
+    readonly property var bt: Bluetooth.defaultAdapter
+    readonly property var btDevices: (bt?.devices?.values ?? []).slice().sort((a, b) =>
+        (b.connected - a.connected) || (b.paired - a.paired) || ((a.name || "").localeCompare(b.name || "")))
+    function btIcon(d) {
+        const i = (d.icon || "") + " " + (d.name || "").toLowerCase();
+        if (/headset|headphone|audio|earbud|airpods|buds|speaker/.test(i)) return "headphones";
+        if (/mouse/.test(i)) return "mouse";
+        if (/keyboard/.test(i)) return "keyboard";
+        if (/phone/.test(i)) return "phone";
+        return "device";
+    }
+
+    // Tài khoản
+    readonly property string userName: Quickshell.env("USER") || ""
+    property string fullName: ""
+    Process {
+        id: gecos
+        command: ["sh", "-c", "getent passwd \"$USER\" | cut -d: -f5 | cut -d, -f1"]
+        stdout: StdioCollector { onStreamFinished: win.fullName = text.trim() }
+    }
+    property string pwMsg: ""
+    property bool pwOk: false
+    property bool pwBusy: false
+    function changePassword(oldPw, newPw, again) {
+        pwOk = false;
+        if (newPw.length < 4) { pwMsg = "The new password needs at least 4 characters"; return; }
+        if (newPw !== again) { pwMsg = "The new passwords don't match"; return; }
+        pwBusy = true; pwMsg = "";
+        // xác minh mật khẩu hiện tại một lần qua PAM; đúng rồi mới đổi bằng sudo + chpasswd
+        Auth.verify(oldPw, ok => {
+            if (!ok) { win.pwBusy = false; win.pwMsg = "Current password is wrong"; return; }
+            chpw.input = oldPw + "\n" + userName + ":" + newPw + "\n";
+            chpw.running = true;
+        });
+    }
+    Process {
+        id: chpw
+        property string input: ""
+        // sudo đọc dòng 1 (mật khẩu hiện tại = xác minh đúng người), chpasswd đọc dòng 2
+        command: ["sudo", "-S", "-p", "", "chpasswd"]
+        stdinEnabled: true
+        onStarted: { write(input); input = ""; stdinEnabled = false; }
+        stderr: StdioCollector { id: chpwErr }
+        onExited: code => {
+            stdinEnabled = true;
+            win.pwBusy = false;
+            win.pwOk = code === 0;
+            win.pwMsg = code === 0 ? "Password changed" : /incorrect|Sorry/i.test(chpwErr.text) ? "Current password is wrong" : "Couldn't change the password";
+            if (code === 0) { oldPw.text = ""; newPw.text = ""; newPw2.text = ""; }
+        }
+    }
+
+    property string upPwErr: ""
+    Connections { target: Packages; function onPasswordRejected() { win.upPwErr = "Wrong password"; } }
 
     // Âm thanh
     readonly property var sinks: Pipewire.nodes.values.filter(n => n.audio && n.isSink && !n.isStream)
@@ -787,6 +851,323 @@ PanelWindow {
                     }
                 }
 
+                // ================= BLUETOOTH =================
+                Column {
+                    visible: win.page === "bluetooth"
+                    width: parent.width
+                    spacing: 12
+
+                    Card {
+                        visible: !win.bt
+                        width: parent.width
+                        height: 84
+                        Rectangle {
+                            x: 18; anchors.verticalCenter: parent.verticalCenter
+                            width: 44; height: 44; radius: 14
+                            color: Qt.rgba(1, 1, 1, 0.08)
+                            Icon { anchors.centerIn: parent; name: "bluetooth"; size: 20; opacity: 0.6 }
+                        }
+                        Column {
+                            x: 76; anchors.verticalCenter: parent.verticalCenter
+                            Text { text: "No Bluetooth adapter"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                            Text { text: "This computer has no Bluetooth, or it is turned off in the firmware"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                        }
+                    }
+
+                    Card {
+                        visible: !!win.bt
+                        width: parent.width
+                        height: 64
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Bluetooth"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                        Text {
+                            anchors.right: btsw.left; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
+                            text: !win.bt ? "" : !win.bt.enabled ? "Off" : win.bt.discovering ? "Searching…" : "On · " + (win.bt.name || "")
+                            color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                        }
+                        Toggle {
+                            id: btsw
+                            anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
+                            checked: win.bt?.enabled ?? false
+                            onToggled: { if (win.bt) { win.bt.enabled = !win.bt.enabled; if (win.bt.enabled) btScan.restart(); } }
+                        }
+                        Timer { id: btScan; interval: 1200; onTriggered: if (win.bt && win.bt.enabled) win.bt.discovering = true }
+                    }
+
+                    Row {
+                        visible: !!win.bt && win.bt.enabled
+                        width: parent.width
+                        SectionLabel { text: "Devices"; width: parent.width - 90 }
+                        Text {
+                            width: 90; horizontalAlignment: Text.AlignRight
+                            text: win.bt?.discovering ? "Stop" : "Search"
+                            color: Qt.lighter(Theme.accent, 1.25); font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: if (win.bt) win.bt.discovering = !win.bt.discovering }
+                        }
+                    }
+
+                    Card {
+                        visible: !!win.bt && win.bt.enabled
+                        width: parent.width
+                        height: btCol.implicitHeight + 8
+                        Column {
+                            id: btCol
+                            y: 4
+                            width: parent.width
+                            Text {
+                                visible: win.btDevices.length === 0
+                                leftPadding: 18; topPadding: 14; bottomPadding: 14
+                                text: "Looking for devices… put your headphones or mouse in pairing mode"
+                                color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                            }
+                            Repeater {
+                                model: win.btDevices
+                                Rectangle {
+                                    id: dev
+                                    required property var modelData
+                                    readonly property bool busy: modelData.pairing || modelData.state === BluetoothDeviceState.Connecting || modelData.state === BluetoothDeviceState.Disconnecting
+                                    width: btCol.width
+                                    height: 54
+                                    radius: 14
+                                    color: dm2.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+                                    MouseArea { id: dm2; anchors.fill: parent; hoverEnabled: true }
+                                    Rectangle {
+                                        x: 14; anchors.verticalCenter: parent.verticalCenter
+                                        width: 34; height: 34; radius: 11
+                                        color: dev.modelData.connected ? Theme.tint(0.3) : Qt.rgba(1, 1, 1, 0.08)
+                                        Icon { anchors.centerIn: parent; name: win.btIcon(dev.modelData); size: 17 }
+                                    }
+                                    Column {
+                                        x: 60; anchors.verticalCenter: parent.verticalCenter
+                                        width: parent.width - 60 - btAct.width - 24
+                                        Text { width: parent.width; elide: Text.ElideRight; text: dev.modelData.name || dev.modelData.address; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: dev.modelData.connected ? Font.DemiBold : Font.Normal }
+                                        Text {
+                                            text: dev.modelData.pairing ? "Pairing…"
+                                                : dev.modelData.state === BluetoothDeviceState.Connecting ? "Connecting…"
+                                                : dev.modelData.connected ? "Connected" + (dev.modelData.batteryAvailable ? " · battery " + Math.round(dev.modelData.battery * 100) + "%" : "")
+                                                : dev.modelData.paired ? "Paired" : "Not paired"
+                                            color: dev.modelData.connected ? Qt.lighter(Theme.accent, 1.3) : "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                                        }
+                                    }
+                                    Row {
+                                        id: btAct
+                                        anchors.right: parent.right; anchors.rightMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 6
+                                        Pill {
+                                            visible: !dev.busy
+                                            label: dev.modelData.connected ? "Disconnect" : dev.modelData.paired ? "Connect" : "Pair"
+                                            primary: !dev.modelData.connected
+                                            onClicked: {
+                                                const d = dev.modelData;
+                                                if (d.connected) d.disconnect();
+                                                else if (d.paired) d.connect();
+                                                else { d.trusted = true; d.pair(); }
+                                            }
+                                        }
+                                        Pill {
+                                            visible: dev.modelData.paired && !dev.busy && dm2.containsMouse
+                                            label: "Forget"
+                                            onClicked: dev.modelData.forget()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ================= TÀI KHOẢN =================
+                Column {
+                    visible: win.page === "account"
+                    width: parent.width
+                    spacing: 12
+
+                    Card {
+                        width: parent.width
+                        height: 88
+                        Image {
+                            x: 18; anchors.verticalCenter: parent.verticalCenter
+                            width: 56; height: 56
+                            sourceSize: Qt.size(112, 112)
+                            source: Qt.resolvedUrl("../assets/brand/cat.svg")
+                        }
+                        Column {
+                            x: 88; anchors.verticalCenter: parent.verticalCenter
+                            Text { text: win.fullName || win.userName; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.DemiBold }
+                            Text { text: win.userName + " · administrator"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                        }
+                    }
+
+                    SectionLabel { text: "Sign-in" }
+                    Card {
+                        width: parent.width
+                        height: 64
+                        Column {
+                            x: 18; anchors.verticalCenter: parent.verticalCenter
+                            Text { text: "Lock screen at startup"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                            Text { text: "Ask for your password every time the computer starts"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                        }
+                        Toggle { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: Prefs.lockOnBoot; onToggled: Prefs.set("lockOnBoot", !Prefs.lockOnBoot) }
+                    }
+
+                    SectionLabel { text: "Change password" }
+                    Card {
+                        width: parent.width
+                        height: pwCol.implicitHeight + 32
+                        Column {
+                            id: pwCol
+                            x: 18; y: 16
+                            width: parent.width - 36
+                            spacing: 10
+                            PwField { id: oldPw; width: parent.width; hint: "Current password" }
+                            PwField { id: newPw; width: parent.width; hint: "New password" }
+                            PwField { id: newPw2; width: parent.width; hint: "Confirm new password"; onAccepted: win.changePassword(oldPw.text, newPw.text, newPw2.text) }
+                            Row {
+                                spacing: 12
+                                Pill { label: win.pwBusy ? "Changing…" : "Change password"; primary: true; onClicked: if (!win.pwBusy) win.changePassword(oldPw.text, newPw.text, newPw2.text) }
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: win.pwMsg
+                                    color: win.pwOk ? "#34C77B" : "#FF8A8A"
+                                    font.family: Theme.font; font.pixelSize: 12
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ================= CẬP NHẬT =================
+                Column {
+                    visible: win.page === "updates"
+                    width: parent.width
+                    spacing: 12
+
+                    Card {
+                        width: parent.width
+                        height: upCol.implicitHeight + 36
+                        Column {
+                            id: upCol
+                            x: 18; y: 18
+                            width: parent.width - 36
+                            spacing: 12
+                            Row {
+                                width: parent.width
+                                spacing: 14
+                                Rectangle {
+                                    width: 46; height: 46; radius: 15
+                                    color: Updates.count > 0 || Updates.running ? Theme.tint(0.25) : Qt.rgba(0.2, 0.78, 0.48, 0.2)
+                                    Icon {
+                                        anchors.centerIn: parent
+                                        name: Updates.count > 0 || Updates.running ? "download" : "check"
+                                        size: 22
+                                        color: Updates.count > 0 || Updates.running ? Qt.lighter(Theme.accent, 1.3) : "#34C77B"
+                                    }
+                                }
+                                Column {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width - 60 - upBtn.width - 14
+                                    Text {
+                                        text: Updates.running ? "Updating…"
+                                            : Updates.checking ? "Checking for updates…"
+                                            : Updates.count > 0 ? Updates.count + (Updates.count === 1 ? " update available" : " updates available")
+                                            : "Islet is up to date"
+                                        color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold
+                                    }
+                                    Text {
+                                        width: parent.width
+                                        elide: Text.ElideRight
+                                        text: Updates.running ? Packages.stepText
+                                            : Updates.error ? Updates.error
+                                            : Updates.lastCheck ? "Last checked " + Qt.formatTime(new Date(Updates.lastCheck), "HH:mm") : "Not checked yet"
+                                        color: Updates.error ? "#FF8A8A" : "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                                    }
+                                }
+                                Pill {
+                                    id: upBtn
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    visible: !Updates.running
+                                    label: Updates.count > 0 ? "Update now" : Updates.checking ? "Checking…" : "Check now"
+                                    primary: Updates.count > 0
+                                    onClicked: Updates.count > 0 ? Updates.upgrade() : Updates.check()
+                                }
+                            }
+                            // thanh tiến trình
+                            Rectangle {
+                                visible: Updates.running
+                                width: parent.width; height: 8; radius: 4
+                                color: Qt.rgba(1, 1, 1, 0.12)
+                                Rectangle {
+                                    height: parent.height; radius: 4
+                                    width: Math.max(8, parent.width * Packages.pct / 100)
+                                    color: Theme.accent
+                                    Behavior on width { SpringAnimation { spring: 3; damping: 0.5 } }
+                                }
+                            }
+                            // mật khẩu (sudo cần mật khẩu)
+                            Row {
+                                visible: Packages.askPassword && Updates.running
+                                spacing: 10
+                                PwField { id: upPw; width: 260; hint: "Your password"; onAccepted: { win.upPwErr = ""; Packages.submitPassword(text); } }
+                                Pill { label: "Continue"; primary: true; onClicked: { win.upPwErr = ""; Packages.submitPassword(upPw.text); } }
+                                Pill { label: "Cancel"; onClicked: { win.upPwErr = ""; Packages.cancelPassword(); } }
+                                Text { anchors.verticalCenter: parent.verticalCenter; text: win.upPwErr; color: "#FF8A8A"; font.family: Theme.font; font.pixelSize: 12 }
+                            }
+                        }
+                    }
+
+                    // khởi động lại sau khi cập nhật nhân / systemd / driver
+                    Rectangle {
+                        visible: Updates.needsReboot && !Updates.running
+                        width: parent.width; height: 58; radius: 16
+                        color: Theme.tint(0.16)
+                        border.width: 1; border.color: Theme.tint(0.45)
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Restart to finish installing the new system core"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                        Pill { anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter; label: "Restart"; primary: true; onClicked: Quickshell.execDetached(["systemctl", "reboot"]) }
+                    }
+
+                    SectionLabel { text: "What's new"; visible: Updates.count > 0 }
+                    Card {
+                        visible: Updates.count > 0
+                        width: parent.width
+                        height: Math.min(upList.implicitHeight, 300) + 8
+                        clip: true
+                        Flickable {
+                            y: 4
+                            width: parent.width
+                            height: parent.height - 8
+                            contentHeight: upList.implicitHeight
+                            boundsBehavior: Flickable.StopAtBounds
+                            Column {
+                                id: upList
+                                width: parent.width
+                                Repeater {
+                                    model: Updates.list
+                                    Item {
+                                        required property var modelData
+                                        width: upList.width
+                                        height: 38
+                                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData.name; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                                        Rectangle {
+                                            visible: parent.modelData.aur
+                                            x: 18 + nameW.implicitWidth + 8; anchors.verticalCenter: parent.verticalCenter
+                                            width: 34; height: 18; radius: 9
+                                            color: Qt.rgba(1, 0.71, 0.28, 0.18)
+                                            Text { anchors.centerIn: parent; text: "AUR"; color: "#FFB547"; font.family: Theme.font; font.pixelSize: 9; font.weight: Font.Bold }
+                                            Text { id: nameW; visible: false; text: parent.parent.modelData.name; font.family: Theme.font; font.pixelSize: 13 }
+                                        }
+                                        Text {
+                                            anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter
+                                            text: parent.modelData.from + "  →  " + parent.modelData.to
+                                            color: "#8E8E93"; font.family: Theme.mono; font.pixelSize: 11
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Hint { text: "Islet checks for updates every few hours and lets you know on the island. Updating needs an internet connection." }
+                }
+
                 // ================= GIỚI THIỆU =================
                 Column {
                     visible: win.page === "about"
@@ -866,6 +1247,30 @@ PanelWindow {
         color: Qt.rgba(1, 1, 1, 0.05)
         border.width: 1
         border.color: Qt.rgba(1, 1, 1, 0.05)
+    }
+    component PwField: Rectangle {
+        id: pf
+        property string hint: ""
+        property alias text: pfIn.text
+        signal accepted()
+        height: 36; radius: 12
+        color: Qt.rgba(1, 1, 1, 0.08)
+        border.width: 1
+        border.color: pfIn.activeFocus ? Theme.tint(0.7) : Qt.rgba(1, 1, 1, 0.1)
+        TextInput {
+            id: pfIn
+            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
+            verticalAlignment: TextInput.AlignVCenter
+            echoMode: TextInput.Password
+            color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13
+            Keys.onReturnPressed: pf.accepted()
+        }
+        Text {
+            visible: pfIn.text === ""
+            anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter
+            text: pf.hint; color: "#636366"; font.family: Theme.font; font.pixelSize: 12
+        }
+        MouseArea { anchors.fill: parent; cursorShape: Qt.IBeamCursor; onClicked: pfIn.forceActiveFocus() }
     }
     component Toggle: Rectangle {
         id: tg

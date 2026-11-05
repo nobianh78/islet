@@ -9,8 +9,8 @@ Item {
     id: root
 
     property string tab: "calendar"
-    readonly property var order: ["calendar", "now", "clipboard", "agents"]
-    readonly property var labels: ({ calendar: "Calendar", now: "Now", clipboard: "Clipboard", agents: "Agents" })
+    readonly property var order: ["calendar", "now", "timer", "clipboard", "agents"]
+    readonly property var labels: ({ calendar: "Calendar", now: "Now", timer: "Timer", clipboard: "Clipboard", agents: "Agents" })
     readonly property real contentHeight: header.height + 10 + page.implicitHeight + 14 + 16
     readonly property color accent: Media.accent ?? "#30D158"
     property alias nowPage: nowPage
@@ -106,11 +106,13 @@ Item {
         width: parent.width - 36
         implicitHeight: root.tab === "calendar" ? calPage.implicitHeight
             : root.tab === "now" ? nowPage.implicitHeight
+            : root.tab === "timer" ? timerPage.implicitHeight
             : root.tab === "clipboard" ? clipPage.implicitHeight : agentsPage.implicitHeight
         height: implicitHeight
 
         CalendarPage { id: calPage; width: parent.width; visible: root.tab === "calendar" }
         NowPage { id: nowPage; width: parent.width; visible: root.tab === "now" }
+        TimerPage { id: timerPage; width: parent.width; visible: root.tab === "timer" }
         ClipboardPage { id: clipPage; width: parent.width; visible: root.tab === "clipboard" }
         AgentsPage { id: agentsPage; width: parent.width; visible: root.tab === "agents" }
 

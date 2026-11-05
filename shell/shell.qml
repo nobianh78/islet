@@ -17,6 +17,7 @@ import "lock"
 import "notifications"
 import "settings"
 import "snap"
+import "search"
 import "services"
 import "theme"
 
@@ -50,6 +51,7 @@ ShellRoot {
     LazyLoader { activeAsync: true; Settings {} }
     LazyLoader { activeAsync: true; NotifCenter {} }
     LazyLoader { activeAsync: true; Snap {} }
+    LazyLoader { activeAsync: true; Search {} }
 
     // áp màu nhấn / màn hình đã lưu vào Hyprland ngay khi shell chạy
     readonly property string hyprSync: HyprSync.file
@@ -96,6 +98,15 @@ ShellRoot {
     IpcHandler {
         target: "launcher"
         function toggle(): void { Ui.toggleLauncher(); }
+    }
+    IpcHandler {
+        target: "recorder"
+        function toggle(): void { if (Recorder.recording) Recorder.stop(); else Recorder.start(true); }
+        function full(): void { if (!Recorder.recording) Recorder.start(false); }
+    }
+    IpcHandler {
+        target: "search"
+        function toggle(): void { Ui.toggleSearch(); }
     }
     IpcHandler {
         target: "lock"

@@ -13,7 +13,7 @@ Item {
     readonly property var rows: Agents.sessions.slice().sort((a, b) => rank(a.state) - rank(b.state) || b.since - a.since)
     function rank(st) { return { attention: 0, working: 1, waiting: 2, done: 3, idle: 4 }[st] ?? 5; }
 
-    implicitHeight: list.length ? Math.min(col.implicitHeight, 270) : empty.implicitHeight
+    implicitHeight: rows.length ? Math.min(col.implicitHeight, 270) : empty.implicitHeight
 
     property real now: Date.now()
     Timer { interval: 1000; running: root.visible && root.rows.length > 0; repeat: true; onTriggered: root.now = Date.now() }

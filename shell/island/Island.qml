@@ -62,8 +62,9 @@ PanelWindow {
             return Math.max(200, toastMetrics.width + (banner.tile || banner.icon ? 74 : 44));
         }
         // có agent đang chạy → island nở thêm một chút để chừa chỗ cho icon agent
-        return (mode === "idle" ? 300 : 380) + (agentActive ? 30 : 0);
+        return (mode === "idle" ? 300 : 380) + (agentActive ? 30 : 0) + (liveActive && mode === "idle" ? 40 : 0);
     }
+    readonly property bool liveActive: Recorder.recording || Chrono.active || Downloads.active
     readonly property bool agentActive: Agents.sessions.some(x => x.state === "working" || x.state === "attention")
     readonly property real targetH: {
         if (view === "expanded") return Math.max(barH + 120, Math.min(360, Math.max(150, expandedView.contentHeight)));
@@ -223,6 +224,52 @@ PanelWindow {
             });
         }
     }
+    Connections { target: Ui; function onIslandOpenRequested(tab) { win.expand(tab); } }
+
+    // ---- hoạt động trực tiếp: hết giờ · quay xong · tải xong · micro/camera ----
+    Connections {
+        target: Chrono
+        function onDone(title, body) {
+            win.pushBanner({ kind: "notification", title: title, body: body, appName: "Timer", icon: "", duration: 9000,
+                             onClick: () => win.expand("timer") });
+        }
+    }
+    Connections {
+        target: Recorder
+        function onSaved(path) {
+            win.pushBanner({ kind: "notification", title: "Recording saved", body: path.split("/").pop(), appName: "Screen recording",
+                             icon: "", duration: 7000, onClick: () => Quickshell.execDetached(["xdg-open", path]) });
+        }
+    }
+    Connections {
+        target: Downloads
+        function onFinished(path, name) {
+            win.pushBanner({ kind: "notification", title: "Downloaded", body: name, appName: "Downloads", icon: "", duration: 6000,
+                             onClick: () => Quickshell.execDetached(["nautilus", "--select", path]) });
+        }
+    }
+    Connections {
+        target: Privacy
+        function onStarted(what, app) {
+            win.pushBanner({ kind: "toast", icon: what === "camera" ? "camera" : "mic", iconColor: what === "camera" ? "#30D158" : "#FF9F0A",
+                             text: app + " is using your " + what, duration: 2600 });
+        }
+    }
+
+    // có bản cập nhật hệ thống mới
+    Connections {
+        target: Updates
+        function onAvailable(n) {
+            if (Prefs.dnd) return;
+            win.pushBanner({
+                kind: "notification",
+                title: n === 1 ? "1 update available" : n + " updates available",
+                body: "Click to review and update Islet",
+                appName: "Updates", icon: "", duration: 8000,
+                onClick: () => Ui.openSettings("updates")
+            });
+        }
+    }
     // bấm một mục trong tab Clipboard → thu island để cửa sổ cũ nhận phím dán
     Connections {
         target: expandedView.clipPage
@@ -323,6 +370,8 @@ PanelWindow {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
                     if (win.banner) win.bannerClicked();
+                    else if (Recorder.recording && !win.expanded) Recorder.stop();
+                    else if (Chrono.active && !win.expanded) win.expand("timer");
                     else if (!win.expanded) win.expand("calendar");
                 }
             }
@@ -330,7 +379,7 @@ PanelWindow {
             // ---- các màn ----
             Fader {
                 shown: win.view === "compact"
-                width: (win.mode === "idle" ? 300 : 380) + (win.agentActive ? 30 : 0)
+                width: (win.mode === "idle" ? 300 : 380) + (win.agentActive ? 30 : 0) + (win.liveActive && win.mode === "idle" ? 40 : 0)
                 height: win.barH
                 CompactView {
                     id: compactView

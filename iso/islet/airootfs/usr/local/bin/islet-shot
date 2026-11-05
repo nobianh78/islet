@@ -1,0 +1,33 @@
+#!/bin/bash
+# Chụp màn hình Islet.
+#   islet-shot area   chọn vùng → mở Satty để vẽ mũi tên / làm mờ / viết chữ; Enter = chép + lưu
+#   islet-shot full   cả màn hình → chép vào clipboard + lưu
+# Ảnh lưu ở ~/Pictures/Screenshots; island báo khi xong.
+set -uo pipefail
+dir="$HOME/Pictures/Screenshots"; mkdir -p "$dir"
+f="$dir/islet-$(date +%Y%m%d-%H%M%S).png"
+
+case "${1:-area}" in
+full)
+    grim "$f" || exit 1
+    wl-copy --type image/png < "$f"
+    notify-send -a "Screenshot" -i "$f" "Screenshot copied" "Saved to Pictures/Screenshots"
+    ;;
+*)
+    g=$(slurp -d -b '#0A0A1499' -c '#8B7CFFee' -s '#8B7CFF22' -w 2 2>/dev/null) || exit 0
+    # cửa sổ Satty vừa với ảnh (+ thanh công cụ), không quá 92% màn hình
+    read -r gw gh <<<"$(sed -E 's/.* ([0-9]+)x([0-9]+)$/\1 \2/' <<<"$g")"
+    read -r sw sh <<<"$(hyprctl monitors -j 2>/dev/null | python3 -c 'import json,sys;m=[x for x in json.load(sys.stdin) if x.get("focused")][0];print(int(m["width"]/m["scale"]),int(m["height"]/m["scale"]))' 2>/dev/null || echo 1280 800)"
+    ww=$(( gw + 48 )); wh=$(( gh + 150 ))
+    [ $ww -lt 760 ] && ww=760; [ $wh -lt 420 ] && wh=420
+    [ $ww -gt $(( sw * 92 / 100 )) ] && ww=$(( sw * 92 / 100 )); [ $wh -gt $(( sh * 92 / 100 )) ] && wh=$(( sh * 92 / 100 ))
+    grim -g "$g" - | satty --filename - --output-filename "$f" \
+        --copy-command wl-copy --initial-tool arrow --resize "${ww}x${wh}" \
+        --actions-on-enter save-to-file,save-to-clipboard,exit --actions-on-escape exit \
+        --disable-notifications --corner-roundness 12 \
+        --font-family "Be Vietnam Pro" --app-id islet-shot --title "Screenshot"
+    if [ -f "$f" ]; then
+        notify-send -a "Screenshot" -i "$f" "Screenshot copied" "Saved to Pictures/Screenshots"
+    fi
+    ;;
+esac

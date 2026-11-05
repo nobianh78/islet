@@ -27,6 +27,7 @@ Singleton {
     property bool needPassword: false     // sudo cần mật khẩu (máy đã cài); bản live thì không
     property string password: ""
     property bool askPassword: false      // cửa hàng hiện hộp nhập mật khẩu
+    signal rebootNeeded()
     signal passwordRejected()
 
     signal finished(string pkg, string op, bool ok)
@@ -61,13 +62,17 @@ Singleton {
         if (busy(pkg)) return;
         const e = Object.assign({}, lastError); delete e[pkg]; lastError = e;
         queue = queue.concat([{ pkg: pkg, name: name, op: op, icon: icon || "", pkgs: pkgs && pkgs.length ? pkgs : [pkg] }]);
-        Ui.toast((op === "install" ? "Installing " : "Removing ") + name + "…", icon || "", "store");
+        Ui.toast((op === "upgrade" ? "Updating the system" : (op === "install" ? "Installing " : "Removing ") + name) + "…", icon || "", "store");
         pump();
     }
+    // kiểm tra một lần qua PAM rồi mới đưa cho sudo (xem Auth.qml: tránh bị faillock khoá vì sudo thử lại)
     function submitPassword(pw) {
-        password = pw;
-        askPassword = false;
-        pump();
+        Auth.verify(pw, ok => {
+            if (!ok) { root.passwordRejected(); return; }
+            password = pw;
+            askPassword = false;
+            pump();
+        });
     }
     function cancelPassword() {
         askPassword = false;
@@ -182,6 +187,8 @@ Singleton {
                     const sp = line.indexOf(" ", 9);
                     root.pct = parseInt(line.slice(9, sp));
                     root.stepText = line.slice(sp + 1);
+                } else if (line === "REBOOT") {
+                    root.rebootNeeded();
                 } else if (line.startsWith("ERROR ")) {
                     const e = Object.assign({}, root.lastError); e[root.current.pkg] = line.slice(6); root.lastError = e;
                 }
@@ -202,7 +209,8 @@ Singleton {
             if (!ok && !root.lastError[c.pkg]) {
                 const e = Object.assign({}, root.lastError); e[c.pkg] = "Failed (code " + code + ")"; root.lastError = e;
             }
-            Ui.toast(ok ? (c.op === "install" ? "Installed " : "Removed ") + c.name
+            if (c.op === "upgrade") Ui.toast(ok ? "System is up to date" : "System update failed", "", ok ? "store" : "error");
+            else Ui.toast(ok ? (c.op === "install" ? "Installed " : "Removed ") + c.name
                         : (c.op === "install" ? "Install " : "Remove ") + c.name + " failed", c.icon, ok ? "store" : "error");
             root.current = null;
             root.finished(c.pkg, c.op, ok);
