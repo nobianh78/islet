@@ -16,8 +16,38 @@ Singleton {
         claude:   { label: "Claude Code", icon: "claude-code" },
         codex:    { label: "Codex",       icon: "openai-codex" },
         gemini:   { label: "Gemini CLI",  icon: "gemini-cli" },
-        opencode: { label: "OpenCode",    icon: "opencode" }
+        opencode: { label: "OpenCode",    icon: "opencode" },
+        // app có giao diện riêng (agent chạy bên trong app) — nhận tin qua thông báo hệ thống của app
+        vscode:      { label: "VS Code",     icon: "visual-studio-code-bin", app: true, classes: ["code", "code-oss", "code-url-handler", "Code"] },
+        cursor:      { label: "Cursor",      icon: "cursor-bin",             app: true, classes: ["cursor", "Cursor"] },
+        antigravity: { label: "Antigravity", icon: "antigravity",            app: true, classes: ["antigravity", "Antigravity"] }
     })
+
+    // ---- app editor (VS Code / Code-OSS / Cursor / Antigravity): đọc thông báo của chính app ----
+    // Trả về true nếu thông báo là của agent trong editor (island hiện thông báo agent thay cho thông báo thường).
+    function editorOf(n) {
+        const id = ((n.desktopEntry || "") + " " + (n.appName || "")).toLowerCase();
+        if (/antigravity/.test(id)) return "antigravity";
+        if (/cursor/.test(id)) return "cursor";
+        if (/\bcode\b|code - oss|code-oss|visual studio code|vscodium|com\.visualstudio/.test(id)) return "vscode";
+        return "";
+    }
+    readonly property var askRe: /(confirm|approv|permission|allow|waiting for (your )?(input|approval|response)|needs? (your )?(input|attention|approval)|requires? (your )?(input|attention|approval)|run (this )?command\?)/i
+    readonly property var doneRe: /(finish|complet|done|ready|response (is )?(received|ready)|responded|has replied|task (is )?(done|over))/i
+    function fromNotification(n) {
+        const ed = editorOf(n);
+        if (!ed) return false;
+        const text = (n.summary || "") + " " + (n.body || "").replace(/<[^>]*>/g, " ");
+        const state = askRe.test(text) ? "attention" : doneRe.test(text) ? "done" : "";
+        if (!state) return false;                          // thông báo thường của editor (cập nhật, lỗi…) → để nguyên
+        const msg = (n.body || n.summary || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+        const s = upsert(x => x.key === "app:" + ed, {
+            key: "app:" + ed, agent: ed, app: true, state: state, message: msg, cwd: "",
+            pid: 0, pids: [], hooked: true, since: Date.now(), workedFrom: 0
+        });
+        if (state === "attention") attention(s); else finished(s);
+        return true;
+    }
     function label(a) { return meta[a]?.label ?? a; }
     function iconOf(a) { return Qt.resolvedUrl("../assets/store/" + (meta[a]?.icon ?? "claude-code") + ".png"); }
     function project(cwd) { const p = (cwd || "").replace(/\/+$/, ""); return p === Quickshell.env("HOME") ? "Home" : p.substring(p.lastIndexOf("/") + 1) || p; }
@@ -109,6 +139,10 @@ Singleton {
                         done.push(o);
                 }
                 // (phiên từ hook mà tiến trình đã thoát không có trong `out` → tự bị bỏ)
+                // phiên của app editor: giữ lại khi cửa sổ app còn mở
+                const wins = Hyprland.toplevels.values.map(w => w.lastIpcObject?.class ?? "");
+                for (const a of root.sessions.filter(x => x.app))
+                    if ((root.meta[a.agent]?.classes ?? []).some(c => wins.indexOf(c) >= 0)) out.push(a);
                 root.sessions = out;
                 for (const o of done) root.finished(o);
             }
@@ -135,7 +169,9 @@ Singleton {
     function focus(s) {
         Hyprland.refreshToplevels();
         const pids = s?.pids || [];
-        const t = Hyprland.toplevels.values.find(w => pids.indexOf(w.lastIpcObject?.pid) >= 0);
+        const classes = meta[s?.agent]?.classes ?? [];
+        const t = Hyprland.toplevels.values.find(w => pids.indexOf(w.lastIpcObject?.pid) >= 0)
+            ?? (s?.app ? Hyprland.toplevels.values.find(w => classes.indexOf(w.lastIpcObject?.class) >= 0) : null);
         if (!t) return false;
         if (Windows.isMinimized(t)) Windows.restore(t);
         else Windows.focusWin(t);

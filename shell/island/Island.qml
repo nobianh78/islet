@@ -181,6 +181,8 @@ PanelWindow {
     Connections {
         target: Notifs
         function onArrived(n) {
+            // thông báo từ agent trong VS Code / Cursor / Antigravity → hiện thành thông báo agent
+            if (Agents.fromNotification(n)) return;
             // Không làm phiền: chỉ lưu vào trung tâm thông báo (thông báo khẩn vẫn hiện)
             if (Prefs.dnd && n.urgency !== NotificationUrgency.Critical) return;
             win.pushBanner({
@@ -201,7 +203,7 @@ PanelWindow {
             win.pushBanner({
                 kind: "notification",
                 title: Agents.label(s.agent) + " needs you",
-                body: Agents.project(s.cwd) + (s.message ? " · " + s.message : " · waiting for approval"),
+                body: [Agents.project(s.cwd), s.message || "waiting for approval"].filter(x => x).join(" · "),
                 appName: "Agents", icon: Agents.iconOf(s.agent), duration: 12000, agentKey: s.key,
                 onClick: () => { if (!Agents.focus(s)) win.expand("agents"); }
             });
@@ -215,7 +217,7 @@ PanelWindow {
             win.pushBanner({
                 kind: "notification",
                 title: Agents.label(s.agent) + " finished",
-                body: Agents.project(s.cwd) + (s.message ? " · " + s.message : ""),
+                body: [Agents.project(s.cwd), s.message].filter(x => x).join(" · "),
                 appName: "Agents", icon: Agents.iconOf(s.agent), duration: 7000,
                 onClick: () => { if (!Agents.focus(s)) win.expand("agents"); }
             });

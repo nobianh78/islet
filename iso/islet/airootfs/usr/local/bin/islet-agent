@@ -285,6 +285,62 @@ def setup_gemini(remove=False):
     return "ok"
 
 
+# VS Code / Code-OSS / VSCodium: bật thông báo hệ thống của Copilot Chat (agent) khi cần xác nhận và khi trả lời
+# xong — Islet đọc các thông báo đó. Chỉ thêm khoá còn thiếu; file có chú thích (JSONC) thì không đụng.
+VSCODE_DIRS = ["Code", "Code - OSS", "VSCodium", "Code - Insiders"]
+VSCODE_KEYS = {"chat.notifyWindowOnConfirmation": True, "chat.notifyWindowOnResponseReceived": True}
+
+
+MANAGED = os.path.join(HOME, ".local", "share", "islet", "agent-setup.json")   # khoá Islet đã thêm (để gỡ đúng)
+
+
+def setup_vscode(remove=False):
+    try:
+        managed = json.load(open(MANAGED))
+    except Exception:
+        managed = {}
+    res = "skip"
+    for name in VSCODE_DIRS:
+        base = os.path.join(HOME, ".config", name)
+        if not os.path.isdir(base):
+            continue
+        path = os.path.join(base, "User", "settings.json")
+        try:
+            d = json.load(open(path)) if os.path.exists(path) else {}
+        except Exception:
+            res = "jsonc"      # có chú thích / dấu phẩy thừa → để bạn tự bật trong Settings
+            continue
+        if not isinstance(d, dict):
+            continue
+        mine = managed.get(path, [])
+        changed = False
+        if remove:
+            for k in mine:
+                if k in d:
+                    d.pop(k)
+                    changed = True
+            managed.pop(path, None)
+        else:
+            for k, v in VSCODE_KEYS.items():
+                if k not in d:
+                    d[k] = v
+                    mine = mine + [k]
+                    changed = True
+            managed[path] = mine
+        if changed:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            tmp = path + ".islet-tmp"
+            with open(tmp, "w") as f:
+                json.dump(d, f, indent=4)
+                f.write("\n")
+            os.replace(tmp, path)
+        if res != "jsonc":
+            res = "ok"
+    os.makedirs(os.path.dirname(MANAGED), exist_ok=True)
+    json.dump(managed, open(MANAGED, "w"), indent=1)
+    return res
+
+
 CODEX_LINE = 'notify = ["islet-agent", "hook", "codex"]'
 
 
@@ -444,7 +500,7 @@ def main():
         watch_opencode()
     elif a[0] in ("setup", "unsetup"):
         rm = a[0] == "unsetup"
-        print(json.dumps({"claude": setup_claude(rm), "codex": setup_codex(rm), "gemini": setup_gemini(rm),
+        print(json.dumps({"claude": setup_claude(rm), "codex": setup_codex(rm), "gemini": setup_gemini(rm), "vscode": setup_vscode(rm),
                           "opencode": setup_opencode(rm)}))
     else:
         sys.exit(2)
