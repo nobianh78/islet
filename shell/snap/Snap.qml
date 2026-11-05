@@ -8,7 +8,7 @@ import "../services"
 import "../common"
 
 // Xếp cửa sổ kiểu Windows 11 (phần hiển thị; logic kéo-thả nằm trong hypr/hyprland.lua):
-//   · khung xem trước khi kéo cửa sổ ra mép (islet-ipc snap show x y w h / hide)
+//   · khung xem trước khi kéo cửa sổ ra mép (islet-ipc snap preview x y w h / clear)
 //     — vẽ ở lớp Bottom: dưới cửa sổ, trên hình nền, giống Windows
 //   · lưới bố cục (Super+Z hoặc islet-ipc snap picker): bấm một ô → hyprctl eval islet_snap(...)
 Scope {
@@ -21,8 +21,8 @@ Scope {
 
     IpcHandler {
         target: "snap"
-        function show(x: int, y: int, w: int, h: int): void { root.target = Qt.rect(x, y, w, h); root.showing = true; }
-        function hide(): void { root.showing = false; }
+        function preview(x: int, y: int, w: int, h: int): void { root.target = Qt.rect(x, y, w, h); root.showing = true; }
+        function clear(): void { root.showing = false; }
         function picker(): void {
             root.pickAddr = Hyprland.activeToplevel?.lastIpcObject?.address ?? "";
             root.picker = root.pickAddr !== "" && !root.picker;
@@ -42,7 +42,7 @@ Scope {
         color: "transparent"
         focusable: false
         WlrLayershell.namespace: "islet-snap"
-        WlrLayershell.layer: WlrLayer.Bottom
+        WlrLayershell.layer: WlrLayer.Top
         visible: root.showing || box.opacity > 0.01
         mask: Region {}
 
@@ -58,18 +58,19 @@ Scope {
             Behavior on width { enabled: box.opacity > 0.05; SpringAnimation { spring: 5; damping: 0.36; epsilon: 0.3 } }
             Behavior on height { enabled: box.opacity > 0.05; SpringAnimation { spring: 5; damping: 0.36; epsilon: 0.3 } }
             radius: 18
-            color: Theme.tint(0.18)
+            color: Theme.tint(0.16)
             border.width: 2
-            border.color: Theme.tint(0.7)
+            border.color: Theme.tint(0.85)
             opacity: root.showing ? 1 : 0
             scale: root.showing ? 1 : 0.94
             Behavior on opacity { NumberAnimation { duration: 160 } }
             Behavior on scale { SpringAnimation { spring: 5; damping: 0.4; epsilon: 0.003 } }
+            // lớp màu trong suốt (không làm nhoè: cửa sổ đang kéo nằm ngay bên dưới)
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 2
                 radius: 16
-                color: Qt.rgba(1, 1, 1, 0.05)
+                color: Qt.rgba(1, 1, 1, 0.06)
             }
         }
     }

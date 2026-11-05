@@ -248,7 +248,8 @@ hl.window_rule({ name = "islet-float-all", match = { class = ".*" }, float = tru
 -- Xếp cửa sổ kiểu Windows 11 + giữ cửa sổ trong vùng làm việc
 --   · cửa sổ mới to quá vùng trống (trừ thanh trên + dock) → thu lại cho vừa, đặt giữa
 --   · kéo cửa sổ ra mép trái/phải = nửa màn hình, 4 góc = 1/4, mép trên = phóng to;
---     trong lúc kéo shell vẽ khung xem trước (islet-ipc snap show/hide)
+--     trong lúc kéo shell vẽ khung xem trước (islet-ipc snap preview/clear), CHỈ xếp khi thả chuột
+--     (bắt sự kiện thả chuột trái bằng bind release + non_consuming; Hyprland không có sự kiện "thả")
 --   · Super+←/→/↑ xếp nhanh, Super+↓ trả về cỡ cũ, Super+Z mở lưới bố cục
 --   · kéo cửa sổ đang xếp ra chỗ khác → về lại cỡ trước khi xếp
 -- ============================================================================
@@ -331,11 +332,11 @@ local function preview(z, m)
     if z == drag.shown then return end
     drag.shown = z
     if not z or not m then
-        hl.exec_cmd("islet-ipc snap hide")
+        hl.exec_cmd("islet-ipc snap clear")
         return
     end
     local g = zoneRect(z, workarea(m))
-    hl.exec_cmd(string.format("islet-ipc snap show %d %d %d %d", math.floor(g[1]), math.floor(g[2]), math.floor(g[3]), math.floor(g[4])))
+    hl.exec_cmd(string.format("islet-ipc snap preview %d %d %d %d", math.floor(g[1]), math.floor(g[2]), math.floor(g[3]), math.floor(g[4])))
 end
 
 hl.timer(function()
@@ -373,17 +374,22 @@ hl.timer(function()
         local m = hl.get_monitor_at_cursor() or w.monitor
         drag.zone = zoneAt(m, hl.get_cursor_pos())
         preview(drag.zone, m)
-    elseif drag.moving then
-        drag.still = drag.still + 1
-        -- con trỏ đứng yên ~0.25 s = đã thả chuột
-        if drag.still >= 6 then
-            drag.moving = false
-            local z = drag.zone
-            preview(nil)
-            if z then islet_snap(z, w.address) end
-        end
     end
 end, { timeout = 40, type = "repeat" })
+
+-- thả chuột trái (kéo thanh tiêu đề hoặc Super+kéo) → nếu đang ở vùng xếp thì xếp
+local function onRelease()
+    if drag.moving and drag.zone and drag.addr then
+        local z, addr = drag.zone, drag.addr
+        preview(nil)
+        islet_snap(z, addr)
+    else
+        preview(nil)
+    end
+    drag.moving, drag.zone = false, nil
+end
+hl.bind("mouse:272", onRelease, { release = true, non_consuming = true })
+hl.bind(mod .. " + mouse:272", onRelease, { release = true, non_consuming = true })
 
 -- cửa sổ mới to quá vùng làm việc → thu lại, đặt giữa (không chui dưới thanh trên / dock)
 hl.on("window.open", function(w)
