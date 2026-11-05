@@ -15,6 +15,8 @@ Item {
     readonly property color accent: Media.accent ?? "#30D158"
     property alias nowPage: nowPage
     property alias calendarPage: calPage
+    property alias clipPage: clipPage
+    property alias agentsPage: agentsPage
 
     signal tabSwitched(int dir)
 

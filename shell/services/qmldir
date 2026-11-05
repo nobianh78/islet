@@ -13,3 +13,5 @@ singleton Packages 1.0 Packages.qml
 singleton DockPins 1.0 DockPins.qml
 singleton HyprSync 1.0 HyprSync.qml
 singleton ThisPC 1.0 ThisPC.qml
+singleton Clipboard 1.0 Clipboard.qml
+singleton Agents 1.0 Agents.qml

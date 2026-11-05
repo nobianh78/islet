@@ -1,6 +1,7 @@
 import QtQuick
 import "../theme"
 import "../services"
+import "../common"
 
 // Island thu gọn (chuyển từ _buildCompact / _renderCompact):
 //   idle  : [THỨ TƯ / 4 tháng 11 ……… 20:45]
@@ -85,8 +86,49 @@ Item {
         anchors.right: parent.right
         anchors.rightMargin: 12
         anchors.verticalCenter: parent.verticalCenter
-        width: root.mode === "idle" ? clock.implicitWidth + 4 : eq.width
+        width: (root.mode === "idle" ? clock.implicitWidth + 4 : eq.width) + (agentPill.visible ? agentPill.width + 8 : 0)
         height: parent.height
+
+        // agent lập trình đang chạy: icon agent + vòng quay (đang làm) / chấm cam nhấp nháy (cần bạn)
+        Item {
+            id: agentPill
+            readonly property var s: Agents.sessions.find(x => x.state === "attention") ?? Agents.sessions.find(x => x.state === "working") ?? null
+            visible: s !== null
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            width: 22; height: 22
+            Rounded {
+                anchors.centerIn: parent
+                width: 16; height: 16
+                radius: 5
+                Image { anchors.fill: parent; source: agentPill.s ? Agents.iconOf(agentPill.s.agent) : ""; sourceSize: Qt.size(32, 32) }
+            }
+            Canvas {
+                id: spin
+                anchors.fill: parent
+                visible: agentPill.s?.state === "working"
+                property real a: 0
+                NumberAnimation on a { from: 0; to: Math.PI * 2; duration: 1000; loops: Animation.Infinite; running: spin.visible }
+                onAChanged: requestPaint()
+                onPaint: {
+                    const c = getContext("2d"); c.reset();
+                    c.lineWidth = 2; c.lineCap = "round"; c.strokeStyle = Theme.accent;
+                    c.beginPath(); c.arc(11, 11, 10, a, a + Math.PI); c.stroke();
+                }
+            }
+            Rectangle {
+                visible: agentPill.s?.state === "attention"
+                anchors.right: parent.right; anchors.top: parent.top
+                width: 8; height: 8; radius: 4
+                color: "#FFB547"
+                SequentialAnimation on opacity {
+                    loops: Animation.Infinite
+                    running: parent.visible
+                    NumberAnimation { to: 0.3; duration: 500 }
+                    NumberAnimation { to: 1; duration: 500 }
+                }
+            }
+        }
 
         RollingClock {
             id: clock

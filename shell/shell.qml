@@ -62,6 +62,7 @@ ShellRoot {
         target: "island"
         function toggle(): void { if (island) island.expanded = !island.expanded; }
         function test(kind: string): void { if (island) island.flash(kind, 3000); }
+        function open(tab: string): void { if (island) island.expand(tab); }
     }
     IpcHandler {
         target: "win"

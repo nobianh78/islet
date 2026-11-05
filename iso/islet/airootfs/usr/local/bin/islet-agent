@@ -1,0 +1,244 @@
+#!/usr/bin/env python3
+"""Cầu nối giữa các agent lập trình (Claude Code, Codex, Gemini CLI, OpenCode) và island của Islet.
+
+    islet-agent setup               nối Claude Code (hooks) và Codex (notify) với Islet — chạy lại thoải mái,
+                                    chỉ thêm phần của Islet, không đụng cấu hình khác của bạn
+    islet-agent hook claude         được Claude Code gọi (JSON sự kiện ở stdin)
+    islet-agent hook codex '<json>' được Codex gọi khi xong một lượt
+    islet-agent ps                  liệt kê agent đang chạy (JSON) — shell dùng để thấy cả agent không có hook
+    islet-agent unsetup             gỡ phần của Islet khỏi cấu hình Claude Code / Codex
+
+Hook không bao giờ in ra stdout (với Claude Code, stdout của UserPromptSubmit bị chèn vào ngữ cảnh) và
+luôn thoát 0 thật nhanh để không làm chậm agent.
+"""
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+
+HOME = os.path.expanduser("~")
+HOOK_CMD = "islet-agent hook claude"
+CLAUDE_EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "Notification", "Stop", "SessionEnd"]
+AGENTS = {  # tên tiến trình → agent
+    "claude": "claude", "codex": "codex", "gemini": "gemini", "opencode": "opencode",
+}
+
+
+# ---------------------------------------------------------------- tiện ích
+def ancestors(pid):
+    out = []
+    while pid > 1 and len(out) < 40:
+        out.append(pid)
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                pid = int(f.read().rsplit(")", 1)[1].split()[1])
+        except Exception:
+            break
+    return out
+
+
+def send(ev):
+    """Gửi sự kiện cho shell qua IPC; không chờ lâu, không bao giờ làm hỏng agent."""
+    try:
+        # chạy nền, tách khỏi agent: hook thoát ngay, agent không phải đợi
+        subprocess.Popen(["islet-ipc", "agents", "event", json.dumps(ev, ensure_ascii=False)],
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True)
+    except Exception:
+        pass
+
+
+def short(s, n=160):
+    s = re.sub(r"\s+", " ", str(s or "")).strip()
+    return s if len(s) <= n else s[: n - 1] + "…"
+
+
+# ---------------------------------------------------------------- hook
+def hook_claude():
+    try:
+        d = json.load(sys.stdin)
+    except Exception:
+        return
+    name = d.get("hook_event_name", "")
+    state, msg = None, ""
+    if name == "SessionStart":
+        state = "idle"
+    elif name in ("UserPromptSubmit", "PreToolUse", "PostToolUse"):
+        state = "working"
+        if name == "PreToolUse":
+            msg = d.get("tool_name", "")
+        elif name == "UserPromptSubmit":
+            msg = short(d.get("prompt", ""), 120)
+    elif name == "Notification":
+        kind = d.get("notification_type", "")
+        msg = short(d.get("message", ""))
+        if kind == "permission_prompt" or (not kind and "permission" in msg.lower()):
+            state = "attention"
+        elif kind == "idle_prompt":
+            state = "waiting"
+        else:
+            state = "attention" if "permission" in msg.lower() or "approve" in msg.lower() else "waiting"
+    elif name in ("Stop", "SubagentStop"):
+        state = "done" if name == "Stop" else None
+    elif name == "SessionEnd":
+        state = "end"
+    if not state:
+        return
+    send({"agent": "claude", "session": d.get("session_id", ""), "state": state, "cwd": d.get("cwd") or os.getcwd(),
+          "message": msg, "pids": ancestors(os.getppid())})
+
+
+def hook_codex(arg):
+    try:
+        d = json.loads(arg)
+    except Exception:
+        return
+    t = str(d.get("type", ""))
+    state = "attention" if "approval" in t else "done" if "complete" in t else None
+    if not state:
+        return
+    send({"agent": "codex", "session": str(d.get("thread-id") or d.get("thread_id") or ""), "state": state,
+          "cwd": d.get("cwd") or os.getcwd(), "message": short(d.get("last-assistant-message", "")),
+          "pids": ancestors(os.getppid())})
+
+
+# ---------------------------------------------------------------- ps
+def agent_of(pid):
+    try:
+        cmd = open(f"/proc/{pid}/cmdline", "rb").read().split(b"\0")
+    except Exception:
+        return None
+    args = [a.decode(errors="replace") for a in cmd if a]
+    if not args:
+        return None
+    for a in args[:3]:  # vd. "node /usr/bin/gemini", "/usr/bin/claude"
+        base = os.path.basename(a)
+        if base in AGENTS:
+            return AGENTS[base]
+        if "@anthropic-ai/claude-code" in a:
+            return "claude"
+        if "@google/gemini-cli" in a:
+            return "gemini"
+        if "@openai/codex" in a:
+            return "codex"
+    return None
+
+
+def ps():
+    found = {}
+    for p in os.listdir("/proc"):
+        if not p.isdigit():
+            continue
+        pid = int(p)
+        a = agent_of(pid)
+        if not a:
+            continue
+        try:
+            st = open(f"/proc/{pid}/stat").read().rsplit(")", 1)[1].split()
+            ppid, ticks = int(st[1]), int(st[11]) + int(st[12])
+            cwd = os.readlink(f"/proc/{pid}/cwd")
+        except Exception:
+            continue
+        found[pid] = {"pid": pid, "ppid": ppid, "agent": a, "ticks": ticks, "cwd": cwd}
+    # chỉ giữ tiến trình gốc của mỗi agent (bỏ tiến trình con cùng loại); cộng CPU của con vào gốc
+    out = []
+    for pid, f in found.items():
+        par = found.get(f["ppid"])
+        if par and par["agent"] == f["agent"]:
+            continue
+        kids = [k for k in found.values() if k["ppid"] == pid and k["agent"] == f["agent"]]
+        f["ticks"] += sum(k["ticks"] for k in kids)
+        f["pids"] = ancestors(pid)
+        out.append(f)
+    print(json.dumps(out))
+
+
+# ---------------------------------------------------------------- setup
+def setup_claude(remove=False):
+    path = os.path.join(HOME, ".claude", "settings.json")
+    if not remove and not (os.path.isdir(os.path.dirname(path)) or shutil.which("claude")):
+        return "skip"
+    try:
+        d = json.load(open(path)) if os.path.exists(path) else {}
+    except Exception:
+        return "unreadable"          # không đụng vào file hỏng / lạ
+    if not isinstance(d, dict):
+        return "unreadable"
+    hooks = d.setdefault("hooks", {})
+    changed = False
+    for ev in CLAUDE_EVENTS:
+        lst = hooks.get(ev, [])
+        mine = [e for e in lst if any(h.get("command", "").startswith(HOOK_CMD) for h in e.get("hooks", []))]
+        if remove:
+            if mine:
+                hooks[ev] = [e for e in lst if e not in mine]
+                if not hooks[ev]:
+                    del hooks[ev]
+                changed = True
+        elif not mine:
+            entry = {"hooks": [{"type": "command", "command": HOOK_CMD, "timeout": 5}]}
+            if ev == "PreToolUse":
+                entry["matcher"] = "*"
+            hooks[ev] = lst + [entry]
+            changed = True
+    if remove and not hooks:
+        d.pop("hooks", None)
+    if changed:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        if os.path.exists(path) and not os.path.exists(path + ".islet-backup"):
+            shutil.copy2(path, path + ".islet-backup")
+        tmp = path + ".islet-tmp"
+        with open(tmp, "w") as f:
+            json.dump(d, f, indent=2)
+            f.write("\n")
+        os.replace(tmp, path)
+    return "ok"
+
+
+CODEX_LINE = 'notify = ["islet-agent", "hook", "codex"]'
+
+
+def setup_codex(remove=False):
+    path = os.path.join(HOME, ".codex", "config.toml")
+    if not remove and not (os.path.isdir(os.path.dirname(path)) or shutil.which("codex")):
+        return "skip"
+    text = open(path).read() if os.path.exists(path) else ""
+    if remove:
+        if CODEX_LINE in text:
+            open(path, "w").write(text.replace(CODEX_LINE + "\n", "").replace(CODEX_LINE, ""))
+        return "ok"
+    if re.search(r"(?m)^\s*notify\s*=", text):
+        return "ok" if CODEX_LINE in text else "own-notify"   # bạn đã có notify riêng → giữ nguyên
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    # khoá cấp gốc phải nằm trước mọi [bảng] trong TOML → đặt lên đầu file
+    open(path, "w").write(CODEX_LINE + "\n" + text)
+    return "ok"
+
+
+def main():
+    a = sys.argv[1:]
+    if not a:
+        print(__doc__.strip(), file=sys.stderr)
+        sys.exit(2)
+    if a[0] == "hook":
+        try:
+            if a[1:2] == ["claude"]:
+                hook_claude()
+            elif a[1:2] == ["codex"]:
+                hook_codex(a[-1] if len(a) > 2 else "{}")
+        except Exception:
+            pass
+        sys.exit(0)
+    if a[0] == "ps":
+        ps()
+    elif a[0] in ("setup", "unsetup"):
+        rm = a[0] == "unsetup"
+        print(json.dumps({"claude": setup_claude(rm), "codex": setup_codex(rm)}))
+    else:
+        sys.exit(2)
+
+
+if __name__ == "__main__":
+    main()

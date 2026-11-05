@@ -61,8 +61,10 @@ PanelWindow {
             if (banner.kind === "osd") return 320;
             return Math.max(200, toastMetrics.width + (banner.tile || banner.icon ? 74 : 44));
         }
-        return mode === "idle" ? 300 : 380;
+        // có agent đang chạy → island nở thêm một chút để chừa chỗ cho icon agent
+        return (mode === "idle" ? 300 : 380) + (agentActive ? 30 : 0);
     }
+    readonly property bool agentActive: Agents.sessions.some(x => x.state === "working" || x.state === "attention")
     readonly property real targetH: {
         if (view === "expanded") return Math.max(barH + 120, Math.min(360, Math.max(150, expandedView.contentHeight)));
         if (flush) return barH;
@@ -122,6 +124,7 @@ PanelWindow {
         return true;
     }
     function bannerClicked() {
+        if (banner?.onClick) { const f = banner.onClick; endBanner(true); f(); return; }
         const n = banner?.notification;
         if (n) {
             const acts = n.actions ?? [];
@@ -190,6 +193,42 @@ PanelWindow {
                 duration: 5000
             });
         }
+    }
+    // ---- agent lập trình: cần bạn duyệt / xong việc ----
+    Connections {
+        target: Agents
+        function onAttention(s) {
+            win.pushBanner({
+                kind: "notification",
+                title: Agents.label(s.agent) + " needs you",
+                body: Agents.project(s.cwd) + (s.message ? " · " + s.message : " · waiting for approval"),
+                appName: "Agents", icon: Agents.iconOf(s.agent), duration: 12000, agentKey: s.key,
+                onClick: () => { if (!Agents.focus(s)) win.expand("agents"); }
+            });
+        }
+        function onResolved(s) {
+            if (win.banner?.agentKey === s.key) win.endBanner(true);
+            win.queue = win.queue.filter(b => b.agentKey !== s.key);
+        }
+        function onFinished(s) {
+            if (Prefs.dnd) return;
+            win.pushBanner({
+                kind: "notification",
+                title: Agents.label(s.agent) + " finished",
+                body: Agents.project(s.cwd) + (s.message ? " · " + s.message : ""),
+                appName: "Agents", icon: Agents.iconOf(s.agent), duration: 7000,
+                onClick: () => { if (!Agents.focus(s)) win.expand("agents"); }
+            });
+        }
+    }
+    // bấm một mục trong tab Clipboard → thu island để cửa sổ cũ nhận phím dán
+    Connections {
+        target: expandedView.clipPage
+        function onPicked() { win.collapse(); }
+    }
+    Connections {
+        target: expandedView.agentsPage
+        function onPicked() { win.collapse(); }
     }
     Connections {
         target: Audio
@@ -289,7 +328,7 @@ PanelWindow {
             // ---- các màn ----
             Fader {
                 shown: win.view === "compact"
-                width: win.mode === "idle" ? 300 : 380
+                width: (win.mode === "idle" ? 300 : 380) + (win.agentActive ? 30 : 0)
                 height: win.barH
                 CompactView {
                     id: compactView

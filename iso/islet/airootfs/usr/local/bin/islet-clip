@@ -1,0 +1,41 @@
+#!/bin/bash
+# Lịch sử clipboard cho Islet (tab Clipboard trên island). Shell chạy `islet-clip watch` và đọc từng dòng:
+#   T <base64 của chữ>          mục chữ mới (tối đa 64 KB)
+#   I <đường dẫn ảnh png>       mục ảnh mới (lưu ở ~/.cache/islet/clip)
+# Bỏ qua mục từ trình quản lý mật khẩu (KeePassXC, Bitwarden… gắn x-kde-passwordManagerHint).
+#
+#   islet-clip watch            theo dõi (chạy mãi)
+#   islet-clip copy-image <png> đặt ảnh lại vào clipboard
+set -uo pipefail
+DIR="${XDG_CACHE_HOME:-$HOME/.cache}/islet/clip"
+mkdir -p "$DIR"
+
+case "${1:-}" in
+watch)
+    exec wl-paste --watch "$0" _store
+    ;;
+_store)
+    # được wl-paste gọi mỗi lần clipboard đổi; nội dung nằm ở stdin
+    types=$(wl-paste --list-types 2>/dev/null)
+    if grep -q "x-kde-passwordManagerHint" <<<"$types"; then cat >/dev/null; exit 0; fi
+    if grep -q "^image/png" <<<"$types" && ! grep -q "^text/plain" <<<"$types"; then
+        cat >/dev/null
+        f="$DIR/$(date +%s%N).png"
+        wl-paste --type image/png > "$f" 2>/dev/null && [ -s "$f" ] && echo "I $f" || rm -f "$f"
+        # giữ tối đa 40 ảnh
+        ls -1t "$DIR"/*.png 2>/dev/null | tail -n +41 | xargs -r rm -f
+        exit 0
+    fi
+    if grep -qE "^(text/plain|UTF8_STRING|STRING|TEXT)" <<<"$types"; then
+        data=$(head -c 65536 | base64 -w0)
+        [ -n "$data" ] && echo "T $data"
+    else
+        cat >/dev/null
+    fi
+    ;;
+copy-image)
+    exec wl-copy --type image/png < "${2:?đường dẫn ảnh}"
+    ;;
+*)
+    echo "Usage: islet-clip watch | copy-image <png>" >&2; exit 2 ;;
+esac
