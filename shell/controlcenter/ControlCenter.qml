@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Bluetooth
+import Quickshell.Services.UPower
 import "../theme"
 import "../services"
 import "../common"
@@ -15,7 +16,7 @@ PanelWindow {
     anchors { top: true; right: true }
     margins { top: 50; right: 12 }
     implicitWidth: 340
-    implicitHeight: 420
+    implicitHeight: 560
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
     focusable: true
@@ -84,6 +85,30 @@ PanelWindow {
                     available: win.bt !== null
                     onColor: Theme.violet
                     onToggled: if (win.bt) win.bt.enabled = !win.bt.enabled
+                }
+            }
+
+            // Night Light · Tiết kiệm pin
+            Row {
+                width: parent.width
+                spacing: 12
+                Tile {
+                    width: (parent.width - 12) / 2
+                    icon: "moon"
+                    title: "Night Light"
+                    subtitle: NightLight.active ? (Prefs.nightMode === "schedule" ? "Until " + Prefs.nightTo : "On") : Prefs.nightMode === "schedule" ? "From " + Prefs.nightFrom : "Off"
+                    checked: NightLight.active
+                    onColor: "#FFB547"
+                    onToggled: NightLight.toggle()
+                }
+                Tile {
+                    width: (parent.width - 12) / 2
+                    icon: "bolt"
+                    title: "Battery saver"
+                    subtitle: PowerProfiles.profile === PowerProfile.PowerSaver ? "On" : PowerProfiles.profile === PowerProfile.Performance ? "Performance" : "Balanced"
+                    checked: PowerProfiles.profile === PowerProfile.PowerSaver
+                    onColor: "#34C77B"
+                    onToggled: PowerProfiles.profile = checked ? PowerProfile.Balanced : PowerProfile.PowerSaver
                 }
             }
 

@@ -18,6 +18,7 @@ import "notifications"
 import "settings"
 import "snap"
 import "search"
+import "overview"
 import "services"
 import "theme"
 
@@ -33,6 +34,7 @@ ShellRoot {
             id: perScreen
             required property var modelData
             Wallpaper { screen: perScreen.modelData }
+            DimOverlay { screen: perScreen.modelData }
             LazyLoader { activeAsync: true; Bar { screen: perScreen.modelData } }
             LazyLoader { activeAsync: true; Dock { screen: perScreen.modelData } }
             LazyLoader { activeAsync: true; FocusFrame { screen: perScreen.modelData } }
@@ -52,11 +54,15 @@ ShellRoot {
     LazyLoader { activeAsync: true; NotifCenter {} }
     LazyLoader { activeAsync: true; Snap {} }
     LazyLoader { activeAsync: true; Search {} }
+    LazyLoader { activeAsync: true; Overview {} }
 
     // áp màu nhấn / màn hình đã lưu vào Hyprland ngay khi shell chạy
     readonly property string hyprSync: HyprSync.file
     // giữ thư mục "This PC" của Files cập nhật (dung lượng ổ, USB)
     readonly property var thisPc: ThisPC
+    // chờ máy (tối / khoá / tắt màn hình / ngủ) + Night Light
+    readonly property var idle: Idle
+    readonly property var nightLight: NightLight
 
     // Điều khiển từ terminal hoặc phím tắt:
     //   qs -p shell ipc call island toggle
@@ -94,6 +100,7 @@ ShellRoot {
     IpcHandler {
         target: "power"
         function toggle(): void { Ui.togglePower(); }
+        function lid(closed: bool): void { Idle.lid(closed); }
     }
     IpcHandler {
         target: "launcher"

@@ -40,9 +40,32 @@ Singleton {
     property bool lockOnBoot: true         // bật máy xong vào màn hình khoá (nối tiếp màn hình khởi động)
     property var monitors: ({})        // tên màn hình → { mode: "1920x1080@60", scale: 1.25 }
 
+    // ---- nguồn điện & chờ máy (giây; 0 = không bao giờ) ----
+    property int dimAfter: 120
+    property int lockAfter: 300
+    property int screenOffAfter: 360
+    property int sleepAfterBattery: 900
+    property int sleepAfterAC: 0
+    property string lidAction: "sleep"      // sleep | lock | nothing
+    property bool autoSaver: true           // pin ≤ 20% → tự chuyển Tiết kiệm pin
+    // ---- Night Light ----
+    property string nightMode: "off"        // off | schedule | on
+    property string nightFrom: "19:00"
+    property string nightTo: "06:30"
+    property int nightTemp: 4200
+    // ---- chuột & touchpad ----
+    property bool naturalScroll: true
+    property bool tapToClick: true
+    property bool disableWhileTyping: true
+    property real pointerSpeed: 0           // -1 … 1
+    property real scrollSpeed: 1
+
     readonly property color accent: (accents.find(a => a.id === accentId) ?? accents[0]).color
     readonly property bool wallpaperIsImage: !wallpaper.startsWith("preset:")
     readonly property var preset: presets.find(p => "preset:" + p.id === wallpaper) ?? presets[0]
+
+    readonly property var simpleKeys: ["dimAfter", "lockAfter", "screenOffAfter", "sleepAfterBattery", "sleepAfterAC", "lidAction", "autoSaver",
+        "nightMode", "nightFrom", "nightTo", "nightTemp", "naturalScroll", "tapToClick", "disableWhileTyping", "pointerSpeed", "scrollSpeed"]
 
     function set(key, value) {
         root[key] = value;
@@ -70,6 +93,7 @@ Singleton {
                 if (typeof d.iconStyle === "string") root.iconStyle = d.iconStyle;
                 if (typeof d.lockOnBoot === "boolean") root.lockOnBoot = d.lockOnBoot;
                 if (d.monitors && typeof d.monitors === "object") root.monitors = d.monitors;
+                for (const k of root.simpleKeys) if (d[k] !== undefined && typeof d[k] === typeof root[k]) root[k] = d[k];
             } catch (e) {}
             root.loaded = true;
         }
@@ -78,6 +102,10 @@ Singleton {
     Timer {
         id: save
         interval: 250
-        onTriggered: file.setText(JSON.stringify({ accent: root.accentId, wallpaper: root.wallpaper, dnd: root.dnd, iconStyle: root.iconStyle, lockOnBoot: root.lockOnBoot, monitors: root.monitors }, null, 1))
+        onTriggered: {
+            const d = { accent: root.accentId, wallpaper: root.wallpaper, dnd: root.dnd, iconStyle: root.iconStyle, lockOnBoot: root.lockOnBoot, monitors: root.monitors };
+            for (const k of root.simpleKeys) d[k] = root[k];
+            file.setText(JSON.stringify(d, null, 1));
+        }
     }
 }

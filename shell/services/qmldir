@@ -21,3 +21,5 @@ singleton Chrono 1.0 Chrono.qml
 singleton Recorder 1.0 Recorder.qml
 singleton Downloads 1.0 Downloads.qml
 singleton Privacy 1.0 Privacy.qml
+singleton Idle 1.0 Idle.qml
+singleton NightLight 1.0 NightLight.qml

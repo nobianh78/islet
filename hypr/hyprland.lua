@@ -146,6 +146,8 @@ hl.layer_rule({ name = "islet-store-noanim", match = { namespace = "^islet-store
 hl.layer_rule({ name = "islet-installer-noanim", match = { namespace = "^islet-installer$" }, no_anim = true })
 hl.layer_rule({ name = "islet-taskmgr-noanim", match = { namespace = "^islet-taskmgr$" }, no_anim = true })
 hl.layer_rule({ name = "islet-settings-noanim", match = { namespace = "^islet-settings$" }, no_anim = true })
+hl.layer_rule({ name = "islet-dim-noanim", match = { namespace = "^islet-dim$" }, no_anim = true })
+hl.layer_rule({ name = "islet-overview-noanim", match = { namespace = "^islet-overview$" }, no_anim = true })
 hl.layer_rule({ name = "islet-search-noanim", match = { namespace = "^islet-search$" }, no_anim = true })
 hl.layer_rule({ name = "islet-snap-noanim", match = { namespace = "^islet-snap" }, no_anim = true })
 hl.layer_rule({ name = "islet-notifs-noanim", match = { namespace = "^islet-notifs$" }, no_anim = true })
@@ -411,6 +413,19 @@ hl.bind(mod .. " + right", function() islet_snap("right") end)
 hl.bind(mod .. " + up",    function() islet_snap("max") end)
 hl.bind(mod .. " + down",  function() islet_snap("restore") end)
 hl.bind(mod .. " + Z",     hl.dsp.exec_cmd(qs .. " ipc call snap picker"))
+
+-- ============================================================================
+-- Touchpad: vuốt 3 ngón ngang = đổi workspace · 3 ngón lên / chụm 4 ngón = Overview · 3 ngón xuống = đóng
+-- (cuộn tự nhiên, chạm để bấm, tốc độ… nằm trong hypr-user.lua do Cài đặt › Mouse & Touchpad ghi ra)
+-- ============================================================================
+hl.gesture({ fingers = 3, direction = "up",   action = function() hl.exec_cmd(qs .. " ipc call overview open") end })
+hl.gesture({ fingers = 3, direction = "down", action = function() hl.exec_cmd(qs .. " ipc call overview close") end })
+hl.gesture({ fingers = 4, direction = "pinch", action = function() hl.exec_cmd(qs .. " ipc call overview toggle") end })
+hl.bind(mod .. " + TAB", hl.dsp.exec_cmd(qs .. " ipc call overview toggle"))
+
+-- Gập / mở laptop: shell khoá màn hình rồi mới ngủ (systemd-logind để Islet lo: islet-lid.conf)
+hl.bind("switch:on:Lid Switch",  hl.dsp.exec_cmd(qs .. " ipc call power lid true"),  { locked = true })
+hl.bind("switch:off:Lid Switch", hl.dsp.exec_cmd(qs .. " ipc call power lid false"), { locked = true })
 
 -- Cài đặt riêng của người dùng (màu nhấn, màn hình) do app Cài đặt của Islet ghi ra
 local userConf = (os.getenv("HOME") or "") .. "/.config/islet/hypr-user.lua"

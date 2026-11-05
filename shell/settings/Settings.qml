@@ -5,6 +5,7 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Services.Pipewire
 import Quickshell.Bluetooth
+import Quickshell.Services.UPower
 import "../theme"
 import "../services"
 import "../common"
@@ -36,6 +37,8 @@ PanelWindow {
         { id: "wifi",      label: "Wi-Fi",      icon: "wifi",     tint: "#3B8BFF" },
         { id: "sound",     label: "Sound",   icon: "volume",   tint: "#FF5C7A" },
         { id: "bluetooth", label: "Bluetooth",  icon: "bluetooth", tint: "#3B8BFF" },
+        { id: "power",     label: "Power",      icon: "bolt",     tint: "#34C77B" },
+        { id: "input",     label: "Mouse & Touchpad", icon: "mouse", tint: "#A78BFA" },
         { id: "display",   label: "Displays",   icon: "sun",      tint: "#FFB547" },
         { id: "account",   label: "Account",    icon: "user",     tint: "#34C77B" },
         { id: "updates",   label: "Updates",    icon: "download", tint: "#5B8CFF" },
@@ -292,9 +295,9 @@ PanelWindow {
             }
 
             Column {
-                x: 12; y: 74
+                x: 12; y: 70
                 width: parent.width - 24
-                spacing: 3
+                spacing: 2
                 Repeater {
                     model: win.pages
                     Rectangle {
@@ -302,8 +305,8 @@ PanelWindow {
                         required property var modelData
                         readonly property bool on: win.page === modelData.id
                         width: parent.width
-                        height: 40
-                        radius: 13
+                        height: 35
+                        radius: 12
                         color: on ? Theme.tint(0.22) : nm.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : "transparent"
                         Behavior on color { ColorAnimation { duration: 140 } }
                         Rectangle {
@@ -970,6 +973,256 @@ PanelWindow {
                                             onClicked: dev.modelData.forget()
                                         }
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ================= NGUỒN ĐIỆN =================
+                Column {
+                    visible: win.page === "power"
+                    width: parent.width
+                    spacing: 12
+
+                    // pin
+                    Card {
+                        visible: Power.present
+                        width: parent.width
+                        height: 72
+                        Rectangle {
+                            x: 18; anchors.verticalCenter: parent.verticalCenter
+                            width: 56; height: 26; radius: 7
+                            color: "transparent"; border.width: 2; border.color: Qt.rgba(1, 1, 1, 0.6)
+                            Rectangle {
+                                x: 3; y: 3; height: parent.height - 6; radius: 4
+                                width: (parent.width - 6) * Math.max(0.04, Power.percent / 100)
+                                color: Power.percent <= 20 && !Power.charging ? "#FF5F57" : Power.charging ? "#34C77B" : "#FFFFFF"
+                            }
+                            Rectangle { anchors.left: parent.right; anchors.leftMargin: 1; anchors.verticalCenter: parent.verticalCenter; width: 3; height: 10; radius: 1.5; color: Qt.rgba(1, 1, 1, 0.6) }
+                        }
+                        Column {
+                            x: 92; anchors.verticalCenter: parent.verticalCenter
+                            Text { text: Math.round(Power.percent) + "%" + (Power.charging ? " · charging" : " · on battery"); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold }
+                            Text {
+                                readonly property real secs: Power.charging ? (UPower.displayDevice?.timeToFull ?? 0) : (UPower.displayDevice?.timeToEmpty ?? 0)
+                                visible: secs > 0
+                                text: Math.floor(secs / 3600) + " h " + Math.round(secs % 3600 / 60) + " min " + (Power.charging ? "until full" : "left")
+                                color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                            }
+                        }
+                    }
+
+                    SectionLabel { text: "Power mode" }
+                    Row {
+                        spacing: 10
+                        Repeater {
+                            model: [
+                                { p: PowerProfile.PowerSaver, label: "Battery saver", sub: "Longer battery life", icon: "sleep" },
+                                { p: PowerProfile.Balanced, label: "Balanced", sub: "Good for most things", icon: "sliders" },
+                                { p: PowerProfile.Performance, label: "Performance", sub: "Fastest, uses more power", icon: "bolt" }
+                            ]
+                            Rectangle {
+                                id: pmode
+                                required property var modelData
+                                readonly property bool on: PowerProfiles.profile === modelData.p
+                                readonly property bool avail: modelData.p !== PowerProfile.Performance || PowerProfiles.hasPerformanceProfile
+                                width: (body.width - 20) / 3
+                                height: 78; radius: 18
+                                opacity: avail ? 1 : 0.4
+                                color: on ? Theme.tint(0.22) : pmm.containsMouse ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(1, 1, 1, 0.05)
+                                border.width: on ? 2 : 1
+                                border.color: on ? Theme.accent : Qt.rgba(1, 1, 1, 0.06)
+                                Icon { x: 14; y: 14; name: pmode.modelData.icon; size: 18; color: pmode.on ? Qt.lighter(Theme.accent, 1.3) : "#FFFFFF" }
+                                Column {
+                                    x: 14; y: 38
+                                    Text { text: pmode.modelData.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                    Text { text: pmode.modelData.sub; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 10 }
+                                }
+                                MouseArea { id: pmm; anchors.fill: parent; enabled: pmode.avail; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: PowerProfiles.profile = pmode.modelData.p }
+                            }
+                        }
+                    }
+                    Card {
+                        visible: Power.present
+                        width: parent.width; height: 56
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Turn on Battery saver automatically at 20%"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                        Toggle { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: Prefs.autoSaver; onToggled: Prefs.set("autoSaver", !Prefs.autoSaver) }
+                    }
+
+                    SectionLabel { text: "When the computer is idle" }
+                    Card {
+                        width: parent.width
+                        height: idleCol.implicitHeight + 24
+                        Column {
+                            id: idleCol
+                            x: 18; y: 12
+                            width: parent.width - 36
+                            spacing: 2
+                            Repeater {
+                                model: [
+                                    { k: "dimAfter", label: "Dim the screen after", opts: [0, 60, 120, 300] },
+                                    { k: "lockAfter", label: "Lock after", opts: [0, 120, 300, 600, 900] },
+                                    { k: "screenOffAfter", label: "Turn off the screen after", opts: [0, 180, 360, 600, 1200] },
+                                    { k: "sleepAfterBattery", label: "Sleep on battery after", opts: [0, 300, 600, 900, 1800] },
+                                    { k: "sleepAfterAC", label: "Sleep when plugged in after", opts: [0, 900, 1800, 3600] }
+                                ]
+                                Item {
+                                    id: irow
+                                    required property var modelData
+                                    width: idleCol.width
+                                    height: 44
+                                    Text { anchors.verticalCenter: parent.verticalCenter; text: irow.modelData.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                                    Row {
+                                        anchors.right: parent.right
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 6
+                                        Repeater {
+                                            model: irow.modelData.opts
+                                            Chip {
+                                                required property int modelData
+                                                label: modelData === 0 ? "Never" : modelData < 3600 ? (modelData / 60) + " min" : (modelData / 3600) + " h"
+                                                on: Prefs[irow.modelData.k] === modelData
+                                                onClicked: Prefs.set(irow.modelData.k, modelData)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Card {
+                        width: parent.width; height: 56
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "When I close the lid"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                        Row {
+                            anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
+                            spacing: 6
+                            Repeater {
+                                model: [{ v: "sleep", l: "Sleep" }, { v: "lock", l: "Lock only" }, { v: "nothing", l: "Do nothing" }]
+                                Chip { required property var modelData; label: modelData.l; on: Prefs.lidAction === modelData.v; onClicked: Prefs.set("lidAction", modelData.v) }
+                            }
+                        }
+                    }
+                    Hint { text: "Videos and calls keep the screen awake. The screen always locks before the computer sleeps." }
+
+                    SectionLabel { text: "Night Light" }
+                    Card {
+                        width: parent.width
+                        height: nlCol.implicitHeight + 32
+                        Column {
+                            id: nlCol
+                            x: 18; y: 16
+                            width: parent.width - 36
+                            spacing: 14
+                            Row {
+                                spacing: 8
+                                Repeater {
+                                    model: [{ v: "off", l: "Off" }, { v: "schedule", l: "Sunset to sunrise" }, { v: "on", l: "On now" }]
+                                    Chip { required property var modelData; label: modelData.l; on: Prefs.nightMode === modelData.v; onClicked: Prefs.set("nightMode", modelData.v) }
+                                }
+                            }
+                            Row {
+                                visible: Prefs.nightMode === "schedule"
+                                spacing: 10
+                                Text { anchors.verticalCenter: parent.verticalCenter; text: "From"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                                Repeater {
+                                    model: ["18:00", "19:00", "20:00", "21:00"]
+                                    Chip { required property string modelData; label: modelData; on: Prefs.nightFrom === modelData; onClicked: Prefs.set("nightFrom", modelData) }
+                                }
+                                Text { anchors.verticalCenter: parent.verticalCenter; text: "to"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                                Repeater {
+                                    model: ["05:30", "06:30", "07:30"]
+                                    Chip { required property string modelData; label: modelData; on: Prefs.nightTo === modelData; onClicked: Prefs.set("nightTo", modelData) }
+                                }
+                            }
+                            Slider {
+                                width: parent.width
+                                title: "Warmth"
+                                value: (6500 - Prefs.nightTemp) / 3500
+                                fill: "#FF9F43"
+                                onMoved: v => Prefs.set("nightTemp", Math.round(6500 - v * 3500))
+                            }
+                            Text {
+                                text: NightLight.active ? "On now · " + NightLight.current + " K" : "Off now"
+                                color: NightLight.active ? "#FFB547" : "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                            }
+                        }
+                    }
+                }
+
+                // ================= CHUỘT & TOUCHPAD =================
+                Column {
+                    visible: win.page === "input"
+                    width: parent.width
+                    spacing: 12
+                    SectionLabel { text: "Touchpad" }
+                    Card {
+                        width: parent.width
+                        height: tpCol.implicitHeight + 8
+                        Column {
+                            id: tpCol
+                            y: 4
+                            width: parent.width
+                            Repeater {
+                                model: [
+                                    { k: "naturalScroll", t: "Natural scrolling", s: "Content moves with your fingers" },
+                                    { k: "tapToClick", t: "Tap to click", s: "Tap the touchpad instead of pressing it" },
+                                    { k: "disableWhileTyping", t: "Ignore touchpad while typing", s: "Stops accidental clicks with your palm" }
+                                ]
+                                Item {
+                                    required property var modelData
+                                    required property int index
+                                    width: tpCol.width; height: 58
+                                    Rectangle { visible: parent.index > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
+                                    Column {
+                                        x: 18; anchors.verticalCenter: parent.verticalCenter
+                                        Text { text: parent.parent.modelData.t; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                                        Text { text: parent.parent.modelData.s; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                                    }
+                                    Toggle {
+                                        anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
+                                        checked: Prefs[parent.modelData.k]
+                                        onToggled: Prefs.set(parent.modelData.k, !Prefs[parent.modelData.k])
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Slider {
+                        width: parent.width
+                        title: "Pointer speed"
+                        value: (Prefs.pointerSpeed + 1) / 2
+                        fill: Theme.accent
+                        onMoved: v => Prefs.set("pointerSpeed", Math.round((v * 2 - 1) * 20) / 20)
+                    }
+                    Slider {
+                        width: parent.width
+                        title: "Scrolling speed"
+                        value: (Prefs.scrollSpeed - 0.25) / 1.75
+                        fill: Theme.accent
+                        onMoved: v => Prefs.set("scrollSpeed", Math.round((0.25 + v * 1.75) * 20) / 20)
+                    }
+                    SectionLabel { text: "Gestures" }
+                    Card {
+                        width: parent.width
+                        height: gCol.implicitHeight + 24
+                        Column {
+                            id: gCol
+                            x: 18; y: 12
+                            width: parent.width - 36
+                            spacing: 0
+                            Repeater {
+                                model: [
+                                    ["3 fingers left / right", "Switch desktop"],
+                                    ["3 fingers up · pinch 4 fingers", "Overview of all windows"],
+                                    ["3 fingers down", "Close Overview"],
+                                    ["Super + Tab", "Overview from the keyboard"]
+                                ]
+                                Item {
+                                    required property var modelData
+                                    width: gCol.width; height: 38
+                                    Text { anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[0]; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                                    Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[1]; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
                                 }
                             }
                         }
