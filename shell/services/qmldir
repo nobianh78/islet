@@ -2,3 +2,14 @@ singleton Media 1.0 Media.qml
 singleton Audio 1.0 Audio.qml
 singleton Power 1.0 Power.qml
 singleton Notifs 1.0 Notifs.qml
+singleton Time 1.0 Time.qml
+singleton Net 1.0 Net.qml
+singleton Brightness 1.0 Brightness.qml
+singleton Ui 1.0 Ui.qml
+singleton Windows 1.0 Windows.qml
+singleton Calendar 1.0 Calendar.qml
+singleton SysMon 1.0 SysMon.qml
+singleton Packages 1.0 Packages.qml
+singleton DockPins 1.0 DockPins.qml
+singleton HyprSync 1.0 HyprSync.qml
+singleton ThisPC 1.0 ThisPC.qml

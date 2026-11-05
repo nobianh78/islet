@@ -1,0 +1,7 @@
+NAME="Islet"
+PRETTY_NAME="Islet"
+ID=islet
+ID_LIKE=arch
+BUILD_ID=rolling
+ANSI_COLOR="38;2;139;124;255"
+LOGO=islet

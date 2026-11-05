@@ -1,0 +1,262 @@
+# Islet — màn hình khởi động (Plymouth, plugin script)
+#
+#   0.16s  một chấm sáng hiện ở giữa, dãn ra thành viên "island" phát sáng (nảy nhẹ)
+#   0.6s   con mèo Islet lớn dần ra từ viên island (overshoot), ánh sáng tan vào mặt nạ
+#   1.2s   mắt mở ra · chữ "Islet" trồi lên · ba đốm sáng bay vòng quanh như quỹ đạo
+#   sau đó lơ lửng nhẹ, chớp mắt, quầng sáng thở; viên tiến trình chạy theo boot
+#
+# Tư thế cuối (khi Plymouth thoát, giữ lại bằng --retain-splash) khớp từng pixel với khung đầu của
+# màn hình khoá (shell/lock/LockScreen.qml, chế độ "từ boot"), nên boot → khoá liền một mạch.
+# Hằng số bố cục phải giữ giống bên QML: mèo 168px, đỉnh mèo = giữa màn hình − 124.
+
+Window.SetBackgroundTopColor(0.039, 0.039, 0.078);
+Window.SetBackgroundBottomColor(0.039, 0.039, 0.078);
+
+W = Window.GetWidth();
+H = Window.GetHeight();
+CX = Window.GetX() + W / 2;
+CY = Window.GetY() + H / 2;
+
+# ---------- ảnh ----------
+head_img  = Image("head.png");       # đầu mèo (chưa có mặt nạ / mắt), 168px
+mask_img  = Image("mask.png");       # mặt nạ = island
+eye_img   = Image("eye.png");
+pill_img  = Image("pillglow.png");   # viên island phát sáng lúc mở màn
+glow_img  = Image("glow.png");
+word_img  = Image("wordmark.png");
+track_img = Image("track.png");
+fill_img  = Image("fill.png");
+shine_img = Image("shine.png");
+spark_img = Image("spark.png");
+
+CAT = head_img.GetWidth();           # 168
+K = CAT / 200;                       # tỉ lệ so với logo gốc 200×200
+CAT_X = CX - CAT / 2;
+CAT_Y = CY - 124;                    # đỉnh mèo (giữ khớp với LockScreen.qml)
+MASK_CX = CX;                        # tâm mặt nạ trong logo: (100, 117)
+MASK_CY = CAT_Y + 117 * K;
+HEAD_CY = CAT_Y + 100 * K;
+
+glow  = Sprite(glow_img);  glow.SetZ(1);  glow.SetOpacity(0);
+head  = Sprite();          head.SetZ(3);
+mask  = Sprite(mask_img);  mask.SetZ(4);  mask.SetOpacity(0);
+pill  = Sprite();          pill.SetZ(6);
+eyeL  = Sprite(eye_img);   eyeL.SetZ(5);  eyeL.SetOpacity(0);
+eyeR  = Sprite(eye_img);   eyeR.SetZ(5);  eyeR.SetOpacity(0);
+word  = Sprite(word_img);  word.SetZ(3);  word.SetOpacity(0);
+word.SetX(CX - word_img.GetWidth() / 2);
+
+TRACK_W = track_img.GetWidth();
+TRACK_X = CX - TRACK_W / 2;
+TRACK_Y = CAT_Y + CAT + 14 + word_img.GetHeight() + 30;
+track = Sprite(track_img); track.SetZ(3); track.SetX(TRACK_X); track.SetY(TRACK_Y); track.SetOpacity(0);
+fill  = Sprite();          fill.SetZ(4);  fill.SetX(TRACK_X);  fill.SetY(TRACK_Y);
+shine = Sprite(shine_img); shine.SetZ(5); shine.SetY(TRACK_Y); shine.SetOpacity(0);
+
+sparks[0] = Sprite(spark_img);
+sparks[1] = Sprite(spark_img);
+sparks[2] = Sprite(spark_img);
+
+EYE_W = eye_img.GetWidth();
+EYE_H = eye_img.GetHeight();
+
+t = 0;
+progress = 0;
+shown = 0;
+last_fill_w = -1;
+last_eye = -1;
+last_head = -1;
+last_pill = -1;
+mode = "boot";
+
+fun clamp01(v) {
+    if (v < 0) return 0;
+    if (v > 1) return 1;
+    return v;
+}
+# p: 0 → 1 theo khung t0..t1
+fun phase(t0, t1) {
+    return clamp01((t - t0) / (t1 - t0));
+}
+fun ease_out(p) {
+    q = 1 - p;
+    return 1 - q * q * q;
+}
+# nảy quá đà một chút rồi về (giống lò xo)
+fun ease_back(p, k) {
+    q = p - 1;
+    return 1 + (k + 1) * q * q * q + k * q * q;
+}
+
+fun refresh_cb() {
+    global.t = t + 1;
+
+    # ---- 1. viên island phát sáng: chấm → viên dài ----
+    pa = phase(8, 34);
+    pw = 0.1 + 0.9 * ease_back(pa, 2.4);
+    pfade = 1 - phase(48, 72);                         # ánh sáng tan dần khi mèo đã hiện
+    pwi = Math.Int(pill_img.GetWidth() * pw);
+    if (pwi < 2) pwi = 2;
+    if (pwi != last_pill) {
+        pill.SetImage(pill_img.Scale(pwi, pill_img.GetHeight()));
+        global.last_pill = pwi;
+    }
+
+    # ---- lơ lửng (tắt dần khi boot gần xong để khớp với màn hình khoá) ----
+    settle = ease_out(phase(60, 110));
+    bob = Math.Sin(t / 28) * 3 * settle * (1 - shown);
+
+    pill.SetX(MASK_CX - pwi / 2);
+    pill.SetY(MASK_CY - pill_img.GetHeight() / 2 + bob);
+    pill.SetOpacity(clamp01(pa * 3) * pfade);
+
+    # ---- 2. đầu mèo lớn ra từ island ----
+    ph = phase(28, 62);
+    s = 0.3 + 0.7 * ease_back(ph, 1.9);
+    hw = Math.Int(CAT * s);
+    if (hw < 2) hw = 2;
+    if (hw != last_head) {
+        head.SetImage(head_img.Scale(hw, hw));
+        global.last_head = hw;
+    }
+    # neo tại tâm mặt nạ: đầu "nở" ra quanh viên island
+    head.SetX(MASK_CX - hw / 2);
+    head.SetY(MASK_CY - 117 * K * s + bob);
+    head.SetOpacity(clamp01(ph * 2.2));
+
+    mask.SetX(MASK_CX - mask_img.GetWidth() / 2);
+    mask.SetY(MASK_CY - mask_img.GetHeight() / 2 + bob);
+    mask.SetOpacity(clamp01((t - 30) / 6));
+
+    # quầng sáng phía sau
+    glow.SetX(CX - glow_img.GetWidth() / 2);
+    glow.SetY(HEAD_CY - glow_img.GetHeight() / 2 + 8 + bob);
+    glow.SetOpacity(ease_out(phase(34, 80)) * (0.55 + 0.2 * Math.Sin(t / 40) * (1 - shown)));
+
+    # ---- 3. mắt mở + chớp ----
+    pe = phase(60, 72);
+    open = ease_back(pe, 2.2);
+    b = t % 210;
+    blink = 1;
+    if (t > 140 && b < 8) blink = Math.Abs(b - 4) / 4;
+    if (t > 140 && t % 630 >= 420 && b >= 12 && b < 20) blink = Math.Abs(b - 16) / 4;
+    if (shown > 0.97) blink = 1;
+    eh = Math.Int(EYE_H * open * blink);
+    if (eh < 1) eh = 1;
+    if (eh != last_eye) {
+        global.eye_now = eye_img.Scale(EYE_W, eh);
+        eyeL.SetImage(eye_now);
+        eyeR.SetImage(eye_now);
+        global.last_eye = eh;
+    }
+    ey = MASK_CY - eh / 2 + bob;
+    eyeL.SetX(CAT_X + 78 * K - EYE_W / 2);  eyeL.SetY(ey);
+    eyeR.SetX(CAT_X + 122 * K - EYE_W / 2); eyeR.SetY(ey);
+    eo = 0;
+    if (pe > 0) eo = 1;
+    eyeL.SetOpacity(eo);
+    eyeR.SetOpacity(eo);
+
+    # ---- chữ Islet trồi lên ----
+    pwd = ease_out(phase(66, 96));
+    word.SetY(CAT_Y + CAT + 14 + (1 - pwd) * 12);
+    word.SetOpacity(pwd);
+
+    # ---- đốm sáng bay vòng quanh (quỹ đạo nghiêng: sau lưng mèo thì mờ và nhỏ đi) ----
+    ps = ease_out(phase(70, 110));
+    for (i = 0; i < 3; i++) {
+        a = t * 0.028 + i * 2.094;
+        sx = Math.Cos(a);
+        sy = Math.Sin(a);
+        sparks[i].SetX(CX + 118 * sx - 12);
+        sparks[i].SetY(HEAD_CY + 30 * sy - 12 + bob);
+        if (sy > 0) sparks[i].SetZ(7); else sparks[i].SetZ(2);
+        sparks[i].SetOpacity(ps * (0.25 + 0.65 * (sy + 1) / 2) * (1 - shown * 0.85));
+    }
+
+    # ---- viên tiến trình ----
+    pt = phase(80, 110);
+    track.SetOpacity(pt * 0.9);
+    global.shown = shown + (progress - shown) * 0.06;
+    fw = Math.Int(TRACK_W * (0.04 + 0.96 * shown));
+    if (fw != last_fill_w) {
+        fill.SetImage(fill_img.Scale(fw, fill_img.GetHeight()));
+        global.last_fill_w = fw;
+    }
+    fill.SetOpacity(pt);
+    sp = (t % 90) / 90;
+    shine.SetX(TRACK_X - 20 + (fw + 20) * sp);
+    so = Math.Sin(sp * Math.Pi);
+    if (fw < 40) so = so * 0.4;
+    shine.SetOpacity(so * pt * 0.8 * (1 - shown));
+
+    if (mode == "password") {
+        track.SetOpacity(0); fill.SetOpacity(0); shine.SetOpacity(0);
+    }
+}
+Plymouth.SetRefreshFunction(refresh_cb);
+
+fun progress_cb(duration, p) {
+    if (p > progress) global.progress = p;
+}
+Plymouth.SetBootProgressFunction(progress_cb);
+
+# ---------- hỏi mật khẩu (ổ mã hoá) ----------
+entry_img  = Image("entry.png");
+bullet_img = Image("bullet.png");
+lock_img   = Image("lock.png");
+entry = Sprite(entry_img); entry.SetOpacity(0); entry.SetZ(10);
+lockS = Sprite(lock_img);  lockS.SetOpacity(0); lockS.SetZ(11);
+prompt = Sprite();         prompt.SetZ(11);
+bullets = [];
+
+fun password_cb(text, nbullets) {
+    global.mode = "password";
+    ex = CX - entry_img.GetWidth() / 2;
+    ey = TRACK_Y - 2;
+    entry.SetX(ex); entry.SetY(ey); entry.SetOpacity(1);
+    lockS.SetX(ex + 16); lockS.SetY(ey + entry_img.GetHeight() / 2 - lock_img.GetHeight() / 2); lockS.SetOpacity(0.8);
+    if (text == "") text = "Disk password";
+    pimg = Image.Text(text, 1, 1, 1, 0.6, "Sans 11");
+    prompt.SetImage(pimg);
+    prompt.SetX(CX - pimg.GetWidth() / 2);
+    prompt.SetY(ey + entry_img.GetHeight() + 12);
+    prompt.SetOpacity(1);
+    for (i = 0; i < nbullets || bullets[i]; i++) {
+        if (!bullets[i]) {
+            bullets[i] = Sprite(bullet_img);
+            bullets[i].SetZ(12);
+        }
+        bullets[i].SetX(ex + 46 + i * 16);
+        bullets[i].SetY(ey + entry_img.GetHeight() / 2 - bullet_img.GetHeight() / 2);
+        if (i < nbullets && i < 13) bullets[i].SetOpacity(1);
+        else bullets[i].SetOpacity(0);
+    }
+}
+Plymouth.SetDisplayPasswordFunction(password_cb);
+
+fun normal_cb() {
+    global.mode = "boot";
+    entry.SetOpacity(0);
+    lockS.SetOpacity(0);
+    prompt.SetOpacity(0);
+    for (i = 0; bullets[i]; i++) bullets[i].SetOpacity(0);
+}
+Plymouth.SetDisplayNormalFunction(normal_cb);
+
+# ---------- thông báo ----------
+msg = Sprite();
+msg.SetZ(10);
+fun message_cb(text) {
+    img = Image.Text(text, 1, 1, 1, 0.5, "Sans 10");
+    msg.SetImage(img);
+    msg.SetX(CX - img.GetWidth() / 2);
+    msg.SetY(Window.GetY() + H - 60);
+}
+Plymouth.SetMessageFunction(message_cb);
+
+fun quit_cb() {
+    global.progress = 1;
+    global.shown = 1;
+}
+Plymouth.SetQuitFunction(quit_cb);

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Install Islet
+Comment=Install Islet to your disk to keep your apps, files and settings
+Icon=islet
+Exec=islet-ipc installer open
+Categories=System;

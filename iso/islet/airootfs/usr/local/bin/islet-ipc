@@ -1,0 +1,6 @@
+#!/bin/sh
+# Gọi IPC tới shell Islet đang chạy (bản dev ~/.config/islet/shell nếu có, không thì bản hệ thống)
+#   islet-ipc store open
+D="${ISLET_SHELL:-$HOME/.config/islet/shell}"
+[ -f "$D/shell.qml" ] || D=/usr/share/islet/shell
+exec qs -p "$D" ipc call "$@"

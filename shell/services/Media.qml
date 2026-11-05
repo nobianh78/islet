@@ -22,7 +22,7 @@ Singleton {
 
     readonly property bool hasPlayer: active !== null && (active.trackTitle ?? "") !== ""
     readonly property bool playing: active?.isPlaying ?? false
-    readonly property string title: active?.trackTitle || "Không có tiêu đề"
+    readonly property string title: active?.trackTitle || "Untitled"
     readonly property string artist: active?.trackArtist || active?.identity || ""
     readonly property string artUrl: active?.trackArtUrl ?? ""
     readonly property real length: active?.length ?? 0
@@ -34,6 +34,29 @@ Singleton {
     FrameAnimation {
         running: root.wantPosition && root.playing
         onTriggered: root.active?.positionChanged()
+    }
+
+    // Màu chủ đạo của ảnh bìa (để nhuộm island và sóng nhạc).
+    // null khi không có ảnh.
+    readonly property var accent: {
+        const cs = quant.colors;
+        if (!artUrl || !cs || cs.length === 0) return null;
+        // chọn màu rực nhất, tránh màu quá tối / quá nhạt
+        let best = cs[0], score = -1;
+        for (let i = 0; i < cs.length; i++) {
+            const c = cs[i];
+            const mx = Math.max(c.r, c.g, c.b), mn = Math.min(c.r, c.g, c.b);
+            const sat = mx - mn, light = (mx + mn) / 2;
+            const sc = sat * (1 - Math.abs(light - 0.55) * 1.4);
+            if (sc > score) { score = sc; best = c; }
+        }
+        return best;
+    }
+    ColorQuantizer {
+        id: quant
+        source: root.artUrl
+        depth: 3
+        rescaleSize: 64
     }
 
     function toggle() { if (active?.canTogglePlaying) active.togglePlaying(); }

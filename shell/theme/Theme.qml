@@ -6,7 +6,24 @@ import Quickshell
 // Màu lấy từ logo Islet (branding/islet-mark-dark-bg.svg).
 Singleton {
     // --- Màu thương hiệu ---
-    readonly property color violet: "#8B7CFF"
+    // Màu nhấn: đổi trong app Cài đặt (Prefs.accent). Tên "violet" giữ lại cho gọn.
+    readonly property color violet: Prefs.accent
+    readonly property color accent: Prefs.accent
+    // Icon app của Islet theo kiểu đang chọn: Tối giản (theo màu nhấn) hoặc Sắc màu
+    function appIcon(name) {
+        if (!name) return "";
+        return Prefs.iconStyle === "color" ? Qt.resolvedUrl("../assets/apps/" + name + ".svg")
+            : Qt.resolvedUrl("../assets/apps-min/" + Prefs.accentId + "/" + name + ".svg");
+    }
+    // id .desktop / tên icon → icon Islet riêng (theo màu nhấn); "" nếu chưa có
+    readonly property var appKeys: ({
+        "org.gnome.Nautilus": "files", "nautilus": "files", "system-file-manager": "files",
+        "firefox": "browser", "kitty": "terminal", "code-oss": "code", "com.visualstudio.code.oss": "code",
+        "mpv": "video", "islet-store": "store", "islet-settings": "settings", "org.gnome.Settings": "settings",
+        "islet-installer": "islet", "islet": "islet"
+    })
+    function appKey(id) { return appKeys[id] ?? appKeys[(id || "").toLowerCase()] ?? ""; }
+    function tint(a) { return Qt.rgba(violet.r, violet.g, violet.b, a); }
     readonly property color pink: "#FF6B97"
     readonly property color teal: "#5EEAD4"
     readonly property color amber: "#FFB547"

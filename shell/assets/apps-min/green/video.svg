@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs>
+  <linearGradient id="video-m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2B2B36"/><stop offset="1" stop-color="#17171E"/></linearGradient>
+  <linearGradient id="video-e" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".35" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity=".03"/></linearGradient>
+  <radialGradient id="video-g" cx=".5" cy=".55" r=".55"><stop offset="0" stop-color="#34C77B" stop-opacity=".16"/><stop offset="1" stop-color="#34C77B" stop-opacity="0"/></radialGradient>
+</defs>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#video-m)"/>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#video-g)"/>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="none" stroke="url(#video-e)" stroke-width="1.6"/>
+
+<rect x="26" y="34" width="76" height="60" rx="16" fill="none" stroke="#F4F4F8" stroke-opacity=".9" stroke-width="6"/>
+<path d="M57 50v28a2.5 2.5 0 0 0 3.8 2.1l21-14a2.5 2.5 0 0 0 0-4.2l-21-14A2.5 2.5 0 0 0 57 50z" fill="#34C77B"/>
+</svg>

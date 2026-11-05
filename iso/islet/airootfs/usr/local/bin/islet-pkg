@@ -1,0 +1,166 @@
+#!/bin/bash
+# Trung gian giữa Cửa hàng ứng dụng Islet và pacman.
+#
+#   islet-pkg installed               tên các gói đã cài (mỗi dòng một tên)
+#   islet-pkg search <từ khoá>        repo<TAB>tên<TAB>phiên bản<TAB>đã cài(0|1)<TAB>mô tả
+#   islet-pkg sizes <gói...>          tên<TAB>dung lượng tải<TAB>dung lượng cài
+#   islet-pkg desktops <gói...>       tên<TAB>id .desktop (app mà gói đã cài — để lấy icon, mở app)
+#   islet-pkg appicons                tên<TAB>đường dẫn icon 128px (archlinux-appstream-data, app chưa cài)
+#   islet-pkg install <gói...>        (root) cài (một app hoặc cả bộ lập trình); in PROGRESS · DONE · ERROR
+#                                     docker / rustup / virt-manager… tự bật dịch vụ, thêm quyền cho người dùng
+#   islet-pkg remove <gói...>         (root) gỡ cùng phụ thuộc không còn dùng
+#   Gói ghi "aur/<tên>" được lấy từ AUR: tải PKGBUILD, build bằng makepkg dưới quyền người dùng
+#   (makepkg không chạy bằng root), phụ thuộc lấy từ kho chính thức hoặc AUR, rồi pacman -U.
+set -uo pipefail
+cmd=${1:-}; shift || true
+
+progress() { echo "PROGRESS $1 $2"; }
+
+AUR_CACHE=/var/cache/islet/aur
+# bỏ ràng buộc phiên bản: "nodejs>=18" → "nodejs"
+strip_ver() { sed -E 's/[<>=].*$//'; }
+
+# Build + cài một gói AUR (và các phụ thuộc AUR của nó). $1 = tên, $2 = độ sâu
+aur_install() {
+    local name=$1 depth=${2:-0} who=${SUDO_USER:-} dir deps d
+    [ "$depth" -lt 6 ] || { echo "ERROR AUR dependency chain too deep ($name)"; return 1; }
+    pacman -Qq -- "$name" >/dev/null 2>&1 && return 0
+    [ -n "$who" ] && [ "$who" != root ] || { echo "ERROR Must be run with sudo from a user account"; return 1; }
+    mkdir -p "$AUR_CACHE" && chown "$who": "$AUR_CACHE"
+    dir=$AUR_CACHE/$name
+    progress 8 "Fetching AUR recipe · $name"
+    if [ -d "$dir/.git" ]; then
+        sudo -u "$who" git -C "$dir" pull -q --ff-only >/dev/null 2>&1 || { rm -rf -- "$dir"; }
+    fi
+    [ -d "$dir/.git" ] || sudo -u "$who" git clone -q --depth 1 "https://aur.archlinux.org/$name.git" "$dir" >/dev/null 2>&1 \
+        || { echo "ERROR Could not download $name from the AUR"; return 1; }
+    [ -f "$dir/PKGBUILD" ] || { echo "ERROR $name is not on the AUR"; return 1; }
+    sudo -u "$who" sh -c "cd '$dir' && makepkg --printsrcinfo > .SRCINFO" 2>/dev/null
+    deps=$(awk -F' = ' '/^\t(depends|makedepends|checkdepends)(_x86_64)? = /{print $2}' "$dir/.SRCINFO" | strip_ver | sort -u)
+    local repo=() aur=()
+    for d in $deps; do
+        pacman -T -- "$d" >/dev/null 2>&1 && continue                       # đã có (kể cả qua provides)
+        if pacman -Sp --print-format '%n' -- "$d" >/dev/null 2>&1; then repo+=("$d"); else aur+=("$d"); fi
+    done
+    if [ ${#repo[@]} -gt 0 ]; then
+        progress 15 "Installing ${#repo[@]} dependencies"
+        LC_ALL=C pacman -S --needed --noconfirm --asdeps -- "${repo[@]}" >/dev/null 2>&1 || { echo "ERROR Could not install dependencies for $name"; return 1; }
+    fi
+    for d in "${aur[@]}"; do aur_install "$d" $((depth + 1)) || return 1; pacman -D --asdeps -- "$d" >/dev/null 2>&1; done
+    progress 30 "Building $name (this may take a few minutes)"
+    rm -f "$dir"/*.pkg.tar.*
+    local pct=30
+    sudo -u "$who" sh -c "cd '$dir' && MAKEFLAGS=-j\$(nproc) makepkg -f --noconfirm --noprogressbar 2>&1" | while IFS= read -r l; do
+        case "$l" in
+            "==> Retrieving sources"*)  echo "PROGRESS 35 Downloading sources · $name" ;;
+            "==> Validating"*)          echo "PROGRESS 55 Verifying checksums" ;;
+            "==> Starting build"*)      echo "PROGRESS 62 Building · $name" ;;
+            "==> Entering fakeroot"*)   echo "PROGRESS 75 Packaging" ;;
+            "==> ERROR:"*)              echo "ERROR ${l#==> ERROR: }" ;;
+        esac
+    done
+    local pk=$(ls "$dir"/*.pkg.tar.zst 2>/dev/null | grep -v -- '-debug-' )
+    [ -n "$pk" ] || { echo "ERROR Building $name failed"; return 1; }
+    progress 88 "Installing $name"
+    LC_ALL=C pacman -U --needed --noconfirm --noprogressbar -- $pk >/dev/null 2>&1 || { echo "ERROR Could not install $name"; return 1; }
+}
+
+case "$cmd" in
+installed)
+    pacman -Qq
+    ;;
+search)
+    q="$*"
+    [ -n "$q" ] || exit 0
+    LC_ALL=C pacman -Ss -- "$q" 2>/dev/null | awk '
+        /^[^ ]/ { if (name) print repo "\t" name "\t" ver "\t" inst "\t" desc
+                  split($1, a, "/"); repo=a[1]; name=a[2]; ver=$2; inst=($0 ~ /\[installed/)?1:0; desc=""; next }
+        /^    / { sub(/^    /, ""); desc=$0 }
+        END { if (name) print repo "\t" name "\t" ver "\t" inst "\t" desc }' | head -80
+    ;;
+sizes)
+    [ $# -gt 0 ] || exit 0
+    LC_ALL=C pacman -Si -- "$@" 2>/dev/null | awk -F': ' '
+        /^Name/ {n=$2} /^Download Size/ {d=$2} /^Installed Size/ {print n "\t" d "\t" $2}'
+    ;;
+desktops)
+    [ $# -gt 0 ] || exit 0
+    pacman -Ql -- "$@" 2>/dev/null | awk '$2 ~ /^\/usr\/share\/applications\/[^\/]+\.desktop$/ {
+        n=split($2, a, "/"); id=a[n]; sub(/\.desktop$/, "", id); print $1 "\t" id }'
+    ;;
+appicons)
+    # 128px trước, thiếu thì lấy 64px / 48px (dòng đầu tiên của mỗi gói được dùng)
+    for f in /usr/share/swcatalog/icons/archlinux-arch-*/128x128/* /usr/share/swcatalog/icons/archlinux-arch-*/64x64/* \
+             /usr/share/swcatalog/icons/archlinux-arch-*/48x48/*; do
+        [ -e "$f" ] || continue
+        b=${f##*/}; printf '%s\t%s\n' "${b%%_*}" "$f"
+    done
+    ;;
+install)
+    [ $# -gt 0 ] || exit 2
+    [ "$(id -u)" = 0 ] || { echo "ERROR Administrator rights required"; exit 1; }
+    progress 2 "Refreshing package lists"
+    pacman -Sy --noconfirm >/dev/null 2>&1 || true
+    aurs=(); repos=()
+    for p in "$@"; do case "$p" in aur/*) aurs+=("${p#aur/}") ;; *) repos+=("$p") ;; esac; done
+    if [ ${#aurs[@]} -gt 0 ]; then
+        pacman -T git base-devel >/dev/null 2>&1 || LC_ALL=C pacman -S --needed --noconfirm git base-devel >/dev/null 2>&1
+        for p in "${aurs[@]}"; do aur_install "$p" || exit 1; done
+    fi
+    all=("$@")
+    set -- "${repos[@]}"
+    if [ $# -gt 0 ]; then
+    # đếm số gói sẽ cài (kể cả phụ thuộc) để tính %
+    total=$(LC_ALL=C pacman -Sp --needed --print-format '%n' -- "$@" 2>/dev/null | wc -l)
+    [ "$total" -gt 0 ] || total=1
+    progress 5 "Preparing $total packages"
+    n=0
+    LC_ALL=C stdbuf -oL pacman -S --needed --noconfirm --noprogressbar -- "$@" 2>&1 | while IFS= read -r l; do
+        case "$l" in
+            *" downloading..."*) n=$((n + 1)); echo "PROGRESS $((5 + n * 55 / total)) Downloading · $n/$total" ;;
+            "("*") installing "*|"("*") upgrading "*)
+                i=$(sed -E 's/^\(\s*([0-9]+)\/([0-9]+)\).*/\1 \2/' <<<"$l")
+                set -- $i; [ -n "${2:-}" ] && echo "PROGRESS $((60 + $1 * 35 / $2)) Installing · $1/$2" ;;
+            "error:"*) echo "ERROR ${l#error: }" ;;
+            *"is up to date -- skipping"*) echo "PROGRESS 95 Already installed" ;;
+        esac
+    done
+    for p in "$@"; do pacman -Qq -- "$p" >/dev/null 2>&1 || pacman -Qg -- "$p" >/dev/null 2>&1 || exit 1; done
+    fi
+    # việc cần làm thêm sau khi cài
+    who=${SUDO_USER:-}
+    for p in "${all[@]}"; do
+        case "$p" in
+            docker)
+                progress 97 "Enabling Docker"
+                systemctl enable --now docker.socket >/dev/null 2>&1 || true
+                [ -n "$who" ] && usermod -aG docker "$who" ;;
+            rustup)
+                progress 97 "Installing the stable Rust toolchain"
+                [ -n "$who" ] && sudo -u "$who" rustup default stable >/dev/null 2>&1 || true ;;
+            virt-manager)
+                systemctl enable --now libvirtd.socket >/dev/null 2>&1 || true
+                [ -n "$who" ] && usermod -aG libvirt "$who" ;;
+            wireshark-qt)
+                [ -n "$who" ] && usermod -aG wireshark "$who" ;;
+            ollama|ollama-cuda|ollama-rocm)
+                progress 97 "Enabling the Ollama service"
+                systemctl enable --now ollama.service >/dev/null 2>&1 || true ;;
+        esac
+    done
+    progress 100 "Done"; echo DONE
+    ;;
+remove)
+    [ $# -gt 0 ] || exit 2
+    [ "$(id -u)" = 0 ] || { echo "ERROR Administrator rights required"; exit 1; }
+    progress 20 "Removing"
+    set -- "${@#aur/}"
+    # gỡ cả bộ; gói nào còn gói khác cần thì giữ lại
+    LC_ALL=C pacman -Rns --noconfirm -- "$@" >/dev/null 2>&1 ||
+        for p in "$@"; do LC_ALL=C pacman -Rns --noconfirm -- "$p" >/dev/null 2>&1 || true; done
+    pacman -Qq -- "$1" >/dev/null 2>&1 && { echo "ERROR Another package still needs $1"; exit 1; }
+    progress 100 "Removed"; echo DONE
+    ;;
+*)
+    echo "Usage: islet-pkg installed|search|sizes|install|remove" >&2; exit 2 ;;
+esac

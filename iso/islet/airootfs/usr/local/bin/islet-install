@@ -1,0 +1,182 @@
+#!/bin/bash
+# Cài Islet từ bản live vào ổ cứng.  Chạy bằng root (giao diện gọi qua sudo).
+#
+#   islet-install DISK USERNAME FULLNAME_B64 HOSTNAME TIMEZONE AUTOLOGIN(0|1)
+#   mật khẩu đọc từ stdin (một dòng) để không lộ trên dòng lệnh.
+#
+# In ra cho giao diện:  PROGRESS <0-100> <mô tả> · LOG <dòng> · ERROR <mô tả> · DONE
+set -Eeuo pipefail
+
+DISK=$1
+USERNAME=$2
+FULLNAME=$(printf '%s' "$3" | base64 -d)
+HOSTNAME_=$4
+TZONE=$5
+AUTOLOGIN=$6
+IFS= read -r PASSWORD || true
+
+SRC=/run/archiso/airootfs
+MNT=/mnt/islet-target
+LIVE_USER=islet
+
+say() { echo "PROGRESS $1 $2"; }
+log() { echo "LOG $*"; }
+trap 'echo "ERROR Failed at line $LINENO: $BASH_COMMAND"; umount -R "$MNT" 2>/dev/null || true' ERR
+
+# ---------------- kiểm tra ----------------
+say 1 "Checking"
+[ "$(id -u)" = 0 ] || { echo "ERROR Root required"; exit 1; }
+[ -b "$DISK" ] || { echo "ERROR Disk $DISK not found"; exit 1; }
+[ -d "$SRC/usr" ] || { echo "ERROR Live system not found ($SRC)"; exit 1; }
+[[ "$USERNAME" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || { echo "ERROR Invalid username"; exit 1; }
+[ -n "$PASSWORD" ] || { echo "ERROR No password given"; exit 1; }
+[ -f "/usr/share/zoneinfo/$TZONE" ] || TZONE=UTC
+UEFI=0; [ -d /sys/firmware/efi ] && UEFI=1
+log "Disk: $DISK · $( [ $UEFI = 1 ] && echo UEFI || echo BIOS ) · user: $USERNAME · host: $HOSTNAME_ · tz: $TZONE"
+
+# tên phân vùng: /dev/sda → sda1, /dev/nvme0n1 → nvme0n1p1
+part() { if [[ "$DISK" =~ [0-9]$ ]]; then echo "${DISK}p$1"; else echo "${DISK}$1"; fi; }
+
+# ---------------- chia phân vùng ----------------
+say 4 "Erasing disk and partitioning"
+umount -R "$MNT" 2>/dev/null || true
+for p in $(lsblk -ln -o PATH "$DISK" | tail -n +2); do umount "$p" 2>/dev/null || true; swapoff "$p" 2>/dev/null || true; done
+wipefs -af "$DISK" >/dev/null
+sgdisk --zap-all "$DISK" >/dev/null
+if [ $UEFI = 1 ]; then
+    sgdisk -n1:0:+512M -t1:ef00 -c1:ISLET-EFI -n2:0:0 -t2:8304 -c2:Islet "$DISK" >/dev/null
+else
+    sgdisk -n1:0:+1M -t1:ef02 -c1:BIOS -n2:0:0 -t2:8304 -c2:Islet "$DISK" >/dev/null
+fi
+partprobe "$DISK" 2>/dev/null || true
+udevadm settle
+sleep 1
+P1=$(part 1); P2=$(part 2)
+
+say 8 "Formatting"
+[ $UEFI = 1 ] && mkfs.fat -F32 -n ISLET-EFI "$P1" >/dev/null
+mkfs.ext4 -q -F -L Islet "$P2"
+mkdir -p "$MNT"
+mount "$P2" "$MNT"
+mkdir -p "$MNT/boot"
+[ $UEFI = 1 ] && mount "$P1" "$MNT/boot"
+
+# ---------------- chép hệ thống ----------------
+say 10 "Copying the system (takes a few minutes)"
+TOTAL=$(du -sx --block-size=1M "$SRC" 2>/dev/null | cut -f1 || echo 0)
+log "Size to copy: ${TOTAL} MB"
+rsync -aAXH --numeric-ids --info=progress2 --no-inc-recursive \
+    --exclude='/proc/*' --exclude='/sys/*' --exclude='/dev/*' --exclude='/run/*' --exclude='/tmp/*' --exclude='/mnt/*' \
+    "$SRC/" "$MNT/" 2>/dev/null |
+    stdbuf -oL tr '\r' '\n' | while read -r line; do
+        pct=$(grep -oE '[0-9]+%' <<<"$line" | head -1 | tr -d '%' || true)
+        [ -n "$pct" ] && echo "PROGRESS $((10 + pct * 62 / 100)) Copying the system · $pct%"
+    done
+
+# ---------------- gỡ phần chỉ dành cho bản live ----------------
+say 73 "Removing live-session extras"
+KVER=$(ls "$MNT/usr/lib/modules" | head -1)
+cp "$MNT/usr/lib/modules/$KVER/vmlinuz" "$MNT/boot/vmlinuz-linux"
+rm -f "$MNT/etc/mkinitcpio.conf.d/archiso.conf"
+rm -rf "$MNT/etc/systemd/system/getty@tty1.service.d"
+rm -f "$MNT/etc/sudoers.d/islet"
+rm -f "$MNT/etc/ssh/sshd_config.d/10-archiso.conf"
+rm -f "$MNT/etc/systemd/journald.conf.d/volatile-storage.conf"
+rm -f "$MNT/etc/systemd/logind.conf.d/do-not-suspend.conf"
+for u in pacman-init.service choose-mirror.service livecd-talk.service livecd-alsa-unmuter.service \
+         etc-pacman.d-gnupg.mount sshd.service; do
+    find "$MNT/etc/systemd" -name "$u" \( -type l -o -type f \) -delete 2>/dev/null || true
+done
+rm -rf "$MNT/home/$LIVE_USER/.ssh" "$MNT/root/.automated_script.sh" "$MNT/root/.zlogin"
+rm -f "$MNT/usr/share/applications/islet-installer.desktop" "$MNT/usr/local/bin/islet-install"
+rm -f "$MNT/usr/local/bin/choose-mirror" "$MNT/usr/local/bin/Installation_guide" "$MNT/usr/local/bin/livecd-sound"
+printf 'Welcome to Islet.\n' > "$MNT/etc/motd"
+# mkinitcpio chuẩn (không còn hook archiso)
+sed -i 's/^HOOKS=.*/HOOKS=(base udev plymouth autodetect microcode modconf kms keyboard keymap consolefont block filesystems fsck)/' "$MNT/etc/mkinitcpio.conf"
+
+# ---------------- hệ thống ----------------
+say 76 "Time zone, hostname, language"
+ln -sfn "/usr/share/zoneinfo/$TZONE" "$MNT/etc/localtime"
+echo "$HOSTNAME_" > "$MNT/etc/hostname"
+cat > "$MNT/etc/hosts" <<EOF
+127.0.0.1   localhost
+::1         localhost
+127.0.1.1   $HOSTNAME_.localdomain $HOSTNAME_
+EOF
+genfstab -U "$MNT" > "$MNT/etc/fstab"
+
+# ---------------- tài khoản ----------------
+say 79 "Creating your account"
+# đổi người dùng live "islet" thành tài khoản của bạn (giữ nguyên cấu hình Islet trong thư mục nhà)
+if [ "$USERNAME" != "$LIVE_USER" ]; then
+    arch-chroot "$MNT" usermod -l "$USERNAME" -d "/home/$USERNAME" -m "$LIVE_USER"
+    arch-chroot "$MNT" groupmod -n "$USERNAME" "$LIVE_USER"
+fi
+arch-chroot "$MNT" usermod -c "$FULLNAME" -G wheel,audio,video,input "$USERNAME"
+printf '%s:%s\n' "$USERNAME" "$PASSWORD" | arch-chroot "$MNT" chpasswd
+arch-chroot "$MNT" passwd -l root >/dev/null
+echo '%wheel ALL=(ALL:ALL) ALL' > "$MNT/etc/sudoers.d/wheel"
+chmod 440 "$MNT/etc/sudoers.d/wheel"
+# Luôn tự vào Hyprland; màn hình khoá của Islet đóng vai màn hình đăng nhập.
+# Chọn "tự đăng nhập" thì bỏ qua màn hình khoá lúc bật máy (lockOnBoot = false).
+mkdir -p "$MNT/etc/systemd/system/getty@tty1.service.d"
+cat > "$MNT/etc/systemd/system/getty@tty1.service.d/autologin.conf" <<EOF
+[Service]
+ExecStart=
+ExecStart=-/usr/bin/agetty --noreset --noclear --noissue --nonewline --skip-login --autologin $USERNAME - \${TERM}
+EOF
+LOCK_ON_BOOT=true; [ "$AUTOLOGIN" = 1 ] && LOCK_ON_BOOT=false
+UH="$MNT/home/$USERNAME"
+mkdir -p "$UH/.config/islet"
+SJ="$UH/.config/islet/settings.json"
+if [ -f "$SJ" ]; then
+    python3 - "$SJ" "$LOCK_ON_BOOT" <<'PY' 2>/dev/null || true
+import json, sys
+p, v = sys.argv[1], sys.argv[2] == "true"
+try: d = json.load(open(p))
+except Exception: d = {}
+d["lockOnBoot"] = v
+json.dump(d, open(p, "w"), indent=1)
+PY
+else
+    printf '{\n "lockOnBoot": %s\n}\n' "$LOCK_ON_BOOT" > "$SJ"
+fi
+touch "$UH/.hushlogin"
+arch-chroot "$MNT" chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.config/islet" "/home/$USERNAME/.hushlogin"
+
+say 82 "Initializing pacman keys"
+arch-chroot "$MNT" pacman-key --init >/dev/null 2>&1 || true
+arch-chroot "$MNT" pacman-key --populate archlinux >/dev/null 2>&1 || true
+
+say 87 "Building initramfs"
+arch-chroot "$MNT" mkinitcpio -P 2>&1 | while read -r l; do log "$l"; done
+
+# ---------------- bootloader ----------------
+say 94 "Installing bootloader"
+ROOTUUID=$(blkid -s UUID -o value "$P2")
+if [ $UEFI = 1 ]; then
+    arch-chroot "$MNT" bootctl install --esp-path=/boot 2>&1 | while read -r l; do log "$l"; done
+    mkdir -p "$MNT/boot/loader/entries"
+    cat > "$MNT/boot/loader/loader.conf" <<EOF
+default islet.conf
+timeout 0
+console-mode max
+editor no
+EOF
+    cat > "$MNT/boot/loader/entries/islet.conf" <<EOF
+title   Islet
+linux   /vmlinuz-linux
+initrd  /initramfs-linux.img
+options root=UUID=$ROOTUUID rw quiet splash loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0
+EOF
+else
+    sed -i 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR="Islet"/' "$MNT/etc/default/grub" 2>/dev/null || true
+    sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0"/' "$MNT/etc/default/grub" 2>/dev/null || true
+    arch-chroot "$MNT" grub-install --target=i386-pc "$DISK" 2>&1 | while read -r l; do log "$l"; done
+    arch-chroot "$MNT" grub-mkconfig -o /boot/grub/grub.cfg 2>&1 | while read -r l; do log "$l"; done
+fi
+
+say 99 "Finishing up"
+sync
+umount -R "$MNT"
+echo "DONE"

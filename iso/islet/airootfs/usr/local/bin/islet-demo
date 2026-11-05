@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Thử lần lượt các chế độ của Dynamic Island.
+SHELL_DIR="${ISLET_SHELL:-/usr/share/islet/shell}"
+ipc() { qs -p "$SHELL_DIR" ipc call island "$@"; }
+echo "→ notification";  notify-send -a "Islet" "Welcome to Islet" "Dynamic Island is ready"; sleep 5.5
+echo "→ volume";   wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+; sleep 0.4; wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-; sleep 2
+echo "→ charging";    ipc test battery; sleep 3.5
+if playerctl status >/dev/null 2>&1; then
+    echo "→ player"; ipc toggle; sleep 5; ipc toggle
+else
+    echo "(Nothing playing. Play some music in Firefox / Spotify and run this again.)"
+fi

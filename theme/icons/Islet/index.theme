@@ -1,0 +1,19 @@
+[Icon Theme]
+Name=Islet
+Comment=Icon của Islet: thư mục, thùng rác và ứng dụng theo màu logo
+Inherits=Adwaita,hicolor
+Directories=scalable/places,scalable/apps
+
+[scalable/places]
+Size=64
+MinSize=16
+MaxSize=512
+Type=Scalable
+Context=Places
+
+[scalable/apps]
+Size=128
+MinSize=16
+MaxSize=512
+Type=Scalable
+Context=Applications

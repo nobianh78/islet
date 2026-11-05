@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Islet
+Description=Mèo Islet hiện dần, chớp mắt, viên island chạy tiến trình khởi động
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/islet
+ScriptFile=/usr/share/plymouth/themes/islet/islet.script

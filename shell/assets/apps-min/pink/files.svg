@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs>
+  <linearGradient id="files-m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2B2B36"/><stop offset="1" stop-color="#17171E"/></linearGradient>
+  <linearGradient id="files-e" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".35" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity=".03"/></linearGradient>
+  <radialGradient id="files-g" cx=".5" cy=".55" r=".55"><stop offset="0" stop-color="#FF6B97" stop-opacity=".16"/><stop offset="1" stop-color="#FF6B97" stop-opacity="0"/></radialGradient>
+</defs>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#files-m)"/>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#files-g)"/>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="none" stroke="url(#files-e)" stroke-width="1.6"/>
+
+<path d="M30 44a7 7 0 0 1 7-7h13l6 6h35a7 7 0 0 1 7 7v3H30z" fill="#F4F4F8" fill-opacity=".38"/>
+<rect x="27" y="50" width="74" height="44" rx="10" fill="#F4F4F8"/>
+<rect x="38" y="60" width="22" height="6" rx="3" fill="#FF6B97"/>
+</svg>

@@ -1,0 +1,40 @@
+# Islet – prompt Starship (tím · hồng · xanh ngọc)
+add_newline = true
+format = """$directory$git_branch$git_status$nodejs$python$rust$golang$java$php$docker_context$cmd_duration
+$character"""
+
+[directory]
+style = "bold #8B7CFF"
+truncation_length = 3
+truncate_to_repo = true
+
+[git_branch]
+symbol = " "
+style = "bold #FF6B97"
+format = "[$symbol$branch]($style) "
+
+[git_status]
+style = "#FFB547"
+format = '([$all_status$ahead_behind]($style) )'
+
+[character]
+success_symbol = "[❯](bold #5EEAD4)"
+error_symbol = "[❯](bold #FF6A6A)"
+
+[cmd_duration]
+min_time = 2000
+style = "#8E8E93"
+format = "[⏱ $duration]($style) "
+
+[nodejs]
+format = "[ $version](#FFD45C) "
+[python]
+format = '[ $version( \($virtualenv\))](#4BA3FF) '
+[rust]
+format = "[ $version](#FF8A5C) "
+[golang]
+format = "[ $version](#4BE3E8) "
+[java]
+format = "[ $version](#FF6B6B) "
+[php]
+format = "[ $version](#A99CFF) "

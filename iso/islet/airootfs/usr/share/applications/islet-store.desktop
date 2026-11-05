@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Store
+Comment=Find and install apps for Islet
+Icon=islet-store
+Exec=islet-ipc store open
+Categories=System;PackageManager;
+Keywords=app;store;install;

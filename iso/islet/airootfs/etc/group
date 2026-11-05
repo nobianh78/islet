@@ -1,0 +1,6 @@
+root:x:0:root
+wheel:x:998:islet
+audio:x:995:islet
+video:x:985:islet
+input:x:994:islet
+islet:x:1000:

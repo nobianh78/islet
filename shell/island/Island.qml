@@ -1,176 +1,341 @@
 import QtQuick
 import QtQuick.Effects
 import Quickshell
+import Quickshell.Services.Notifications
 import Quickshell.Wayland
 import "../theme"
 import "../services"
+import "../common"
 
-// Dynamic Island của Islet.
+// Dynamic Island của Islet — chuyển từ Dynamic Island cho GNOME (lib/island.js).
 //
-// Chế độ (ưu tiên từ cao xuống thấp):
-//   notif   – thông báo mới (5 giây)
-//   battery – vừa cắm sạc (2,6 giây)
-//   volume  – vừa đổi âm lượng (1,6 giây)
-//   player  – trình phát mở rộng (bấm vào island khi có nhạc)
-//   music   – thu gọn, có nhạc
-//   idle    – đôi mắt mèo
+// Kiểu "tai thỏ": treo từ mép trên màn hình. Thu gọn / OSD / toast cao đúng bằng thanh trên
+// nên nằm khít trong thanh; thông báo và bản mở rộng thì thả xuống.
+//
+//   compact   idle  [THỨ TƯ / 4 tháng 11 ……… 20:45]                  300 × 44
+//             media [ảnh  Tên bài · Ca sĩ ……… sóng nhạc]            380 × 44
+//   banner    notification 420 × 70 · osd 320 × 44 · toast ~240 × 44
+//   expanded  tab Bây giờ / Clipboard / Agents                      560 × (150…360)
+//
+// Bấm vào island → mở tab Lịch; rời chuột 420 ms → thu lại (trừ khi đang gõ ghi chú); Esc để đóng. Khung co giãn bằng lò xo vật lý
+// (stiffness 300, damping 0.74), nội dung cũ mờ + thu nhỏ, nội dung mới nở ra sau 90 ms.
 PanelWindow {
     id: win
 
     anchors.top: true
-    margins.top: 6
     exclusionMode: ExclusionMode.Ignore
-    implicitWidth: 520
-    implicitHeight: 260
+    implicitWidth: 640
+    implicitHeight: 420
     color: "transparent"
-    focusable: false
+    focusable: true
 
     WlrLayershell.namespace: "islet-island"
+    // Bấm vào island là nhận bàn phím luôn (để gõ ghi chú ngay); thu lại thì trả cho app.
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
     WlrLayershell.layer: WlrLayer.Overlay
 
-    // Chỉ phần khung đen nhận chuột; phần trong suốt xung quanh cho click xuyên qua.
     mask: Region { item: body }
 
-    // ---------------- Trạng thái ----------------
-    property string transient: ""
+    readonly property int barH: 44
+
+    // ---------------- trạng thái ----------------
     property bool expanded: false
-    readonly property bool hovered: hover.hovered
+    property var banner: null
+    property var queue: []
+    property real pausedAt: 0
+    property bool wasPlaying: false
 
-    readonly property string mode: transient !== "" ? transient
-        : (expanded && Media.hasPlayer) ? "player"
-        : Media.hasPlayer ? "music"
-        : "idle"
+    readonly property string mode: {
+        if (Media.hasPlayer && (Media.playing || (pausedAt > 0 && Date.now() - pausedAt < 90000)))
+            return "media";
+        return "idle";
+    }
+    readonly property string view: expanded ? "expanded" : banner ? "banner" : "compact"
+    readonly property bool flush: view === "compact" || (banner && (banner.kind === "osd" || banner.kind === "toast"))
 
-    // [rộng, cao, bo góc]
-    readonly property var sizes: ({
-        idle:    [132, 36, 18],
-        music:   [300, 36, 18],
-        volume:  [320, 40, 20],
-        battery: [320, 40, 20],
-        notif:   [420, 84, 34],
-        player:  [440, 196, 46]
-    })
-    readonly property var target: sizes[mode]
+    // Kích thước đích
+    readonly property real targetW: {
+        if (view === "expanded") return 560;
+        if (view === "banner") {
+            if (banner.kind === "notification") return 420;
+            if (banner.kind === "osd") return 320;
+            return Math.max(200, toastMetrics.width + (banner.tile || banner.icon ? 74 : 44));
+        }
+        return mode === "idle" ? 300 : 380;
+    }
+    readonly property real targetH: {
+        if (view === "expanded") return Math.max(barH + 120, Math.min(360, Math.max(150, expandedView.contentHeight)));
+        if (flush) return barH;
+        return Math.max(70, barH + 8);
+    }
+    readonly property real cornerR: view === "expanded" ? 32 : flush ? 16 : 22
 
-    // Phình nhẹ khi trỏ chuột vào dạng thu gọn.
-    readonly property bool compact: mode === "idle" || mode === "music"
-    readonly property real bumpW: hovered && compact ? 14 : 0
-    readonly property real bumpH: hovered && compact ? 3 : 0
-
-    readonly property var priority: ({ "": 0, volume: 1, battery: 2, notif: 3 })
-
-    function flash(kind, ms) {
-        if (priority[kind] < priority[transient]) return;
-        transient = kind;
-        transientTimer.interval = ms;
-        transientTimer.restart();
+    TextMetrics {
+        id: toastMetrics
+        font.family: Theme.font
+        font.pixelSize: 13
+        font.bold: true
+        text: win.banner?.text ?? ""
     }
 
-    Timer { id: transientTimer; onTriggered: win.transient = "" }
+    Spring { id: sw; target: win.targetW }
+    Spring { id: sh; target: win.targetH }
 
-    // Rời chuột khỏi trình phát mở rộng thì tự thu lại sau 2,5 giây.
+    // ---------------- banner ----------------
+    Timer { id: bannerTimer; onTriggered: win.endBanner(false) }
+
+    function pushBanner(b) {
+        if (expanded) {
+            if (b.kind === "notification") queue.push(b);
+            return;
+        }
+        if (banner && b.kind === "osd") {
+            if (banner.kind === "notification") queue.unshift(banner);
+            banner = b;
+            bannerTimer.interval = b.duration;
+            bannerTimer.restart();
+            return;
+        }
+        if (banner) { queue.push(b); return; }
+        showBanner(b);
+    }
+    function showBanner(b) {
+        banner = b;
+        if (b.kind === "notification") pulse();
+        bannerTimer.interval = b.duration;
+        bannerTimer.restart();
+    }
+    function endBanner(force) {
+        bannerTimer.stop();
+        if (!banner) return;
+        if (!force && hover.hovered && banner.kind === "notification") {
+            bannerTimer.interval = 1500;
+            bannerTimer.restart();
+            return;
+        }
+        banner = null;
+        nextBanner();
+    }
+    function nextBanner() {
+        if (expanded || banner || queue.length === 0) return false;
+        showBanner(queue.shift());
+        return true;
+    }
+    function bannerClicked() {
+        const n = banner?.notification;
+        if (n) {
+            const acts = n.actions ?? [];
+            for (let i = 0; i < acts.length; i++)
+                if (acts[i].identifier === "default") { acts[i].invoke(); break; }
+        }
+        endBanner(true);
+    }
+
+    // Dùng cho IPC / thử nghiệm: qs ipc call island test notif|volume|battery|launch
+    function flash(kind, ms) {
+        if (kind === "notif" || kind === "notification")
+            pushBanner({ kind: "notification", title: "Welcome to Islet", body: "Dynamic Island is ready", appName: "Islet", icon: "", duration: ms || 5000 });
+        else if (kind === "volume")
+            pushBanner({ kind: "osd", level: Audio.volume, icon: Audio.muted ? "volume-mute" : "volume", duration: ms || 1600 });
+        else if (kind === "battery")
+            pushBanner({ kind: "toast", icon: "bolt", text: "Charging · " + Math.round(Power.percent) + "%", duration: ms || 2600 });
+        else if (kind === "launch")
+            pushBanner({ kind: "toast", tile: Ui.launchTile, icon: Ui.launchIcon, iconUrl: Ui.launchIconUrl, text: "Opening " + Ui.launchLabel, duration: ms || 1800 });
+    }
+
+    // ---------------- mở rộng / thu lại ----------------
+    function expand(tab) {
+        if (tab) expandedView.tab = tab;
+
+        if (banner) {
+            if (banner.kind === "notification") queue.unshift(banner);
+            bannerTimer.stop();
+            banner = null;
+        }
+        expanded = true;
+        if (expandedView.tab === "calendar") focusLater.restart();
+    }
+    // đợi cửa sổ nhận bàn phím rồi mới đặt con trỏ vào ô ghi chú
+    Timer { id: focusLater; interval: 60; onTriggered: expandedView.calendarPage.focusInput() }
+    function collapse() {
+        if (!expanded) return;
+        expanded = false;
+        expandedView.calendarPage.blurInput();
+        if (Windows.hasActive) Windows.focusWin(Windows.active);
+        if (queue.length) afterCollapse.restart();
+    }
+    Timer { id: afterCollapse; interval: 450; onTriggered: win.nextBanner() }
+
     Timer {
         id: collapseTimer
-        interval: 2500
-        running: win.expanded && !win.hovered
-        onTriggered: win.expanded = false
+        interval: 420
+        onTriggered: if (!hover.hovered && !expandedView.calendarPage.editing) win.collapse()
     }
 
+    function pulse() { pulseAnim.restart(); }
+
+    // ---------------- dịch vụ → island ----------------
+    Connections {
+        target: Notifs
+        function onArrived(n) {
+            // Không làm phiền: chỉ lưu vào trung tâm thông báo (thông báo khẩn vẫn hiện)
+            if (Prefs.dnd && n.urgency !== NotificationUrgency.Critical) return;
+            win.pushBanner({
+                kind: "notification",
+                notification: n,
+                title: n.summary || n.appName || "",
+                body: (n.body || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim(),
+                appName: n.appName || "",
+                icon: Notifs.iconFor(n),
+                duration: 5000
+            });
+        }
+    }
     Connections {
         target: Audio
-        function onTouched() { win.flash("volume", 1600); }
+        function onTouched() {
+            win.pushBanner({ kind: "osd", level: Audio.muted ? 0 : Audio.volume, icon: Audio.muted || Audio.volume <= 0.001 ? "volume-mute" : "volume", duration: 1600 });
+        }
     }
     Connections {
         target: Power
-        function onPlugged() { win.flash("battery", 2600); }
+        function onPlugged() { win.flash("battery"); }
     }
     Connections {
-        target: Notifs
-        function onArrived(n) { win.flash("notif", 5000); }
+        target: Calendar
+        function onRemind(n) {
+            win.pushBanner({ kind: "notification", title: n.text, body: "It's time · " + n.time, appName: "Calendar", icon: "", duration: 10000 });
+        }
     }
+    Connections {
+        target: Ui
+        function onToastRequested(text, icon, kind) {
+            win.pushBanner({ kind: "toast", tile: "x", icon: kind === "error" ? "store" : "store", iconUrl: icon, text: text, duration: 2400 });
+        }
+    }
+    Connections {
+        target: Ui
+        function onLaunching() { win.flash("launch"); }
+    }
+    Connections {
+        target: Media
+        function onPlayingChanged() {
+            if (!Media.playing && win.wasPlaying) win.pausedAt = Date.now();
+            if (Media.playing) win.pausedAt = 0;
+            win.wasPlaying = Media.playing;
+        }
+    }
+    // mode "media" hết hạn 90 s sau khi tạm dừng
+    Timer { interval: 5000; repeat: true; running: win.pausedAt > 0; onTriggered: win.pausedAtChanged() }
 
-    onModeChanged: Media.wantPosition = (mode === "player")
+    onViewChanged: Media.wantPosition = (view === "expanded")
 
-    // ---------------- Khung island ----------------
+    // ---------------- khung ----------------
     Item {
         id: body
-
         anchors.horizontalCenter: parent.horizontalCenter
         y: 0
-        width: win.target[0] + win.bumpW
-        height: win.target[1] + win.bumpH
+        width: Math.max(1, sw.value)
+        height: Math.max(1, sh.value)
 
-        Behavior on width {
-            SpringAnimation { spring: Theme.springW; damping: Theme.dampW; mass: Theme.mass; epsilon: 0.25 }
-        }
-        Behavior on height {
-            SpringAnimation { spring: Theme.springH; damping: Theme.dampH; mass: Theme.mass; epsilon: 0.25 }
+        transform: Scale {
+            id: pulseScale
+            origin.x: body.width / 2
+            origin.y: 0
         }
 
-        // Bóng đổ mềm phía dưới.
+        // bóng đổ khi thả xuống (thông báo / mở rộng)
         RectangularShadowFallback {
             anchors.fill: shape
-            radius: shape.radius
+            radius: win.cornerR
+            opacity: win.flush ? 0 : 0.9
+            Behavior on opacity { NumberAnimation { duration: 220 } }
         }
 
         Rectangle {
             id: shape
             anchors.fill: parent
-            radius: Math.min(height / 2, win.target[2])
-            color: Theme.ink
-            border.color: Theme.hairline
-            border.width: 1
+            color: "#000000"
+            topLeftRadius: 0
+            topRightRadius: 0
+            bottomLeftRadius: win.cornerR
+            bottomRightRadius: win.cornerR
+            Behavior on bottomLeftRadius { NumberAnimation { duration: 220 } }
+            Behavior on bottomRightRadius { NumberAnimation { duration: 220 } }
             clip: true
 
-            // Ánh sáng mờ phía dưới khi đang phát nhạc mở rộng.
+            // nhuộm màu ảnh bìa khi mở tab "Bây giờ"
             Rectangle {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
-                width: parent.width * 0.8
-                height: parent.height * 0.6
-                radius: width / 2
-                color: Theme.violet
-                opacity: win.mode === "player" && Media.playing ? 0.16 : 0
-                Behavior on opacity { NumberAnimation { duration: 600 } }
-                layer.enabled: opacity > 0
-                layer.effect: MultiEffect { blurEnabled: true; blurMax: 64; blur: 1 }
+                anchors.fill: parent
+                bottomLeftRadius: parent.bottomLeftRadius
+                bottomRightRadius: parent.bottomRightRadius
+                opacity: win.view === "expanded" && expandedView.tab === "now" && Media.accent ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: 320 } }
+                gradient: Gradient {
+                    GradientStop { position: 0; color: Media.accent ? Qt.rgba(Media.accent.r * 0.42, Media.accent.g * 0.42, Media.accent.b * 0.42, 1) : "#000000" }
+                    GradientStop { position: 1; color: "#000000" }
+                }
             }
 
-            // Bấm vào island: mở/thu trình phát, hoặc tắt thông báo.
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    if (win.transient === "notif") {
-                        win.transient = "";
-                        return;
-                    }
-                    if (Media.hasPlayer) win.expanded = !win.expanded;
+                    if (win.banner) win.bannerClicked();
+                    else if (!win.expanded) win.expand("calendar");
                 }
             }
 
-            IdleView     { shown: win.mode === "idle"; hovered: win.hovered }
-            CompactMusic { shown: win.mode === "music" }
-            PlayerView   { shown: win.mode === "player" }
-            VolumeView   { shown: win.mode === "volume" }
-            BatteryView  { shown: win.mode === "battery" }
-            NotifView    { shown: win.mode === "notif" }
+            // ---- các màn ----
+            Fader {
+                shown: win.view === "compact"
+                width: win.mode === "idle" ? 300 : 380
+                height: win.barH
+                CompactView {
+                    id: compactView
+                    anchors.fill: parent
+                    mode: win.mode
+                    hovered: hover.hovered
+                }
+            }
+            Fader {
+                shown: win.view === "banner"
+                width: win.targetW
+                height: win.view === "banner" ? win.targetH : win.barH
+                BannerView {
+                    anchors.fill: parent
+                    banner: win.banner
+                }
+            }
+            Fader {
+                shown: win.view === "expanded"
+                width: 560
+                height: Math.max(150, expandedView.contentHeight)
+                ExpandedView {
+                    id: expandedView
+                    anchors.fill: parent
+                }
+            }
         }
 
-        HoverHandler { id: hover }
+        Keys.onEscapePressed: win.collapse()
+        focus: win.expanded
 
-        // Nảy nhẹ một cái mỗi khi đổi chế độ.
-        transform: Scale {
-            id: pop
-            origin.x: body.width / 2
-            origin.y: 0
+        HoverHandler {
+            id: hover
+            onHoveredChanged: {
+                if (hovered) {
+                    collapseTimer.stop();
+                } else if (win.expanded && !expandedView.calendarPage.editing) {
+                    collapseTimer.restart();
+                }
+            }
         }
     }
 
     SequentialAnimation {
-        id: popAnim
-        NumberAnimation { target: pop; properties: "xScale,yScale"; to: 1.035; duration: 110; easing.type: Easing.OutQuad }
-        NumberAnimation { target: pop; properties: "xScale,yScale"; to: 1.0; duration: 420; easing.type: Easing.OutBack; easing.overshoot: 2.2 }
+        id: pulseAnim
+        NumberAnimation { target: pulseScale; properties: "xScale,yScale"; to: 1.06; duration: 150; easing.type: Easing.OutQuad }
+        NumberAnimation { target: pulseScale; properties: "xScale,yScale"; to: 1; duration: 520; easing.type: Easing.OutElastic; easing.amplitude: 1; easing.period: 0.4 }
     }
-    onTransientChanged: if (transient !== "") popAnim.restart()
 }

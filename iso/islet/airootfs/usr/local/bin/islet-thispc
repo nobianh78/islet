@@ -1,0 +1,224 @@
+#!/usr/bin/env python3
+"""Islet "This PC" cho Files (Nautilus): một thư mục ghim đầu thanh bên, mỗi ổ đĩa là một lối tắt
+có tên kèm dung lượng ("Islet (System) — 12.4 GB free of 20 GB") và icon có thanh dung lượng
+giống Windows. Shell gọi lại script này định kỳ (services/ThisPC.qml) để cập nhật dung lượng / USB.
+
+    islet-thispc            dựng / cập nhật thư mục
+    islet-thispc --print    chỉ in danh sách ổ (để thử)
+"""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import urllib.parse
+
+HOME = os.path.expanduser("~")
+DIR = os.path.join(HOME, "This PC")            # ẩn khỏi Home bằng ~/.hidden, mở từ thanh bên
+OLD_DIR = os.path.join(HOME, ".local", "share", "islet", "This PC")
+ICONS = os.path.join(HOME, ".cache", "islet", "thispc")
+BOOKMARKS = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.join(HOME, ".config")), "gtk-3.0", "bookmarks")
+SETTINGS = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.join(HOME, ".config")), "islet", "settings.json")
+
+ACCENTS = {"violet": "#8B7CFF", "blue": "#5B8CFF", "teal": "#2EC4B6", "green": "#34C77B",
+           "amber": "#FF9F43", "pink": "#FF6B97", "red": "#FF5F57"}
+SKIP_MOUNTS = ("/boot", "/efi", "/boot/efi", "/run/archiso/bootmnt", "/run/archiso/airootfs")
+SKIP_FS = {"swap", "squashfs", "iso9660", "udf", None, ""}
+
+
+def human(n):
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if n < 1000 or unit == "TB":
+            return (f"{n:.1f}".rstrip("0").rstrip(".") if unit in ("GB", "TB") else f"{n:.0f}") + " " + unit
+        n /= 1000
+    return str(n)
+
+
+def accent():
+    try:
+        return ACCENTS.get(json.load(open(SETTINGS)).get("accent", "violet"), ACCENTS["violet"])
+    except Exception:
+        return ACCENTS["violet"]
+
+
+AUTOMOUNT_FS = {"vfat", "exfat", "ntfs", "ntfs3", "ext4", "ext3", "ext2", "btrfs", "xfs", "f2fs", "hfsplus"}
+
+
+def automount():
+    """Ổ cắm ngoài (USB, thẻ nhớ) chưa gắn thì tự gắn như Windows, để hiện ngay trong This PC."""
+    out = subprocess.run(["lsblk", "-J", "-o", "PATH,FSTYPE,MOUNTPOINTS,RM,HOTPLUG,TYPE"], capture_output=True, text=True).stdout
+
+    def walk(devs):
+        for d in devs or []:
+            walk(d.get("children"))
+            mps = [m for m in (d.get("mountpoints") or []) if m]
+            if mps or d.get("fstype") not in AUTOMOUNT_FS or not (d.get("rm") or d.get("hotplug")):
+                continue
+            if d.get("type") not in ("part", "disk"):
+                continue
+            subprocess.run(["udisksctl", "mount", "--no-user-interaction", "-b", d["path"]],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
+
+    try:
+        walk(json.loads(out or "{}").get("blockdevices"))
+    except Exception:
+        pass
+
+
+def drives():
+    out = subprocess.run(["lsblk", "-J", "-b", "-o", "PATH,LABEL,FSTYPE,SIZE,FSSIZE,FSAVAIL,MOUNTPOINTS,RM,HOTPLUG,TYPE"],
+                         capture_output=True, text=True).stdout
+    found, seen = [], set()
+
+    def walk(devs):
+        for d in devs or []:
+            walk(d.get("children"))
+            mps = [m for m in (d.get("mountpoints") or []) if m]
+            if not mps or d.get("fstype") in SKIP_FS:
+                continue
+            mp = sorted(mps, key=len)[0]
+            if mp in SKIP_MOUNTS or mp in seen:
+                continue
+            seen.add(mp)
+            try:
+                st = os.statvfs(mp)
+                total, free = st.f_blocks * st.f_frsize, st.f_bavail * st.f_frsize
+            except OSError:
+                total, free = int(d.get("fssize") or d.get("size") or 0), int(d.get("fsavail") or 0)
+            if total <= 0:
+                continue
+            removable = bool(d.get("rm")) or bool(d.get("hotplug"))
+            if mp == "/":
+                name, kind = "Islet (System)", "system"
+            else:
+                name = d.get("label") or os.path.basename(mp) or (human(total) + " Volume")
+                kind = "usb" if removable else "disk"
+            found.append({"name": name, "mount": mp, "total": total, "free": free, "kind": kind, "dev": d.get("path")})
+
+    walk(json.loads(out or "{}").get("blockdevices"))
+    # bản chạy thử: / là overlay (không phải ổ thật) → vẫn hiện để thấy chỗ trống của phiên
+    if "/" not in seen:
+        st = os.statvfs("/")
+        found.insert(0, {"name": "Islet Live", "mount": "/", "total": st.f_blocks * st.f_frsize,
+                         "free": st.f_bavail * st.f_frsize, "kind": "system", "dev": "live"})
+    order = {"system": 0, "disk": 1, "usb": 2}
+    return sorted(found, key=lambda x: (order[x["kind"]], x["name"].lower()))
+
+
+def icon_svg(kind, used, A):
+    fill = "#FF5F57" if used >= 0.9 else A
+    w = max(6, round(96 * used))
+    if kind == "usb":
+        body = f'''<rect x="44" y="18" width="40" height="22" rx="5" fill="#9A9AA8"/>
+<rect x="52" y="24" width="8" height="6" rx="1.5" fill="#2A2A34"/><rect x="68" y="24" width="8" height="6" rx="1.5" fill="#2A2A34"/>
+<rect x="34" y="36" width="60" height="46" rx="12" fill="url(#b)"/>
+<path d="M34 48a12 12 0 0 1 12-12h36a12 12 0 0 1 12 12" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="1.5"/>
+<circle cx="80" cy="70" r="3.5" fill="{A}"/>'''
+    else:
+        logo = (f'<g transform="translate(24 50) scale(.12)"><circle cx="100" cy="112" r="66" fill="{A}"/>'
+                f'<polygon points="44,86 54,30 96,58" fill="{A}"/><polygon points="156,86 146,30 104,58" fill="{A}"/>'
+                f'<rect x="50" y="96" width="100" height="42" rx="21" fill="#07070F"/></g>') if kind == "system" else ""
+        body = f'''<rect x="14" y="30" width="100" height="50" rx="14" fill="url(#b)"/>
+<path d="M14 44a14 14 0 0 1 14-14h72a14 14 0 0 1 14 14" fill="none" stroke="#fff" stroke-opacity=".2" stroke-width="1.5"/>
+<rect x="58" y="51" width="30" height="4" rx="2" fill="#fff" fill-opacity=".22"/><rect x="58" y="60" width="20" height="4" rx="2" fill="#fff" fill-opacity=".14"/>
+<circle cx="100" cy="66" r="4" fill="{A}"/>{logo}'''
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#454554"/><stop offset="1" stop-color="#2A2A34"/></linearGradient></defs>
+{body}
+<rect x="16" y="94" width="96" height="10" rx="5" fill="#fff" fill-opacity=".14"/>
+<rect x="16" y="94" width="{w}" height="10" rx="5" fill="{fill}"/>
+</svg>'''
+
+
+def computer_svg(A):
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<defs><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#454554"/><stop offset="1" stop-color="#2A2A34"/></linearGradient></defs>
+<rect x="6" y="10" width="52" height="34" rx="6" fill="url(#b)"/>
+<rect x="10" y="14" width="44" height="26" rx="3" fill="#15151C"/>
+<rect x="14" y="33" width="20" height="3" rx="1.5" fill="{A}"/>
+<path d="M24 52h16" stroke="#9A9AA8" stroke-width="4" stroke-linecap="round"/><path d="M32 44v8" stroke="#9A9AA8" stroke-width="4"/>
+</svg>'''
+
+
+def gio_icon(path, uri):
+    subprocess.run(["gio", "set", "-n", path, "metadata::custom-icon", uri],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def ensure_hidden():
+    p = os.path.join(HOME, ".hidden")
+    try:
+        names = open(p).read().splitlines()
+    except FileNotFoundError:
+        names = []
+    if "This PC" not in names:
+        open(p, "w").write("\n".join(names + ["This PC"]) + "\n")
+
+
+def ensure_bookmark():
+    uri = "file://" + urllib.parse.quote(DIR)
+    line = f"{uri} This PC"
+    try:
+        lines = open(BOOKMARKS).read().splitlines()
+    except FileNotFoundError:
+        lines = []
+    if lines and lines[0] == line:
+        return
+    old = "file://" + urllib.parse.quote(OLD_DIR)
+    lines = [l for l in lines if not l.startswith(uri) and not l.startswith(old)]
+    os.makedirs(os.path.dirname(BOOKMARKS), exist_ok=True)
+    open(BOOKMARKS, "w").write("\n".join([line] + lines) + "\n")
+
+
+def main():
+    if "--print" not in sys.argv:
+        automount()
+    ds = drives()
+    if "--print" in sys.argv:
+        for d in ds:
+            print(f'{d["kind"]:6} {d["mount"]:30} {human(d["free"])} free of {human(d["total"])}  {d["name"]}')
+        return
+    os.makedirs(DIR, exist_ok=True)
+    os.makedirs(ICONS, exist_ok=True)
+    A = accent()
+
+    # biểu tượng của chính thư mục This PC
+    cpath = os.path.join(ICONS, f"computer-{A[1:]}.svg")
+    if not os.path.exists(cpath):
+        open(cpath, "w").write(computer_svg(A))
+    gio_icon(DIR, "file://" + cpath)
+
+    wanted, keep_icons = {}, {os.path.basename(cpath)}
+    for d in ds:
+        label = f'{d["name"]} — {human(d["free"])} free of {human(d["total"])}'.replace("/", "∕")
+        used = 1 - d["free"] / d["total"]
+        key = hashlib.sha1(f'{d["dev"]}{d["mount"]}'.encode()).hexdigest()[:8]
+        icon = os.path.join(ICONS, f'{key}-{d["kind"]}-{round(used * 100)}-{A[1:]}.svg')
+        if not os.path.exists(icon):
+            open(icon, "w").write(icon_svg(d["kind"], used, A))
+        keep_icons.add(os.path.basename(icon))
+        wanted[label] = (d["mount"], icon)
+
+    # bỏ lối tắt cũ (ổ đã rút / tên đổi vì dung lượng đổi)
+    for f in os.listdir(DIR):
+        p = os.path.join(DIR, f)
+        if f not in wanted or not os.path.islink(p) or os.readlink(p) != wanted[f][0]:
+            if os.path.islink(p):
+                os.unlink(p)
+    for label, (mount, icon) in wanted.items():
+        p = os.path.join(DIR, label)
+        if not os.path.islink(p):
+            os.symlink(mount, p)
+        gio_icon(p, "file://" + icon)
+    for f in os.listdir(ICONS):
+        if f not in keep_icons:
+            try:
+                os.unlink(os.path.join(ICONS, f))
+            except OSError:
+                pass
+    ensure_hidden()
+    ensure_bookmark()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Settings
+Comment=Wallpaper, accent color, Wi-Fi, sound, displays
+Icon=org.gnome.Settings
+Exec=islet-ipc settings open
+Categories=Settings;System;
+Keywords=settings;wallpaper;wifi;sound;display;

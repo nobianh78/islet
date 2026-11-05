@@ -1,0 +1,67 @@
+#!/bin/bash
+# Wi-Fi cho app Cài đặt của Islet (qua iwd / iwctl; người dùng nhóm wheel được phép).
+#
+#   islet-wifi status             thiết bị<TAB>trạng thái<TAB>mạng đang nối   (trống nếu máy không có Wi-Fi)
+#   islet-wifi list               tên<TAB>bảo mật<TAB>độ mạnh 0..100<TAB>đang nối(0|1)<TAB>đã lưu(0|1)
+#   islet-wifi scan               quét lại
+#   islet-wifi connect <tên>      mật khẩu (nếu cần) đọc từ stdin
+#   islet-wifi disconnect
+#   islet-wifi forget <tên>
+set -uo pipefail
+cmd=${1:-}; shift || true
+
+dev=""
+for d in /sys/class/net/*; do [ -d "$d/wireless" ] && { dev=${d##*/}; break; }; done
+[ -n "$dev" ] || { [ "$cmd" = status ] && exit 0; echo "No Wi-Fi device" >&2; exit 1; }
+
+clean() { sed -E 's/\x1b\[[0-9;]*m//g'; }
+
+case "$cmd" in
+status)
+    s=$(iwctl station "$dev" show 2>/dev/null | clean)
+    state=$(awk '$1=="State"{print $2}' <<<"$s")
+    net=$(sed -nE 's/^\s*Connected network\s+(.*\S)\s*$/\1/p' <<<"$s")
+    printf '%s\t%s\t%s\n' "$dev" "${state:-off}" "$net"
+    ;;
+scan)
+    iwctl station "$dev" scan >/dev/null 2>&1
+    ;;
+list)
+    known=$(iwctl known-networks list 2>/dev/null | clean | sed -E '1,4d; s/^\s+//; s/\s{2,}(psk|open|8021x|wep).*$//' | sed '/^\s*$/d')
+    iwctl station "$dev" get-networks rssi-dbms 2>/dev/null | clean | sed '1,4d' | while IFS= read -r l; do
+        [ -n "${l// }" ] || continue
+        cur=0; [[ "$l" =~ ^\ *\> ]] && cur=1
+        l=$(sed -E 's/^\s*>?\s*//' <<<"$l")
+        # tên (có thể có dấu cách)  bảo mật  rssi(dBm*100)
+        if [[ "$l" =~ ^(.*[^ ])\ {2,}([a-z0-9]+)\ +(-?[0-9]+)\ *$ ]]; then
+            name=${BASH_REMATCH[1]}; sec=${BASH_REMATCH[2]}; rssi=${BASH_REMATCH[3]}
+            dbm=$((rssi / 100)); q=$(( (dbm + 90) * 100 / 60 )); [ $q -lt 0 ] && q=0; [ $q -gt 100 ] && q=100
+            saved=0; grep -qxF -- "$name" <<<"$known" && saved=1
+            printf '%s\t%s\t%s\t%s\t%s\n' "$name" "$sec" "$q" "$cur" "$saved"
+        fi
+    done
+    ;;
+connect)
+    name=${1:?network name}
+    pw=""; [ -t 0 ] || IFS= read -r pw || true
+    if [ -n "$pw" ]; then
+        out=$(iwctl --dont-ask --passphrase "$pw" station "$dev" connect "$name" 2>&1)
+    else
+        out=$(iwctl --dont-ask station "$dev" connect "$name" 2>&1)
+    fi
+    rc=$?
+    out=$(clean <<<"$out")
+    if [ $rc -ne 0 ] || grep -qiE "fail|error|not" <<<"$out"; then
+        grep -qi "passphrase\|Operation failed" <<<"$out" && { echo "Wrong or missing password" >&2; exit 3; }
+        echo "${out:-Could not connect}" >&2; exit 1
+    fi
+    ;;
+disconnect)
+    iwctl station "$dev" disconnect
+    ;;
+forget)
+    iwctl known-networks "${1:?network name}" forget
+    ;;
+*)
+    echo "Usage: islet-wifi status|list|scan|connect|disconnect|forget" >&2; exit 2 ;;
+esac

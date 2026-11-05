@@ -1,3 +1,8 @@
 /out/
 /work/
 *.iso
+out-build*.log
+__pycache__/
+*.qmlc
+*.jsc
+.qmlls.ini

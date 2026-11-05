@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs>
+  <linearGradient id="store-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4BE3E8"/><stop offset="0.5" stop-color="#5B8CFF"/><stop offset="1" stop-color="#8B5CFF"/></linearGradient>
+  <radialGradient id="store-hl" cx=".22" cy=".12" r=".75">
+    <stop offset="0" stop-color="#fff" stop-opacity=".42"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="store-lo" x1="0" y1="0" x2="0" y2="1">
+    <stop offset=".6" stop-color="#2A2F9A" stop-opacity="0"/><stop offset="1" stop-color="#2A2F9A" stop-opacity=".22"/>
+  </linearGradient>
+  <filter id="store-sh" x="-25%" y="-25%" width="150%" height="150%">
+    <feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#2A2F9A" flood-opacity=".35"/>
+  </filter>
+  
+</defs>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#store-bg)"/>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#store-hl)"/>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#store-lo)"/>
+<g filter="url(#store-sh)">
+<path d="M46 48v-6a18 18 0 0 1 36 0v6" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round"/>
+<path d="M30 52a6 6 0 0 1 6-6h56a6 6 0 0 1 6 6l-4 38a10 10 0 0 1-10 9H44a10 10 0 0 1-10-9z" fill="#FFFFFF" fill-opacity=".9"/>
+<path d="M64 60l3.6 8 8.4 1-6.2 5.8 1.7 8.4L64 79l-7.5 4.2 1.7-8.4L52 69l8.4-1z" fill="#8B5CFF"/></g>
+</svg>

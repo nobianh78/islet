@@ -1,0 +1,54 @@
+/* Islet – nút cửa sổ 🔴 đóng · 🟡 thu nhỏ · 🟢 phóng to cho Firefox.
+   Thứ tự (đóng bên trái) theo cài đặt GTK của Islet. Cài vào profile bằng islet-firefox-theme. */
+
+.titlebar-buttonbox {
+  gap: 8px !important;
+  margin-inline: 12px 8px !important;
+  align-items: center !important;
+}
+.titlebar-button {
+  appearance: none !important;
+  -moz-default-appearance: none !important;
+  padding: 4px 1px !important;
+  margin: 0 !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.titlebar-button > .toolbarbutton-icon {
+  appearance: none !important;
+  -moz-default-appearance: none !important;
+  width: 12px !important;
+  height: 12px !important;
+  min-width: 12px !important;
+  min-height: 12px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 50% !important;
+  background-color: #FF5F57 !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 12px 12px !important;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.25) !important;
+  list-style-image: none !important;
+  -moz-context-properties: none !important;
+  fill: transparent !important;
+  stroke: transparent !important;
+  transition: background-color 160ms ease, transform 160ms ease !important;
+}
+.titlebar-min > .toolbarbutton-icon { background-color: #FEBC2E !important; }
+.titlebar-max > .toolbarbutton-icon,
+.titlebar-restore > .toolbarbutton-icon { background-color: #28C840 !important; }
+
+/* rê vào cụm: hiện ký hiệu trong chấm */
+.titlebar-buttonbox:hover .titlebar-close > .toolbarbutton-icon { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%237A1E19' stroke-width='1.3' stroke-linecap='round'><path d='M4 4l4 4M8 4l-4 4'/></svg>") !important; }
+.titlebar-buttonbox:hover .titlebar-min > .toolbarbutton-icon { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%237A5410' stroke-width='1.3' stroke-linecap='round'><path d='M3.2 6h5.6'/></svg>") !important; }
+.titlebar-buttonbox:hover .titlebar-max > .toolbarbutton-icon,
+.titlebar-buttonbox:hover .titlebar-restore > .toolbarbutton-icon { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%230E5A1C' stroke-width='1.3' stroke-linecap='round'><path d='M3.2 6h5.6M6 3.2v5.6'/></svg>") !important; }
+.titlebar-button:hover:active > .toolbarbutton-icon { transform: scale(0.88) !important; filter: brightness(0.88) !important; }
+
+/* cửa sổ không được chọn: chấm xám */
+:root:-moz-window-inactive .titlebar-buttonbox:not(:hover) .titlebar-button > .toolbarbutton-icon {
+  background-color: rgba(128, 128, 140, 0.35) !important;
+  box-shadow: none !important;
+}

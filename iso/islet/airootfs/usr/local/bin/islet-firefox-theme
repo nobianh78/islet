@@ -1,0 +1,12 @@
+#!/bin/sh
+# Chép theme nút cửa sổ 🔴🟡🟢 của Islet vào mọi profile Firefox (chạy lúc Hyprland khởi động).
+CSS=/usr/share/islet/firefox/userChrome.css
+[ -f "$CSS" ] || exit 0
+for dir in "$HOME"/.config/mozilla/firefox/*/ "$HOME"/.mozilla/firefox/*/; do
+    [ -d "$dir" ] || continue
+    case "$dir" in *"Crash Reports"*|*"Pending Pings"*) continue ;; esac
+    mkdir -p "$dir/chrome"
+    cp -f "$CSS" "$dir/chrome/userChrome.css"
+    grep -qs legacyUserProfileCustomizations "$dir/user.js" ||
+        echo 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);' >> "$dir/user.js"
+done

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs>
+  <linearGradient id="code-m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2B2B36"/><stop offset="1" stop-color="#17171E"/></linearGradient>
+  <linearGradient id="code-e" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".35" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity=".03"/></linearGradient>
+  <radialGradient id="code-g" cx=".5" cy=".55" r=".55"><stop offset="0" stop-color="#FF5F57" stop-opacity=".16"/><stop offset="1" stop-color="#FF5F57" stop-opacity="0"/></radialGradient>
+</defs>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#code-m)"/>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#code-g)"/>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="none" stroke="url(#code-e)" stroke-width="1.6"/>
+
+<circle cx="38" cy="38" r="4" fill="#FF5F57"/><circle cx="50" cy="38" r="4" fill="#F4F4F8" fill-opacity=".5"/><circle cx="62" cy="38" r="4" fill="#F4F4F8" fill-opacity=".3"/>
+<path d="M50 58l-14 13 14 13" fill="none" stroke="#F4F4F8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M78 58l14 13-14 13" fill="none" stroke="#F4F4F8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M68 54l-8 34" stroke="#FF5F57" stroke-width="7" stroke-linecap="round"/>
+</svg>
