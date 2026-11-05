@@ -69,6 +69,10 @@ file_permissions+=(
 )
 E
     echo "    (dev) SSH: ssh -i out/dev_key -p 2222 islet@localhost"
+else
+    # Bản phát hành: không mở SSH (archiso bật sẵn sshd + cho root đăng nhập bằng mật khẩu)
+    rm -f "$AIR/etc/systemd/system/multi-user.target.wants/sshd.service" \
+          "$AIR/etc/ssh/sshd_config.d/10-archiso.conf"
 fi
 
 echo "==> Build ISO trong container archlinux (lần đầu mất 10–20 phút)"
