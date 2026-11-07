@@ -22,10 +22,11 @@ AIR="$PROFILE/airootfs"
 cat >> "$PROFILE/pacman.conf" <<'E'
 
 [islet]
-SigLevel = Optional TrustAll
+SigLevel = Required DatabaseRequired
 Server = file:///out/repo
 E
 grep -qx islet "$PROFILE/packages.x86_64" || echo islet >> "$PROFILE/packages.x86_64"
+cp "$ROOT/packaging/keyring/islet.gpg" "$ROOT/packaging/keyring/islet-trusted" "$OUT/"      # container build tin khoá Islet (xem bên dưới)
 
 cp "$ROOT/branding/islet-mark-dark-bg.svg" "$PROFILE/islet-splash.svg"     # logo trên màn hình boot BIOS
 
@@ -80,6 +81,9 @@ EOF
         sed -i "s/^#\?ParallelDownloads.*/ParallelDownloads = 8/" /etc/pacman.conf
 
         pacman -Syu --noconfirm --needed archiso imagemagick librsvg >/dev/null
+        # kho [islet] cục bộ được ký bằng khoá Islet → keyring của container phải tin khoá đó
+        pacman-key --add /out/islet.gpg >/dev/null 2>&1
+        pacman-key --lsign-key "$(cut -d: -f1 /out/islet-trusted)" >/dev/null 2>&1
 
         # Màn hình boot BIOS (syslinux) mang logo Islet
         magick -size 640x480 xc:"#0A0A14" \
