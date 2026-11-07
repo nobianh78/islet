@@ -17,23 +17,34 @@ Singleton {
     property real offset: 0
     property int failures: 0
 
-    // bài đang phát (đổi bài → tìm lời; nhiều trình phát báo tên trước, độ dài sau → đợi một nhịp)
+    // Bài đang phát = tên + ca sĩ. Độ dài KHÔNG thuộc "bài nào": khi tua, nhiều trình phát (YouTube trong
+    // trình duyệt…) gửi lại metadata — tên rỗng trong chốc lát, độ dài nhảy — nên chỉ coi là đổi bài khi
+    // tên/ca sĩ khác hẳn và giữ khác ~0,9 s; quay về đúng bài đang có lời thì không tìm lại.
     readonly property string title: Media.hasPlayer ? Media.title : ""
     readonly property string artist: Media.hasPlayer ? (Media.active?.trackArtist ?? "") : ""
-    readonly property int length: Math.round(Media.length || 0)
-    readonly property string key: enabled && title ? title + "\u0000" + artist + "\u0000" + length : ""
-    onKeyChanged: {
+    readonly property string songId: enabled && title ? title + "\u0000" + artist : ""
+    property string loadedId: ""          // bài đang giữ lời (hoặc đang tìm)
+    property int songLen: 0               // độ dài dùng khi tìm (cũng là khoá cache của islet-lyrics)
+    readonly property string key: loadedId
+    onSongIdChanged: songChange.restart()
+    onEnabledChanged: { loadedId = ""; songChange.restart(); }
+    Timer { id: songChange; interval: 900; onTriggered: root.apply() }
+    function apply() {
+        if (songId === loadedId) return;                    // vẫn bài cũ (tua, metadata gửi lại…)
         lines = []; offset = 0; failures = 0; retry.stop();
-        status = !enabled ? "off" : key ? "loading" : "idle";
-        if (key) settle.restart();
+        loadedId = songId;
+        status = !enabled ? "off" : songId ? "loading" : "idle";
+        if (songId) settle.restart();
     }
-    Timer { id: settle; interval: 700; onTriggered: root.fetch() }
+    // nhiều trình phát báo tên trước, độ dài sau → đợi thêm một nhịp rồi mới tìm
+    Timer { id: settle; interval: 500; onTriggered: root.fetch() }
     Timer { id: retry; onTriggered: root.fetch() }
 
     function fetch() {
-        if (!key) return;
-        proc.forKey = key;
-        proc.command = ["islet-lyrics", "get", title, artist, String(length)];
+        if (!loadedId) return;
+        songLen = Math.round(Media.length || 0);
+        proc.forKey = loadedId;
+        proc.command = ["islet-lyrics", "get", title, artist, String(songLen)];
         proc.running = true;
     }
     Process {
@@ -41,7 +52,7 @@ Singleton {
         property string forKey: ""
         stdout: StdioCollector {
             onStreamFinished: {
-                if (proc.forKey !== root.key) return;          // đã sang bài khác
+                if (proc.forKey !== root.loadedId) return;     // đã sang bài khác
                 let d = null;
                 try { d = JSON.parse(text); } catch (e) {}
                 if (!d) { root.status = "none"; return; }
@@ -90,11 +101,11 @@ Singleton {
     function nudge(delta) {
         if (!key) return;
         offset = Math.round((offset + delta) * 10) / 10;
-        run(["nudge", title, artist, String(length), String(delta)]);
+        run(["nudge", title, artist, String(songLen), String(delta)]);
     }
     function markWrong() {
         if (!key) return;
-        run(["wrong", title, artist, String(length)]);
+        run(["wrong", title, artist, String(songLen)]);
         lines = []; status = "none";
     }
 }
