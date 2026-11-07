@@ -7,7 +7,10 @@ for d in /run/user/*/hypr/*/; do
     user=$(id -nu "$uid" 2>/dev/null) || continue
     runuser -u "$user" -- env XDG_RUNTIME_DIR="/run/user/$uid" HYPRLAND_INSTANCE_SIGNATURE="$(basename "$d")" \
         hyprctl reload >/dev/null 2>&1 || true
-    runuser -u "$user" -- env XDG_RUNTIME_DIR="/run/user/$uid" \
-        timeout 10 qs -p /usr/share/islet/shell ipc call shell reload >/dev/null 2>&1 || true
+    # chọn instance theo PID: sau khi pacman thay file, `qs -p <đường dẫn>` không còn nhận ra instance đang chạy
+    for pid in $(pgrep -u "$uid" -f '^qs -p /usr/share/islet/shell'); do
+        runuser -u "$user" -- env XDG_RUNTIME_DIR="/run/user/$uid" \
+            timeout 10 qs ipc --pid "$pid" call shell reload >/dev/null 2>&1 || true
+    done
 done
 exit 0
