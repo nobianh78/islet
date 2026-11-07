@@ -100,6 +100,10 @@ Singleton {
     property string backupLabel: ""
     property bool backupAuto: true           // cắm ổ là tự sao lưu (rồi mỗi giờ một lần khi còn cắm)
     property real backupLast: 0              // lần sao lưu xong gần nhất (ms)
+    // ---- màn hình nền ----
+    property bool desktopWidgets: true       // hiện widget & ghi chú trên màn hình nền
+    property string weatherCity: ""          // "" = theo múi giờ của máy
+    property bool tempF: false               // độ F thay vì độ C
 
     // hình nền đang dùng: ban đêm (giờ của Night Light) có thể là hình khác
     property bool nightNow: false
@@ -130,7 +134,7 @@ Singleton {
         "dockSize", "dockAutohide", "islandMedia", "islandLive", "islandAgents", "islandLyrics", "wsCount", "wsAnim", "clock24", "clockSeconds",
         "notifPreview", "notifSounds", "notifMuted", "dndScheduled", "dndFrom", "dndTo", "systemSounds", "reduceMotion", "zoom",
         "cursorSize", "textScale", "highContrast", "kbLayout", "repeatDelay", "repeatRate", "imeEnabled", "imeMethod", "wallNight", "fontFamily",
-        "backupDrive", "backupLabel", "backupAuto", "backupLast"]
+        "backupDrive", "backupLabel", "backupAuto", "backupLast", "desktopWidgets", "weatherCity", "tempF"]
 
     function set(key, value) {
         root[key] = value;

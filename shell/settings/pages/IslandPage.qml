@@ -47,4 +47,50 @@ Column {
         width: parent.width; height: 58
         Row2 { title: "Hide the dock automatically"; sub: "Slides away; move the pointer to the bottom edge to show it"; checked: Prefs.dockAutohide; onToggled: Prefs.set("dockAutohide", !Prefs.dockAutohide) }
     }
+
+    // ---------- màn hình nền: widget & ghi chú dán ----------
+    SectionLabel { text: "Desktop" }
+    Card {
+        width: parent.width
+        height: dCol.implicitHeight + 8
+        Column {
+            id: dCol
+            y: 4; width: parent.width
+            Row2 { title: "Widgets and sticky notes"; sub: "On the desktop, under your windows — right-click the desktop to add a note"; checked: Prefs.desktopWidgets; onToggled: Prefs.set("desktopWidgets", !Prefs.desktopWidgets) }
+            Repeater {
+                model: Prefs.desktopWidgets ? DesktopItems.kinds : []
+                Row2 {
+                    required property var modelData
+                    divider: true
+                    title: modelData.label
+                    sub: modelData.id === "clock" ? "Time and date" : modelData.id === "calendar" ? "This month — days with notes have a dot"
+                        : modelData.id === "weather" ? "Today and the next days, from Open-Meteo" : "How busy the processor and memory are"
+                    checked: DesktopItems.widget(modelData.id).on
+                    onToggled: DesktopItems.toggle(modelData.id)
+                }
+            }
+        }
+    }
+    Card {
+        visible: Prefs.desktopWidgets && DesktopItems.widget("weather").on
+        width: parent.width; height: 64
+        Column {
+            x: 18; anchors.verticalCenter: parent.verticalCenter
+            Text { text: "Weather location"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+            Text { text: Weather.place ? "Showing " + Weather.place + (Prefs.weatherCity ? "" : " (from your time zone)") : "A city name, e.g. Hanoi"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+        }
+        Row {
+            anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
+            spacing: 8
+            Field { id: cityF; width: 180; hint: Weather.tzCity || "City"; Component.onCompleted: text = Prefs.weatherCity; onAccepted: Prefs.set("weatherCity", text.trim()) }
+            Chip { label: "°C"; on: !Prefs.tempF; onClicked: Prefs.set("tempF", false) }
+            Chip { label: "°F"; on: Prefs.tempF; onClicked: Prefs.set("tempF", true) }
+        }
+    }
+    Row {
+        visible: Prefs.desktopWidgets
+        spacing: 10
+        Pill { label: "New sticky note"; onClicked: { Ui.settingsOpen = false; DesktopItems.focusNote(DesktopItems.addNote()); } }
+        Pill { label: "Put widgets back in place"; onClicked: { for (const k of DesktopItems.kinds) DesktopItems.setWidget(k.id, { x: -1, y: -1 }); } }
+    }
 }

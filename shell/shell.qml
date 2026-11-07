@@ -18,6 +18,7 @@ import "notifications"
 import "settings"
 import "trash"
 import "backups"
+import "desktop"
 import "snap"
 import "search"
 import "overview"
@@ -62,6 +63,8 @@ ShellRoot {
         }
     }
 
+    // widget + ghi chú dán: chỉ ở màn hình chính
+    LazyLoader { activeAsync: true; Desktop { screen: Quickshell.screens[0] ?? null } }
     LazyLoader { id: islandL; activeAsync: true; Island {} }
     readonly property var island: islandL.item
     LazyLoader { activeAsync: true; ControlCenter {} }
@@ -129,6 +132,11 @@ ShellRoot {
         target: "trash"
         function open(): void { Ui.openTrash(); }
         function empty(): void { Trash.empty(); }
+    }
+    IpcHandler {
+        target: "desktop"
+        function note(): void { DesktopItems.focusNote(DesktopItems.addNote()); }
+        function widgets(on: bool): void { Prefs.set("desktopWidgets", on); }
     }
     IpcHandler {
         target: "backup"
