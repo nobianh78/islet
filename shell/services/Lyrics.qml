@@ -18,9 +18,10 @@ Singleton {
     property real lrcDuration: 0           // độ dài bản nhạc mà lời được canh theo
     // MV trên YouTube thường có đoạn mở đầu trước khi vào nhạc → dài hơn bản lời vài giây: đẩy lời trễ lại
     // đúng phần chênh (2…45 s; chênh hơn thế là bản khác hẳn). Chỉnh tay cộng thêm vào.
+    property real videoLen: 0
     readonly property real autoOffset: {
-        const d = songLen - lrcDuration;
-        return lrcDuration > 0 && songLen > 0 && d > 2 && d <= 45 ? -d : 0;
+        const d = videoLen - lrcDuration;
+        return lrcDuration > 0 && videoLen > 0 && d > 2 && d <= 45 ? -d : 0;
     }
     property int failures: 0
 
@@ -38,7 +39,7 @@ Singleton {
     Timer { id: songChange; interval: 900; onTriggered: root.apply() }
     function apply() {
         if (songId === loadedId) return;                    // vẫn bài cũ (tua, metadata gửi lại…)
-        lines = []; offset = 0; lrcDuration = 0; songLen = 0; lenWaits = 0; failures = 0; retry.stop();
+        lines = []; offset = 0; lrcDuration = 0; videoLen = 0; songLen = 0; lenWaits = 0; failures = 0; retry.stop();
         loadedId = songId;
         status = !enabled ? "off" : songId ? "loading" : "idle";
         if (songId) settle.restart();
@@ -51,11 +52,11 @@ Singleton {
     property int lenWaits: 0
     function fetch() {
         if (!loadedId) return;
-        if (Math.round(Media.length || 0) <= 0 && lenWaits < 8) { lenWaits++; settle.restart(); return; }
+        if (Math.round(Media.length || 0) <= 0 && lenWaits < 6) { lenWaits++; settle.restart(); return; }
         lenWaits = 0;
         songLen = Math.round(Media.length || 0);
         proc.forKey = loadedId;
-        proc.command = ["islet-lyrics", "get", title, artist, String(songLen)];
+        proc.command = ["islet-lyrics", "get", title, artist, String(songLen), Media.url];
         proc.running = true;
     }
     Process {
@@ -69,6 +70,9 @@ Singleton {
                 if (!d) { root.status = "none"; return; }
                 root.offset = Number(d.offset) || 0;
                 root.lrcDuration = Number(d.lrcDuration) || 0;
+                // độ dài thật của video (islet-lyrics đọc từ YouTube khi trình phát không báo) — chỉ để tự bù,
+                // khoá cache vẫn là songLen đã gửi đi
+                root.videoLen = Number(d.length) || root.songLen;
                 root.lines = d.lines || [];
                 root.status = d.state === "ok" && root.lines.length ? "ok" : d.state === "error" ? "error" : "none";
                 if (root.status === "error") {               // mạng lỗi: thử lại sau 1, 2, 4 … 30 phút

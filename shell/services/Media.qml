@@ -26,6 +26,7 @@ Singleton {
     readonly property string title: active?.trackTitle || "Untitled"
     readonly property string artist: active?.trackArtist || active?.identity || ""
     readonly property string artUrl: active?.trackArtUrl ?? ""
+    readonly property string url: String(active?.metadata?.["xesam:url"] ?? "")
     // Độ dài thật của bài. Firefox (YouTube…) khi tua gửi lại metadata THIẾU mpris:length, lúc đó
     // Quickshell báo độ dài bám theo vị trí — giữ độ dài đã biết của bài đó thay vì tin con số ấy.
     readonly property real rawLength: active?.length ?? 0
@@ -36,11 +37,13 @@ Singleton {
         const t = (active?.trackTitle ?? "") + "\u0000" + (active?.dbusName ?? "");
         if (t !== lengthOf) { lengthOf = t; knownLength = 0; }
         const L = rawLength;
-        if (L <= 0) return;
+        if (L < 5) return;                                                       // 0 / 0,004 s: chưa biết
         if (knownLength > 0 && Math.abs(L - (active?.position ?? 0)) < 2) return;   // "độ dài" giả = vị trí
         knownLength = L;
     }
-    readonly property real length: knownLength > 0 ? knownLength : rawLength
+    // chưa biết độ dài mà Quickshell báo "độ dài" bám theo vị trí → coi như chưa biết (0)
+    readonly property real length: knownLength > 0 ? knownLength
+        : (rawLength < 5 || Math.abs(rawLength - (active?.position ?? 0)) < 2 ? 0 : rawLength)
     readonly property real position: (active?.position ?? 0) + fix
     readonly property bool canSeek: (active?.canSeek ?? false) && (active?.positionSupported ?? false)
 
