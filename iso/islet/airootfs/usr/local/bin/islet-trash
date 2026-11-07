@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+"""Thùng rác của Islet (chuẩn freedesktop, dùng chung với Files/Nautilus: ~/.local/share/Trash).
+
+    islet-trash put <đường dẫn>…      bỏ vào thùng rác (gio trash)
+    islet-trash list                  JSON: [{id, name, orig, date, size, dir}]
+    islet-trash count                 "<số mục> <tổng byte>"
+    islet-trash restore <id>…         trả về chỗ cũ (đổi tên nếu chỗ cũ đã có file trùng tên)
+    islet-trash remove <id>…          xoá vĩnh viễn
+    islet-trash empty                 dọn sạch thùng rác
+"""
+import json, os, shutil, subprocess, sys, urllib.parse
+
+HOME = os.path.expanduser("~")
+TRASH = os.path.join(os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local", "share"), "Trash")
+FILES, INFO = os.path.join(TRASH, "files"), os.path.join(TRASH, "info")
+
+
+def size_of(p):
+    try:
+        if os.path.islink(p) or not os.path.isdir(p):
+            return os.lstat(p).st_size
+        total = 0
+        for root, dirs, files in os.walk(p):
+            for f in files:
+                try:
+                    total += os.lstat(os.path.join(root, f)).st_size
+                except OSError:
+                    pass
+        return total
+    except OSError:
+        return 0
+
+
+def info_of(tid):
+    orig, date = "", ""
+    try:
+        with open(os.path.join(INFO, tid + ".trashinfo"), encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                if line.startswith("Path="):
+                    orig = urllib.parse.unquote(line[5:].strip())
+                elif line.startswith("DeletionDate="):
+                    date = line[13:].strip()
+    except OSError:
+        pass
+    if orig and not orig.startswith("/"):
+        orig = os.path.join(HOME, orig)
+    return orig, date
+
+
+def ids():
+    try:
+        return sorted(os.listdir(FILES))
+    except OSError:
+        return []
+
+
+def safe(tid):
+    if not tid or "/" in tid or tid in (".", ".."):
+        sys.exit(f"bad id: {tid}")
+    return tid
+
+
+def cmd_list():
+    out = []
+    for tid in ids():
+        p = os.path.join(FILES, tid)
+        orig, date = info_of(tid)
+        out.append({"id": tid, "name": os.path.basename(orig) or tid, "orig": orig, "date": date,
+                    "size": size_of(p), "dir": os.path.isdir(p) and not os.path.islink(p)})
+    out.sort(key=lambda x: x["date"], reverse=True)
+    print(json.dumps(out, ensure_ascii=False))
+
+
+def remove_path(p):
+    if os.path.isdir(p) and not os.path.islink(p):
+        shutil.rmtree(p, ignore_errors=True)
+    elif os.path.lexists(p):
+        os.remove(p)
+
+
+def cmd_remove(tids):
+    for tid in map(safe, tids):
+        remove_path(os.path.join(FILES, tid))
+        try:
+            os.remove(os.path.join(INFO, tid + ".trashinfo"))
+        except OSError:
+            pass
+
+
+def cmd_restore(tids):
+    for tid in map(safe, tids):
+        src = os.path.join(FILES, tid)
+        orig, _ = info_of(tid)
+        if not orig or not os.path.lexists(src):
+            continue
+        dst, n = orig, 2
+        base, ext = os.path.splitext(orig)
+        while os.path.lexists(dst):
+            dst = f"{base} ({n}){ext}"
+            n += 1
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.move(src, dst)
+        try:
+            os.remove(os.path.join(INFO, tid + ".trashinfo"))
+        except OSError:
+            pass
+        print(dst)
+
+
+def main():
+    a = sys.argv[1:]
+    op = a[0] if a else ""
+    if op == "put":
+        sys.exit(subprocess.call(["gio", "trash", "--", *a[1:]]))
+    elif op == "list":
+        cmd_list()
+    elif op == "count":
+        t = ids()
+        print(len(t), sum(size_of(os.path.join(FILES, x)) for x in t))
+    elif op == "restore":
+        cmd_restore(a[1:])
+    elif op == "remove":
+        cmd_remove(a[1:])
+    elif op == "empty":
+        cmd_remove(ids())
+        # thông tin mồ côi (file đã mất)
+        for f in (os.listdir(INFO) if os.path.isdir(INFO) else []):
+            try:
+                os.remove(os.path.join(INFO, f))
+            except OSError:
+                pass
+    else:
+        print(__doc__.strip(), file=sys.stderr)
+        sys.exit(2)
+
+
+if __name__ == "__main__":
+    main()

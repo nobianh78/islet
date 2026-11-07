@@ -38,6 +38,7 @@ file_permissions=(
   ["/usr/local/bin/islet-ipc"]="0:0:755"
   ["/usr/local/bin/islet-wifi"]="0:0:755"
   ["/usr/local/bin/islet-thispc"]="0:0:755"
+  ["/usr/local/bin/islet-trash"]="0:0:755"
   ["/usr/local/bin/islet-agent"]="0:0:755"
   ["/usr/local/bin/islet-clip"]="0:0:755"
   ["/usr/local/bin/islet-shot"]="0:0:755"

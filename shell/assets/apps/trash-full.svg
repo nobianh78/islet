@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs>
+  <linearGradient id="trashf-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8A93A8"/><stop offset="0.55" stop-color="#5B6378"/><stop offset="1" stop-color="#3A4052"/></linearGradient>
+  <radialGradient id="trashf-hl" cx=".22" cy=".12" r=".75">
+    <stop offset="0" stop-color="#fff" stop-opacity=".42"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="trashf-lo" x1="0" y1="0" x2="0" y2="1">
+    <stop offset=".6" stop-color="#1E2230" stop-opacity="0"/><stop offset="1" stop-color="#1E2230" stop-opacity=".22"/>
+  </linearGradient>
+  <filter id="trashf-sh" x="-25%" y="-25%" width="150%" height="150%">
+    <feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#1E2230" flood-opacity=".35"/>
+  </filter>
+  
+</defs>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#trashf-bg)"/>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#trashf-hl)"/>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#trashf-lo)"/>
+<g filter="url(#trashf-sh)"><g transform="translate(-4 -12)"><path d="M42 48l6-15 14 5-3 10z" fill="#FFFFFF" fill-opacity=".85"/>
+<path d="M60 47l9-16 13 9-5 7z" fill="#FFC9DA"/>
+<circle cx="84" cy="42" r="7" fill="#C9C2FF"/></g><path d="M36 50h56l-5.5 42a8 8 0 0 1-8 7H49.5a8 8 0 0 1-8-7z" fill="#FFFFFF" fill-opacity=".92"/>
+<path d="M53 61v28M64 61v28M75 61v28" stroke="#5B6378" stroke-opacity=".35" stroke-width="4" stroke-linecap="round"/>
+<g transform="translate(4 2) rotate(-12 64 44)"><rect x="30" y="38" width="68" height="10" rx="5" fill="#FFFFFF"/>
+<path d="M54 38v-3a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v3" fill="none" stroke="#FFFFFF" stroke-width="4.5"/></g></g>
+</svg>

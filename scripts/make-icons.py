@@ -249,6 +249,21 @@ ISLET_ART = f"""
 <circle cx="78" cy="117" r="7.5" fill="{W}"/><circle cx="122" cy="117" r="7.5" fill="{W}"/>
 </g>"""
 
+# Thùng rác — thùng trắng có nắp, đầy thì có giấy nhô lên
+def TRASH_ART(full):
+    body = f"""<path d="M36 50h56l-5.5 42a8 8 0 0 1-8 7H49.5a8 8 0 0 1-8-7z" fill="{W}" fill-opacity=".92"/>
+<path d="M53 61v28M64 61v28M75 61v28" stroke="#5B6378" stroke-opacity=".35" stroke-width="4" stroke-linecap="round"/>"""
+    if not full:
+        return body + f"""
+<rect x="30" y="40" width="68" height="10" rx="5" fill="{W}"/>
+<path d="M54 40v-3a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v3" fill="none" stroke="{W}" stroke-width="4.5"/>"""
+    # đầy: giấy nhàu nhô lên, nắp nghiêng lệch
+    return f"""<g transform="translate(-4 -12)"><path d="M42 48l6-15 14 5-3 10z" fill="{W}" fill-opacity=".85"/>
+<path d="M60 47l9-16 13 9-5 7z" fill="#FFC9DA"/>
+<circle cx="84" cy="42" r="7" fill="#C9C2FF"/></g>""" + body + f"""
+<g transform="translate(4 2) rotate(-12 64 44)"><rect x="30" y="38" width="68" height="10" rx="5" fill="{W}"/>
+<path d="M54 38v-3a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v3" fill="none" stroke="{W}" stroke-width="4.5"/></g>"""
+
 # Cửa hàng — túi mua sắm kính mờ + ngôi sao
 STORE_ART = f"""
 <path d="M46 48v-6a18 18 0 0 1 36 0v6" fill="none" stroke="{W}" stroke-width="7" stroke-linecap="round"/>
@@ -291,6 +306,8 @@ APP_SET = {
     "files":    app_icon("files", [(0, "#8F6BFF"), (.55, "#B65CFF"), (1, "#FF6FB5")], FILES_ART, shade="#5A1FB8"),
     "browser":  app_icon("br", [(0, "#2EE6D6"), (.5, "#3B8BFF"), (1, "#7B5CFF")], BROWSER_ART, shade="#1E3A9A"),
     "terminal": app_icon("term", [(0, "#B8F55A"), (.55, "#34D399"), (1, "#10B9C9")], TERMINAL_ART, shade="#0B6B5E"),
+    "trash":      app_icon("trash", [(0, "#8A93A8"), (.55, "#5B6378"), (1, "#3A4052")], TRASH_ART(False), shade="#1E2230"),
+    "trash-full": app_icon("trashf", [(0, "#8A93A8"), (.55, "#5B6378"), (1, "#3A4052")], TRASH_ART(True), shade="#1E2230"),
     "settings": app_icon("set", [(0, "#FFC46B"), (.55, "#FF8A5C"), (1, "#FF5C8A")], SETTINGS_ART, shade="#B23A2E"),
     "apps":     app_icon("apps", [(0, "#4BE3E8"), (.5, "#8B7CFF"), (1, "#F472B6")], APPS_ART, shade="#3B2A9A"),
     "video":    app_icon("vid", [(0, "#FF5C7A"), (.55, "#FF6B5C"), (1, "#FF9F43")], VIDEO_ART, shade="#A1202F"),
@@ -352,6 +369,17 @@ MIN_ART = {
     "video": lambda A: f"""
 <rect x="26" y="34" width="76" height="60" rx="16" fill="none" stroke="{WH}" stroke-opacity=".9" stroke-width="6"/>
 <path d="M57 50v28a2.5 2.5 0 0 0 3.8 2.1l21-14a2.5 2.5 0 0 0 0-4.2l-21-14A2.5 2.5 0 0 0 57 50z" fill="{A}"/>""",
+    # Thùng rác — thùng trắng, đầy thì giấy màu nhấn nhô lên
+    "trash": lambda A: f"""
+<path d="M38 50h52l-5 40a7 7 0 0 1-7 6.2H50a7 7 0 0 1-7-6.2z" fill="{WH}"/>
+<path d="M55 60v26M64 60v26M73 60v26" stroke="#17171E" stroke-opacity=".28" stroke-width="3.6" stroke-linecap="round"/>
+<rect x="32" y="41" width="64" height="9" rx="4.5" fill="{A}"/>
+<path d="M55 41v-3a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v3" fill="none" stroke="{A}" stroke-width="4"/>""",
+    "trash-full": lambda A: f"""
+<path d="M46 42l7-11 12 6-3.5 7z" fill="{WH}" fill-opacity=".8"/><path d="M66 40l12-8 5 11z" fill="{A}"/>
+<path d="M38 50h52l-5 40a7 7 0 0 1-7 6.2H50a7 7 0 0 1-7-6.2z" fill="{WH}"/>
+<path d="M55 60v26M64 60v26M73 60v26" stroke="#17171E" stroke-opacity=".28" stroke-width="3.6" stroke-linecap="round"/>
+<rect x="32" y="44" width="64" height="9" rx="4.5" fill="{A}" transform="rotate(-6 64 48)"/>""",
     # Cửa hàng — túi trắng, ngôi sao màu nhấn
     "store": lambda A: f"""
 <path d="M48 50v-6a16 16 0 0 1 32 0v6" fill="none" stroke="{WH}" stroke-width="6.5" stroke-linecap="round"/>

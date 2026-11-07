@@ -32,7 +32,8 @@ Item {
     signal dragMoved(real sceneX, real dy)
     signal dragEnded()
 
-    readonly property bool hovered: mouse.containsMouse || menuOpen
+    property bool dropHover: false      // đang kéo file qua (thùng rác)
+    readonly property bool hovered: mouse.containsMouse || menuOpen || dropHover
 
     width: base
     height: base

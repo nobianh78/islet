@@ -40,6 +40,12 @@ Singleton {
     signal settingsRaiseRequested()
     // Cửa hàng cũng là cửa sổ thật
     signal storeRaiseRequested()
+    // Thùng rác
+    property bool trashOpen: false
+    signal trashRaiseRequested()
+    function openTrash() { launcherOpen = false; if (trashOpen) trashRaiseRequested(); trashOpen = true; }
+    signal trashEmptyAsked()           // menu dock › Empty Trash: mở cửa sổ và hỏi xác nhận
+    function askEmptyTrash() { openTrash(); trashEmptyAsked(); }
     function openStore() { launcherOpen = false; if (storeOpen) storeRaiseRequested(); storeOpen = true; }
     function openSettings(page) { closeAll(); if (page) settingsPage = page; if (settingsOpen) settingsRaiseRequested(); settingsOpen = true; }
     function toggleNotifs() { const o = !notifOpen; closeAll(); notifOpen = o; }

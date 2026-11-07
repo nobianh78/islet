@@ -29,3 +29,4 @@ singleton DesktopSync 1.0 DesktopSync.qml
 singleton Ime 1.0 Ime.qml
 singleton BatteryLog 1.0 BatteryLog.qml
 singleton BusyCursor 1.0 BusyCursor.qml
+singleton Trash 1.0 Trash.qml

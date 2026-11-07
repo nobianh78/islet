@@ -9,7 +9,8 @@ Singleton {
     readonly property string dir: "/usr/share/sounds/freedesktop/stereo/"
     readonly property var files: ({
         notification: "message-new-instant.oga", lock: "device-removed.oga", unlock: "service-login.oga",
-        plug: "power-plug.oga", unplug: "power-unplug.oga", done: "complete.oga", error: "dialog-warning.oga"
+        plug: "power-plug.oga", unplug: "power-unplug.oga", done: "complete.oga", error: "dialog-warning.oga",
+        trash: "trash-empty.oga"
     })
     property real last: 0
     function play(ev) {

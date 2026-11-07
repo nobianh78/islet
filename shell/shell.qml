@@ -16,6 +16,7 @@ import "store"
 import "lock"
 import "notifications"
 import "settings"
+import "trash"
 import "snap"
 import "search"
 import "overview"
@@ -51,6 +52,7 @@ ShellRoot {
     LazyLoader { activeAsync: true; Installer {} }
     LazyLoader { activeAsync: true; Store {} }
     LazyLoader { activeAsync: true; Settings {} }
+    LazyLoader { activeAsync: true; TrashWindow {} }
     LazyLoader { activeAsync: true; NotifCenter {} }
     LazyLoader { activeAsync: true; Snap {} }
     LazyLoader { activeAsync: true; Search {} }
@@ -91,6 +93,11 @@ ShellRoot {
         target: "store"
         function open(): void { Ui.openStore(); }
         function toggle(): void { if (Ui.storeOpen && Windows.storeActive) Ui.storeOpen = false; else Ui.openStore(); }
+    }
+    IpcHandler {
+        target: "trash"
+        function open(): void { Ui.openTrash(); }
+        function empty(): void { Trash.empty(); }
     }
     IpcHandler {
         target: "installer"

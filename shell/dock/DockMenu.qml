@@ -48,7 +48,7 @@ PanelWindow {
         onCleared: win.close()
     }
 
-    readonly property bool isApp: app && !app.launcher && !app.system
+    readonly property bool isApp: app && !app.launcher && !app.system && !app.trash
     readonly property var windows: isApp && dock ? dock.windowsOf(app.ids) : []
     // hành động riêng của app; bỏ "New Window" vì đã có "Cửa sổ mới"
     readonly property var actions: isApp ? (app.entry?.actions ?? []).filter(x => !/^new[- ]?window$/i.test(x.id) && !/^new window$/i.test(x.name)) : []
@@ -153,6 +153,21 @@ PanelWindow {
             }
 
             Sep { visible: win.isApp }
+
+            // ---- thùng rác ----
+            MenuRow {
+                visible: win.app?.trash === true
+                icon: "folder"
+                label: "Open"
+                onClicked: win.run(() => Ui.openTrash())
+            }
+            MenuRow {
+                visible: win.app?.trash === true && Trash.full
+                icon: "close"
+                danger: true
+                label: "Empty Trash (" + Trash.count + ")"
+                onClicked: win.run(() => Ui.askEmptyTrash())
+            }
 
             // ---- ghim / đóng ----
             MenuRow {

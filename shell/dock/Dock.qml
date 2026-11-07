@@ -71,9 +71,12 @@ PanelWindow {
             out.push(makeApp(cls, false));
         }
         out.push({ key: "settings", label: "Settings", icon: "settings", tile: "#FF8A5C", ids: [], system: true });
+        // thùng rác (giống macOS): thả file lên để xoá, bấm để mở
+        out.push({ key: "trash", label: Trash.full ? "Trash · " + Trash.count + (Trash.count === 1 ? " item" : " items") : "Trash",
+                   icon: Trash.full ? "trash-full" : "trash", tile: "#8A93A8", ids: [], trash: true });
         return out;
     }
-    readonly property int appCount: apps.length - 1
+    readonly property int appCount: apps.length - 2       // vạch ngăn đứng trước Cài đặt · Thùng rác
 
     function windowsOf(ids) {
         const out = [];
@@ -85,6 +88,7 @@ PanelWindow {
     readonly property string activeId: ToplevelManager.activeToplevel?.activated ? (ToplevelManager.activeToplevel.appId ?? "") : ""
 
     function launch(app) {
+        if (app.trash) { Ui.openTrash(); return; }
         if (app.system) { Ui.openSettings(""); return; }      // mở, hoặc đưa cửa sổ Cài đặt lên / lấy lại khi đang thu nhỏ
         if (app.launcher) { Ui.toggleLauncher(); return; }
         if (app.key === "islet-store") { Ui.openStore(); return; }      // cửa sổ Cửa hàng của Islet: mở / đưa lên / lấy lại
@@ -109,7 +113,9 @@ PanelWindow {
     property real dragX: 0              // con trỏ, so với mép trái hàng icon
     property real dragDy: 0             // < 0 = kéo lên
     readonly property int pinnedEnd: DockPins.pins.filter(p => p !== "islet-settings").length   // apps[1 … pinnedEnd] là app ghim
-    readonly property bool removing: dragFrom >= 0 && (apps[dragFrom]?.pinned ?? false) && dragDy < -base * 1.2
+    // kéo icon ghim thả lên thùng rác cũng là bỏ ghim (như macOS)
+    readonly property bool overTrash: dragFrom >= 0 && (apps[dragFrom]?.pinned ?? false) && Math.abs(dragX - centerOf(apps.length - 1)) < base * 0.6
+    readonly property bool removing: dragFrom >= 0 && (apps[dragFrom]?.pinned ?? false) && (dragDy < -base * 1.2 || overTrash)
     readonly property int dragTo: {
         if (dragFrom < 0 || removing) return dragFrom;
         const slot = Math.round((dragX - base / 2) / (base + gap));
@@ -309,7 +315,24 @@ PanelWindow {
 
                 DockItem {
                     readonly property bool held: win.dragFrom === slot.index
-                    draggable: !slot.modelData.system && !slot.modelData.launcher
+                    draggable: !slot.modelData.system && !slot.modelData.launcher && !slot.modelData.trash
+                    dropHover: slot.modelData.trash === true && (trashDrop.containsDrag || win.overTrash)
+                    // thả file từ Files (hoặc bất kỳ app nào) lên thùng rác
+                    DropArea {
+                        id: trashDrop
+                        anchors.fill: parent
+                        anchors.margins: -8
+                        enabled: slot.modelData.trash === true
+                        keys: ["text/uri-list"]
+                        onDropped: d => {
+                            Trash.put(d.urls.map(u => decodeURIComponent(String(u).replace(/^file:\/\//, ""))).filter(x => x.startsWith("/")));
+                            d.acceptProposedAction();
+                        }
+                    }
+                    Connections {
+                        target: Trash
+                        function onReceived() { if (slot.modelData.trash) item.receive(); }
+                    }
                     playIntro: !win.introDone
                     z: held ? 10 : 0
                     opacity: held && win.removing ? 0.45 : 1
@@ -331,15 +354,18 @@ PanelWindow {
                     order: slot.index
                     base: win.base
                     id: item
-                    running: slot.modelData.system ? Ui.settingsOpen
+                    running: slot.modelData.trash ? Ui.trashOpen
+                        : slot.modelData.system ? Ui.settingsOpen
                         : slot.modelData.launcher ? Ui.launcherOpen
                         : slot.modelData.key === "islet-store" ? Ui.storeOpen
                         : win.windowsOf(slot.modelData.ids).length > 0
-                    minimized: slot.modelData.system ? Windows.settingsMinimized
+                    minimized: slot.modelData.trash ? Windows.shellMinimized("Trash")
+                        : slot.modelData.system ? Windows.settingsMinimized
                         : slot.modelData.key === "islet-store" ? Windows.storeMinimized
                         : !slot.modelData.launcher && running
                         && Windows.minimizedOf(slot.modelData.ids).length === win.windowsOf(slot.modelData.ids).length
-                    focused: slot.modelData.system ? Windows.settingsActive
+                    focused: slot.modelData.trash ? Windows.shellActive("Trash")
+                        : slot.modelData.system ? Windows.settingsActive
                         : slot.modelData.launcher ? Ui.launcherOpen
                         : slot.modelData.key === "islet-store" ? Windows.storeActive
                         : slot.modelData.ids.indexOf(win.activeId) >= 0
