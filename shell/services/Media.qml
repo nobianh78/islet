@@ -41,19 +41,20 @@ Singleton {
         }
         return out;
     }
-    function norm(t) { return String(t).replace(/\s+/g, " ").trim(); }
+    // (Firefox có lúc báo luôn tiêu đề tab "<video> - YouTube" làm tên bài)
+    function norm(t) { return String(t).replace(/\s+/g, " ").trim().replace(/ - YouTube$/, ""); }
     readonly property bool preview: onYouTube && ytTabs.length > 0 && rawTitle !== "" && ytTabs.indexOf(norm(rawTitle)) < 0
     property string goodTitle: ""          // tên bài lần cuối khớp với tab
     property string goodArtist: ""
     property string goodArt: ""
-    function noteGood() { if (!preview && rawTitle) { goodTitle = rawTitle; goodArtist = active?.trackArtist ?? ""; goodArt = active?.trackArtUrl ?? ""; } }
+    function noteGood() { if (!preview && rawTitle) { goodTitle = norm(rawTitle); goodArtist = active?.trackArtist ?? ""; goodArt = active?.trackArtUrl ?? ""; } }
     readonly property string rawArt: active?.trackArtUrl ?? ""
     onRawArtChanged: noteGood()
     onRawTitleChanged: noteGood()
     onPreviewChanged: { noteGood(); if (preview) { frozenPos = recentPos(); } }
 
-    readonly property string title: !preview ? (rawTitle || "Untitled")
-        : ytTabs.indexOf(norm(goodTitle)) >= 0 ? goodTitle : ytTabs[0]
+    // đang xem trước / quảng cáo: giữ bài vừa xem (bấm sang video mới thật thì tab đổi theo → hết "xem trước")
+    readonly property string title: !preview ? (norm(rawTitle) || "Untitled") : (goodTitle || ytTabs[0])
     readonly property string artist: !preview ? (active?.trackArtist || active?.identity || "")
         : title === goodTitle ? goodArtist : ""
     readonly property string artUrl: preview && title === goodTitle ? goodArt : preview ? "" : (active?.trackArtUrl ?? "")

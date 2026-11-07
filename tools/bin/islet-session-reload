@@ -1,15 +1,18 @@
 #!/bin/bash
 # Gọi từ pacman hook sau khi cập nhật Islet: mọi phiên Hyprland đang chạy nạp lại cấu hình mới.
 # Shell (Quickshell) cài từ gói không tự theo dõi file → báo nó nạp lại qua IPC (đang khoá thì nó tự đợi).
+# chạy bằng người thường (không phải pacman) thì runuser không dùng được → chỉ phiên của chính mình, gọi thẳng
+as() { local u=$1; shift; if [ "$(id -u)" = 0 ]; then runuser -u "$u" -- "$@"; else "$@"; fi; }
 for d in /run/user/*/hypr/*/; do
     [ -S "$d.socket.sock" ] || continue
     uid=$(stat -c %u "$d") || continue
+    [ "$(id -u)" = 0 ] || [ "$uid" = "$(id -u)" ] || continue
     user=$(id -nu "$uid" 2>/dev/null) || continue
-    runuser -u "$user" -- env XDG_RUNTIME_DIR="/run/user/$uid" HYPRLAND_INSTANCE_SIGNATURE="$(basename "$d")" \
+    as "$user" env XDG_RUNTIME_DIR="/run/user/$uid" HYPRLAND_INSTANCE_SIGNATURE="$(basename "$d")" \
         hyprctl reload >/dev/null 2>&1 || true
     # chọn instance theo PID: sau khi pacman thay file, `qs -p <đường dẫn>` không còn nhận ra instance đang chạy
     for pid in $(pgrep -u "$uid" -f '^qs -p /usr/share/islet/shell'); do
-        runuser -u "$user" -- env XDG_RUNTIME_DIR="/run/user/$uid" \
+        as "$user" env XDG_RUNTIME_DIR="/run/user/$uid" \
             timeout 10 qs ipc --pid "$pid" call shell reload >/dev/null 2>&1 || true
     done
 done

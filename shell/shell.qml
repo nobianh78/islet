@@ -112,6 +112,15 @@ ShellRoot {
         function open(): void { Ui.openStore(); }
         function toggle(): void { if (Ui.storeOpen && Windows.storeActive) Ui.storeOpen = false; else Ui.openStore(); }
     }
+    // chẩn đoán: qs ipc call media state → island đang hiện bài nào, vì sao
+    IpcHandler {
+        target: "media"
+        function state(): string {
+            return JSON.stringify({ raw: Media.rawTitle, title: Media.title, artist: Media.artist, preview: Media.preview,
+                tabs: Media.ytTabs, good: Media.goodTitle, url: Media.url, pos: Media.position, len: Media.length,
+                player: Media.busName, lyrics: Lyrics.status, line: Lyrics.current });
+        }
+    }
     IpcHandler {
         target: "trash"
         function open(): void { Ui.openTrash(); }
