@@ -165,7 +165,7 @@ Item {
                 LyrBtn { label: "−5s"; onClicked: Lyrics.nudge(-5) }
                 LyrBtn { label: "−0.5s"; onClicked: Lyrics.nudge(-0.5) }
                 Text {
-                    readonly property real total: Lyrics.offset + Lyrics.autoOffset
+                    readonly property real total: Lyrics.offset
                     anchors.verticalCenter: parent.verticalCenter
                     text: (total > 0 ? "+" : "") + total.toFixed(1) + "s"
                     color: Qt.rgba(1, 1, 1, 0.55); font.family: Theme.font; font.pixelSize: 10; font.features: ({ "tnum": 1 })
