@@ -1,0 +1,12 @@
+# Sau mỗi lần cài / cập nhật (snap-pac đã chụp điểm khôi phục): cập nhật các mục điểm khôi phục ở menu khởi động.
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Type = Package
+Target = *
+
+[Action]
+Description = Updating restore points in the boot menu...
+When = PostTransaction
+Exec = /usr/bin/islet-snapshot-boot entries

@@ -274,6 +274,19 @@ PanelWindow {
             });
         }
     }
+    // vừa khởi động vào một điểm khôi phục (chọn ở menu khởi động)
+    Connections {
+        target: Restore
+        function onBootedIntoSnapshot(n) {
+            win.pushBanner({
+                kind: "notification",
+                title: "Running a restore point",
+                body: "Click to keep this version, or restart to go back to the current system",
+                appName: "Restore", icon: "", duration: 15000,
+                onClick: () => Ui.openSettings("storage")
+            });
+        }
+    }
     // bấm một mục trong tab Clipboard → thu island để cửa sổ cũ nhận phím dán
     Connections {
         target: expandedView.clipPage

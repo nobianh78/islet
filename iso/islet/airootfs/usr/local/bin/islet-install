@@ -112,6 +112,8 @@ rm -f "$MNT/usr/local/bin/choose-mirror" "$MNT/usr/local/bin/Installation_guide"
 printf 'Welcome to Islet.\n' > "$MNT/etc/motd"
 # mkinitcpio chuẩn (không còn hook archiso)
 sed -i 's/^HOOKS=.*/HOOKS=(base udev plymouth autodetect microcode modconf kms keyboard keymap consolefont block filesystems fsck)/' "$MNT/etc/mkinitcpio.conf"
+# Btrfs: hook islet-overlay để khởi động được vào điểm khôi phục (snapshot chỉ đọc + lớp ghi tạm)
+[ "$FS" = btrfs ] && sed -i -E '/^HOOKS=/ s/\bfilesystems\b/filesystems islet-overlay/' "$MNT/etc/mkinitcpio.conf"
 
 # ---------------- hệ thống ----------------
 say 76 "Time zone, hostname, language"
@@ -200,6 +202,7 @@ editor no
 EOF
     cat > "$MNT/boot/loader/entries/islet.conf" <<EOF
 title   Islet
+sort-key islet
 linux   /vmlinuz-linux
 initrd  /initramfs-linux.img
 options root=UUID=$ROOTUUID rw quiet splash loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0
@@ -213,6 +216,8 @@ fi
 
 if [ "$FS" = btrfs ]; then
     arch-chroot "$MNT" snapper --no-dbus -c root create -c important -d "Fresh install" >/dev/null 2>&1 || true
+    arch-chroot "$MNT" islet-snapshot-boot entries 2>&1 | while read -r l; do log "$l"; done
+    arch-chroot "$MNT" systemctl enable islet-restore-points.service >/dev/null 2>&1 || true
 fi
 
 say 99 "Finishing up"

@@ -112,12 +112,42 @@ wifi-psk)
     [ -f "$f" ] || { [ -f "/var/lib/iwd/$ssid.open" ] && { echo "OPEN"; exit 0; }; die "This network is not saved"; }
     sed -n 's/^Passphrase=//p' "$f" | head -1 ;;
 snapshot)
+    # đang chạy từ một điểm khôi phục (gốc là overlay): snapper không chạy được → liệt kê / giữ bản này theo cách riêng
+    booted=$(sed -n 's/.*islet\.snapshot=\([0-9]\+\).*/\1/p' /proc/cmdline)
+    if [ -n "$booted" ]; then
+        case "${1:-}" in
+            list) python3 - <<'PY'
+import datetime, glob, json, re
+out = []
+for f in glob.glob("/.snapshots/*/info.xml"):
+    t = open(f).read()
+    g = lambda k: (re.search(rf"<{k}>(.*?)</{k}>", t, re.S) or [None, ""])[1]
+    try: d = datetime.datetime.strptime(g("date"), "%Y-%m-%d %H:%M:%S").replace(tzinfo=datetime.timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S")
+    except ValueError: d = g("date")                     # info.xml ghi giờ UTC; snapper list in giờ máy
+    out.append({"number": int(g("num") or 0), "type": g("type"), "date": d, "description": g("description")})
+print(json.dumps({"root": sorted(out, key=lambda s: s["number"])}))
+PY
+                ;;
+            rollback) n=${2:?}; [[ "$n" =~ ^[0-9]+$ ]] || die "Bad number"
+                      islet-snapshot-boot use "$n" || die "This restore point's kernel wasn't kept, so it can't be started"
+                      islet-snapshot-boot rollback-booted "$n" >/dev/null || die "Couldn't keep this version"
+                      echo REBOOT ;;
+            *) die "Restart into the normal system to do this" ;;
+        esac
+        exit 0
+    fi
     command -v snapper >/dev/null && snapper -c root get-config >/dev/null 2>&1 || die "Snapshots need a Btrfs system (choose Btrfs in the installer)"
     case "${1:-}" in
         list)     snapper -c root --jsonout list 2>/dev/null ;;
-        create)   d=$(b64 "${2:-}"); snapper -c root create -c number -d "${d:-Manual snapshot}" --print-number ;;
-        delete)   n=${2:?}; [[ "$n" =~ ^[0-9]+$ ]] || die "Bad number"; snapper -c root delete "$n" ;;
-        rollback) n=${2:?}; [[ "$n" =~ ^[0-9]+$ ]] || die "Bad number"; snapper --ambit classic -c root rollback "$n" >/dev/null && echo REBOOT ;;
+        create)   d=$(b64 "${2:-}"); snapper -c root create -c number -d "${d:-Manual snapshot}" --print-number
+                  islet-snapshot-boot entries >/dev/null 2>&1 || true ;;
+        delete)   n=${2:?}; [[ "$n" =~ ^[0-9]+$ ]] || die "Bad number"; snapper -c root delete "$n"
+                  islet-snapshot-boot entries >/dev/null 2>&1 || true ;;
+        rollback) n=${2:?}; [[ "$n" =~ ^[0-9]+$ ]] || die "Bad number"
+                  islet-snapshot-boot use "$n" || die "This restore point's kernel wasn't kept, so it can't be started"
+                  snapper --ambit classic -c root rollback "$n" >/dev/null || die "Couldn't restore"
+                  islet-snapshot-boot entries >/dev/null 2>&1 || true
+                  echo REBOOT ;;
         *) die "list|create|delete|rollback" ;;
     esac ;;
 *)

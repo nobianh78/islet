@@ -24,7 +24,7 @@ gpg --list-secret-keys "$KEY" >/dev/null 2>&1 || { echo "Không thấy khoá ký
 ver() { echo "0.1.r$(git -C "$ROOT" rev-list --count HEAD -- "$@")"; }
 declare -A VER=(
     [islet-shell]="$(ver shell hypr tools/applications packaging/islet-shell)"
-    [islet-tools]="$(ver tools/bin tools/systemd packaging/islet-tools)"
+    [islet-tools]="$(ver tools/bin tools/systemd tools/libalpm tools/initcpio packaging/islet-tools)"
     [islet-themes]="$(ver theme branding shell/assets/apps/islet.svg packaging/islet-themes)"
     [islet-keyring]="$(ver packaging/keyring packaging/islet-keyring)"
     [islet]="$(ver packaging/islet)"

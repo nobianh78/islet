@@ -1,0 +1,17 @@
+#!/usr/bin/ash
+# Chạy sau khi gốc (snapshot chỉ đọc) đã được gắn vào /new_root.
+
+run_latehook() {
+    case " $(cat /proc/cmdline) " in *" islet.snapshot="*) ;; *) return 0 ;; esac
+    local lower=/islet_lower ram=/islet_ram
+    mkdir -p "$lower" "$ram"
+    mount --move /new_root "$lower" || return 0
+    mount -t tmpfs -o mode=0755 islet-cow "$ram"
+    mkdir -p "$ram/upper" "$ram/work" "$ram/upper/etc/systemd/system"
+    # gốc là overlay, không phải btrfs như /etc/fstab ghi → đừng để systemd gắn lại nó theo fstab
+    ln -s /dev/null "$ram/upper/etc/systemd/system/systemd-remount-fs.service"
+    if ! mount -t overlay -o "lowerdir=$lower,upperdir=$ram/upper,workdir=$ram/work" islet-root /new_root; then
+        echo "islet-overlay: overlay failed, booting the snapshot read-only"
+        mount --move "$lower" /new_root
+    fi
+}

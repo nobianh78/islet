@@ -1,0 +1,11 @@
+# Giữ lại kernel đang dùng trước khi pacman thay nó — để điểm khôi phục cũ vẫn khởi động được.
+[Trigger]
+Operation = Upgrade
+Operation = Remove
+Type = Package
+Target = linux
+
+[Action]
+Description = Keeping the current kernel for restore points...
+When = PreTransaction
+Exec = /usr/bin/islet-snapshot-boot keep

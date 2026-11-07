@@ -5,5 +5,15 @@ _cleanup() {
     done
     rm -f /etc/systemd/system/islet-autoupdate.service /etc/systemd/system/islet-autoupdate.timer
 }
-post_install() { _cleanup; }
-post_upgrade() { _cleanup; }
+# Máy Btrfs: thêm hook "islet-overlay" vào initramfs (để khởi động được vào điểm khôi phục), rồi ghi menu.
+_restore_points() {
+    [ "$(findmnt -no FSTYPE / 2>/dev/null)" = btrfs ] && [ -f /etc/mkinitcpio.conf ] || return 0
+    if ! grep -q '^HOOKS=.*islet-overlay' /etc/mkinitcpio.conf; then
+        sed -i -E '/^HOOKS=/ s/\bfilesystems\b/filesystems islet-overlay/' /etc/mkinitcpio.conf
+        grep -q '^HOOKS=.*islet-overlay' /etc/mkinitcpio.conf && mkinitcpio -P >/dev/null 2>&1 || true
+    fi
+    systemctl enable islet-restore-points.service >/dev/null 2>&1 || true
+    /usr/bin/islet-snapshot-boot entries || true
+}
+post_install() { _cleanup; _restore_points; }
+post_upgrade() { _cleanup; _restore_points; }

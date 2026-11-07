@@ -6,11 +6,14 @@ pkgdesc="Command-line helpers behind the Islet desktop (islet-wifi, islet-pkg, i
 arch=(any)
 url="https://github.com/nobianh78/islet"
 license=(custom)
-depends=(bash python glib2 pacman-contrib)
+depends=(bash python glib2 pacman-contrib file)
 optdepends=('satty: edit screenshots' 'wl-clipboard: clipboard history' 'iwd: Wi-Fi' 'snapper: system snapshots')
 install=islet-tools.install
 
 package() {
     install -Dm755 -t "$pkgdir/usr/bin" "$ISLET_SRC"/tools/bin/*
     install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$ISLET_SRC"/tools/systemd/*
+    install -Dm644 -t "$pkgdir/usr/share/libalpm/hooks" "$ISLET_SRC"/tools/libalpm/*.hook
+    install -Dm644 -t "$pkgdir/usr/lib/initcpio/hooks" "$ISLET_SRC"/tools/initcpio/hooks/*
+    install -Dm644 -t "$pkgdir/usr/lib/initcpio/install" "$ISLET_SRC"/tools/initcpio/install/*
 }

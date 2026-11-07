@@ -32,3 +32,4 @@ singleton BusyCursor 1.0 BusyCursor.qml
 singleton Trash 1.0 Trash.qml
 singleton QuickLook 1.0 QuickLook.qml
 singleton Lyrics 1.0 Lyrics.qml
+singleton Restore 1.0 Restore.qml

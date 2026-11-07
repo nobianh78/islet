@@ -1,0 +1,160 @@
+#!/bin/bash
+# Islet — khởi động vào điểm khôi phục (snapshot Btrfs) từ menu khởi động (systemd-boot).
+#
+#   islet-snapshot-boot keep      giữ bản sao kernel + initramfs đang dùng (pacman gọi TRƯỚC khi đổi kernel)
+#   islet-snapshot-boot entries   viết lại mục menu cho các điểm khôi phục gần nhất (pacman gọi sau mỗi lần cài)
+#   islet-snapshot-boot use N     trước khi quay về điểm N: đặt kernel của điểm đó làm kernel khởi động
+#   islet-snapshot-boot status    in JSON: {"booted": số snapshot đang chạy hoặc 0, "entries": [số…]}
+#
+# Mỗi mục khởi động snapshot @snapshots/N/snapshot (chỉ đọc) với đúng kernel lúc đó; hook initramfs
+# "islet-overlay" phủ lên một lớp ghi tạm trong RAM. Thấy ổn thì Cài đặt › Storage › "Keep this version"
+# (snapper rollback N) để giữ hẳn. /home nằm ở subvolume riêng nên file của bạn không bị quay lại.
+set -euo pipefail
+
+ESP=/boot
+KDIR=$ESP/islet/k                     # /boot/islet/k/<phiên bản kernel>/{vmlinuz-linux,initramfs-linux.img}
+ENTRIES=$ESP/loader/entries
+MAIN=$ENTRIES/islet.conf
+MAX=6                                 # số điểm khôi phục hiện trên menu
+
+booted() { sed -n 's/.*islet\.snapshot=\([0-9]\+\).*/\1/p' /proc/cmdline; }
+
+usable() {
+    [ -d "$ENTRIES" ] && [ -f "$MAIN" ] || return 1
+    [ -n "$(booted)" ] && return 0                     # đang chạy điểm khôi phục (gốc là overlay)
+    [ "$(findmnt -no FSTYPE /)" = btrfs ] || return 1
+    command -v snapper >/dev/null && snapper --no-dbus -c root get-config >/dev/null 2>&1
+}
+
+# phiên bản của kernel đang nằm ở /boot/vmlinuz-linux
+current_ver() {
+    local d v
+    v=$(file -bL "$ESP/vmlinuz-linux" 2>/dev/null | sed -n 's/.*, version \([^ ]*\) .*/\1/p')
+    [ -n "$v" ] && { echo "$v"; return; }
+    for d in /usr/lib/modules/*/; do
+        [ "$(cat "$d/pkgbase" 2>/dev/null)" = linux ] || continue
+        cmp -s "$d/vmlinuz" "$ESP/vmlinuz-linux" && { basename "$d"; return; }
+    done
+}
+
+# phiên bản kernel trong một cây hệ thống (snapshot)
+tree_ver() {
+    local d
+    for d in "$1"/usr/lib/modules/*/; do
+        [ "$(cat "$d/pkgbase" 2>/dev/null)" = linux ] && { basename "$d"; return; }
+    done
+}
+
+keep() {
+    local v; v=$(current_ver)
+    [ -n "$v" ] && [ -f "$ESP/initramfs-linux.img" ] || return 0
+    # đã giữ và vẫn giống hệt (initramfs dựng lại khi đổi hook/cấu hình thì chép lại)
+    cmp -s "$ESP/vmlinuz-linux" "$KDIR/$v/vmlinuz-linux" && cmp -s "$ESP/initramfs-linux.img" "$KDIR/$v/initramfs-linux.img" && return 0
+    mkdir -p "$KDIR/$v"
+    cp "$ESP/vmlinuz-linux" "$KDIR/$v/vmlinuz-linux.tmp" && mv "$KDIR/$v/vmlinuz-linux.tmp" "$KDIR/$v/vmlinuz-linux"
+    cp "$ESP/initramfs-linux.img" "$KDIR/$v/initramfs-linux.img.tmp" && mv "$KDIR/$v/initramfs-linux.img.tmp" "$KDIR/$v/initramfs-linux.img"
+}
+
+entries() {
+    [ -n "$(booted)" ] && return 0                     # đang chạy trong điểm khôi phục: không đụng menu
+    keep
+    local cur opts; cur=$(current_ver)
+    # tham số của mục chính, bỏ phần chỉ định subvolume
+    opts=$(sed -n 's/^options[[:space:]]\+//p' "$MAIN" | sed -E 's/(^| )rootflags=[^ ]*//g')
+    rm -f "$ENTRIES"/islet-snap-*.conf
+    # mục chính luôn đứng đầu menu (mục có sort-key xếp trước mục không có)
+    grep -q '^sort-key' "$MAIN" || sed -i '/^title/a sort-key islet' "$MAIN"
+    # snapshot đang là hệ thống hiện tại (sau một lần "quay về") thì không cần mục riêng
+    local live; live=$(btrfs subvolume get-default / 2>/dev/null | sed -n 's|.*path @snapshots/\([0-9]\+\)/snapshot$|\1|p')
+
+    local used=" $cur " n=0 num date desc type ver
+    while IFS=$'\t' read -r num date type desc; do
+        [ $n -ge $MAX ] && break
+        [ "$num" = "${live:-}" ] && continue
+        local tree=/.snapshots/$num/snapshot
+        [ -d "$tree" ] || continue
+        ver=$(tree_ver "$tree"); [ -n "$ver" ] || continue
+        [ -f "$KDIR/$ver/vmlinuz-linux" ] && [ -f "$KDIR/$ver/initramfs-linux.img" ] || continue
+        desc=${desc//[$'\n\r']/ }
+        cat > "$ENTRIES/islet-snap-$num.conf" <<EOF
+title   Islet · ${desc:-Restore point} · $date
+sort-key islet-snap-$(printf '%06d' $((999999 - num)))
+linux   /islet/k/$ver/vmlinuz-linux
+initrd  /islet/k/$ver/initramfs-linux.img
+options $opts rootflags=subvol=@snapshots/$num/snapshot islet.snapshot=$num
+EOF
+        used+="$ver "; n=$((n + 1))
+    done < <(snapper --no-dbus -c root --jsonout list 2>/dev/null | python3 -c '
+import datetime, json, re, sys
+d = json.load(sys.stdin); l = d.get("root") or next(iter(d.values()), [])
+for s in sorted((s for s in l if s.get("number", 0) > 0), key=lambda s: -s["number"]):
+    if s.get("type") == "post": continue                       # "sau khi cập nhật" ~ hệ thống hiện tại
+    d = (s.get("description") or "").replace("\t", " ").strip()
+    if s.get("type") == "pre":                                 # snap-pac: mô tả là lệnh pacman
+        pk = re.sub(r"^pacman\s+(-\S+\s*)*", "", d).split()
+        d = "Before " + (", ".join(pk[:3]) + (" …" if len(pk) > 3 else "") if pk else "an update")
+    d = {"rollback backup": "Before going back", "Fresh install": "Fresh install"}.get(d, d)
+    if d.startswith("writable copy of #"): d = "Restored from #" + d[18:]
+    try: when = datetime.datetime.strptime(s.get("date", ""), "%Y-%m-%d %H:%M:%S").strftime("%-d %b %H:%M")
+    except ValueError: when = s.get("date", "")
+    print(s["number"], when, s.get("type", ""), d, sep="\t")
+')
+    # bỏ kernel cũ không còn mục nào dùng
+    local d
+    for d in "$KDIR"/*/; do
+        [ -d "$d" ] || continue
+        [[ "$used" == *" $(basename "$d") "* ]] || rm -rf "$d"
+    done
+}
+
+# sắp "quay về" điểm N: kernel ở /boot phải là kernel của điểm đó (module trong /usr/lib/modules phải khớp)
+use() {
+    local n=${1:?} tree ver cur
+    tree=/.snapshots/$n/snapshot
+    ver=$(tree_ver "$tree"); cur=$(current_ver)
+    [ -n "$ver" ] && [ "$ver" != "$cur" ] || return 0
+    [ -f "$KDIR/$ver/vmlinuz-linux" ] && [ -f "$KDIR/$ver/initramfs-linux.img" ] || { echo "No saved kernel $ver for restore point $n" >&2; return 1; }
+    keep
+    cp "$KDIR/$ver/vmlinuz-linux" "$ESP/vmlinuz-linux.new" && mv "$ESP/vmlinuz-linux.new" "$ESP/vmlinuz-linux"
+    cp "$KDIR/$ver/initramfs-linux.img" "$ESP/initramfs-linux.img.new" && mv "$ESP/initramfs-linux.img.new" "$ESP/initramfs-linux.img"
+    rm -f "$ESP/initramfs-linux-fallback.img"           # của kernel kia — để khỏi chọn nhầm
+}
+
+# "Keep this version" khi ĐANG CHẠY từ điểm N: gốc là overlay nên snapper không dùng được → làm như
+# `snapper --ambit classic rollback`: lưu hệ thống hiện tại (chỉ đọc), tạo bản ghi được của N, đặt làm mặc định.
+rollback_booted() {
+    local n=${1:?} m dev def last
+    dev=$(findmnt -no SOURCE /home | sed 's/\[.*//')
+    m=$(mktemp -d)
+    mount -o subvolid=5 "$dev" "$m" || return 1
+    trap 'umount "$m" 2>/dev/null; rmdir "$m" 2>/dev/null' RETURN
+    [ -d "$m/@snapshots/$n/snapshot" ] || { echo "No restore point $n" >&2; return 1; }
+    def=$(btrfs subvolume get-default "$m" | sed 's/.*path //')
+    last=$(ls "$m/@snapshots" | grep -E '^[0-9]+$' | sort -n | tail -1)
+    local a=$((last + 1)) b=$((last + 2)) now; now=$(date -u '+%F %T')
+    info() { printf '<?xml version="1.0"?>\n<snapshot>\n  <type>single</type>\n  <num>%s</num>\n  <date>%s</date>\n  <description>%s</description>\n  <cleanup>number</cleanup>\n  <userdata>\n    <key>important</key>\n    <value>yes</value>\n  </userdata>\n</snapshot>\n' "$1" "$now" "$2"; }
+    if [ -n "$def" ] && [ "$def" != "@snapshots/$n/snapshot" ] && [ -d "$m/$def" ]; then
+        mkdir "$m/@snapshots/$a"
+        btrfs -q subvolume snapshot -r "$m/$def" "$m/@snapshots/$a/snapshot"
+        info "$a" "rollback backup" > "$m/@snapshots/$a/info.xml"
+    else b=$a; fi
+    mkdir "$m/@snapshots/$b"
+    btrfs -q subvolume snapshot "$m/@snapshots/$n/snapshot" "$m/@snapshots/$b/snapshot"
+    info "$b" "writable copy of #$n" > "$m/@snapshots/$b/info.xml"
+    btrfs subvolume set-default "$m/@snapshots/$b/snapshot"
+}
+
+status() {
+    local b; b=$(booted)
+    local list; list=$(ls "$ENTRIES"/islet-snap-*.conf 2>/dev/null | sed -n 's/.*islet-snap-\([0-9]\+\)\.conf/\1/p' | sort -rn | paste -sd, || true)
+    printf '{"booted": %s, "entries": [%s]}\n' "${b:-0}" "$list"
+}
+
+case ${1:-} in
+    keep)    usable && keep || true ;;
+    entries) usable && entries || true ;;
+    use)     usable || exit 0; use "${2:?}" ;;
+    rollback-booted) [ -n "$(booted)" ] || exit 1; rollback_booted "${2:?}" ;;
+    status)  status ;;
+    *) echo "usage: islet-snapshot-boot keep|entries|use <N>|status" >&2; exit 2 ;;
+esac

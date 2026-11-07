@@ -1,0 +1,11 @@
+[Unit]
+Description=Islet: list restore points in the boot menu
+ConditionPathExists=/boot/loader/entries/islet.conf
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/islet-snapshot-boot entries
+
+[Install]
+WantedBy=multi-user.target

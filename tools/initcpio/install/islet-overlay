@@ -1,0 +1,14 @@
+#!/bin/bash
+# Islet: khởi động vào điểm khôi phục (snapshot Btrfs chỉ đọc) — phủ một lớp ghi tạm trong RAM lên trên.
+
+build() {
+    add_module overlay
+    add_runscript
+}
+
+help() {
+    cat <<HELPEOF
+When the kernel command line has islet.snapshot=N (a restore point picked in the boot menu), the read-only
+snapshot is mounted under a RAM overlay so the system can run normally. Changes are lost at shutdown.
+HELPEOF
+}
