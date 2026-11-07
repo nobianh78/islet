@@ -33,7 +33,9 @@ PanelWindow {
 
     // ---------------- danh sách app ----------------
     // Ẩn app chạy trong terminal (vim, lftp…) và tiện ích kỹ thuật đi kèm thư viện, như iPad chỉ hiện app thật.
-    readonly property var hiddenIds: ["qv4l2", "qvidcap", "stoken-gui", "stoken-gui-small", "org.quickshell"]
+    readonly property var hiddenIds: ["qv4l2", "qvidcap", "stoken-gui", "stoken-gui-small", "org.quickshell",
+        "org.gnome.NautilusPreviewer", "org.gnome.Papers-previewer",          // Quick Look: bấm Space trong Files
+        "org.kde.kdeconnect.app", "org.kde.kdeconnect.nonplasma"]           // điện thoại: Cài đặt › Phone
     // Tên tiếng Việt cho các app chính
     readonly property var niceNames: ({
         "org.gnome.Nautilus": "Files",
@@ -93,7 +95,7 @@ PanelWindow {
         const pinned = DockPins.pins;
         for (let i = 0; i < tl.length; i++) {
             const cls = tl[i].appId;
-            if (!cls || cls === "org.quickshell") continue;
+            if (!cls || cls === "org.quickshell" || cls === "org.gnome.NautilusPreviewer") continue;
             if (pinned.indexOf(cls) >= 0) continue;
             count++;
         }

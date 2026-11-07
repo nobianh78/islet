@@ -35,7 +35,10 @@ service)
 firewall)
     command -v ufw >/dev/null || die "ufw is not installed"
     case "${1:-}" in
-        on) ufw default deny incoming >/dev/null; ufw default allow outgoing >/dev/null; ufw --force enable >/dev/null; systemctl enable --now ufw >/dev/null 2>&1 ;;
+        on) ufw default deny incoming >/dev/null; ufw default allow outgoing >/dev/null
+            # KDE Connect (Cài đặt › Phone) cần cổng 1714–1764 trong mạng nội bộ
+            ufw allow 1714:1764/udp comment "KDE Connect" >/dev/null; ufw allow 1714:1764/tcp comment "KDE Connect" >/dev/null
+            ufw --force enable >/dev/null; systemctl enable --now ufw >/dev/null 2>&1 ;;
         off) ufw disable >/dev/null ;;
         *) die "on|off" ;;
     esac ;;

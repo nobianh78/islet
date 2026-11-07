@@ -8,6 +8,7 @@ arch=(any)
 url="https://github.com/nobianh78/islet"
 license=(custom)
 depends=(islet-tools islet-themes quickshell hyprland qt6-svg qt6-imageformats)
+optdepends=('sushi: Quick Look (press Space in Files)' 'kdeconnect: Settings › Phone (notifications, clipboard, files)')
 source=(islet-reload.hook)
 sha256sums=(SKIP)
 

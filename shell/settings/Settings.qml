@@ -62,6 +62,7 @@ FloatingWindow {
     readonly property var pages: [
         { id: "account",   g: -1, label: "Account",            icon: "user",      tint: "#34C77B", d: "Your picture, name and password, and other people who use this computer", k: "user password picture avatar photo name sign in login lock startup add person people" },
         { id: "wifi",      g: 0, label: "Wi-Fi & Network",     icon: "wifi",      tint: "#3B8BFF", d: "Wi-Fi, VPN, IP address and proxy", k: "internet wireless vpn wireguard proxy ip dns qr share password ethernet" },
+        { id: "phone",     g: 0, label: "Phone",               icon: "phone",     tint: "#34C77B", d: "Link your phone: its notifications, a shared clipboard and sending files", k: "phone android iphone kde connect notifications clipboard send files sms" },
         { id: "bluetooth", g: 0, label: "Bluetooth",           icon: "bluetooth", tint: "#3B8BFF", d: "Headphones, mice, keyboards and other devices", k: "headphones pair speaker" },
         { id: "display",   g: 1, label: "Displays",            icon: "sun",       tint: "#FFB547", d: "Resolution, scale, arrangement and Night Light", k: "resolution scale monitor arrange rotate refresh brightness night light warm blue" },
         { id: "sound",     g: 1, label: "Sound",               icon: "volume",    tint: "#FF5C7A", d: "Speakers, microphones and the volume of each app", k: "volume audio microphone output input app system sounds" },
@@ -651,6 +652,8 @@ FloatingWindow {
                 }
 
                 NetworkExtras { visible: win.page === "wifi"; width: parent.width; ssid: wifi.current }
+
+                PhonePage { visible: win.page === "phone" }
 
                 // ================= BLUETOOTH =================
                 Column {

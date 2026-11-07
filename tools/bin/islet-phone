@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""Điện thoại của bạn ↔ Islet, qua KDE Connect (kdeconnectd). Cài đặt › Phone dùng lệnh này.
+
+    islet-phone list                    JSON: [{id, name, type, reachable, paired, requested, incoming, battery, charging}]
+    islet-phone refresh                 tìm lại điện thoại trong mạng
+    islet-phone pair|unpair|accept|reject <id>
+    islet-phone ring|ping <id>
+    islet-phone send <id> <file>…       gửi file (không có <id>: điện thoại đầu tiên đang kết nối → "send -")
+    islet-phone clip <id>               gửi clipboard hiện tại
+    islet-phone name                    tên máy này mà điện thoại nhìn thấy
+
+Điện thoại cần app KDE Connect (Android: Play Store / F-Droid · iPhone: App Store) và chung mạng Wi-Fi.
+Thông báo từ điện thoại tự hiện trên Dynamic Island; clipboard tự đồng bộ hai chiều.
+"""
+import json, os, shutil, subprocess, sys
+
+SVC, ROOT = "org.kde.kdeconnect", "/modules/kdeconnect"
+
+
+def busctl(*a):
+    r = subprocess.run(["busctl", "--user", "--json=short", *a], capture_output=True, text=True, timeout=8)
+    if r.returncode != 0:
+        raise RuntimeError(r.stderr.strip() or "busctl failed")
+    return json.loads(r.stdout).get("data") if r.stdout.strip() else None
+
+
+def prop(path, iface, name, default=None):
+    try:
+        return busctl("get-property", SVC, path, iface, name)
+    except Exception:
+        return default
+
+
+def call(path, iface, method, sig="", *args):
+    return busctl("call", SVC, path, iface, method, *([sig, *args] if sig else []))
+
+
+def devices():
+    try:
+        ids = call(ROOT, "org.kde.kdeconnect.daemon", "devices", "bb", "false", "false")[0]
+    except Exception:
+        return []
+    out = []
+    for i in ids:
+        p = f"{ROOT}/devices/{i}"
+        d = "org.kde.kdeconnect.device"
+        paired = bool(prop(p, d, "isPaired", False))
+        b = f"{p}/battery"
+        out.append({
+            "id": i,
+            "name": prop(p, d, "name", i),
+            "type": prop(p, d, "type", "phone"),
+            "reachable": bool(prop(p, d, "isReachable", False)),
+            "paired": paired,
+            "requested": bool(prop(p, d, "isPairRequested", False)),
+            "incoming": bool(prop(p, d, "isPairRequestedByPeer", False)),
+            "battery": prop(b, "org.kde.kdeconnect.device.battery", "charge", -1) if paired else -1,
+            "charging": bool(prop(b, "org.kde.kdeconnect.device.battery", "isCharging", False)) if paired else False,
+        })
+    out.sort(key=lambda x: (not x["reachable"], not x["paired"], x["name"].lower()))
+    return out
+
+
+def first_connected():
+    for d in devices():
+        if d["paired"] and d["reachable"]:
+            return d["id"]
+    sys.exit("No connected phone. Pair one in Settings › Phone.")
+
+
+def cli(*a):
+    return subprocess.call(["kdeconnect-cli", *a], stdout=subprocess.DEVNULL)
+
+
+def main():
+    a = sys.argv[1:]
+    op = a[0] if a else ""
+    if not shutil.which("kdeconnect-cli"):
+        if op == "list":
+            print("null")          # shell: chưa cài KDE Connect
+            return
+        sys.exit("KDE Connect is not installed")
+    dev = lambda: (first_connected() if len(a) < 2 or a[1] == "-" else a[1])
+    if op == "list":
+        print(json.dumps(devices(), ensure_ascii=False))
+    elif op == "refresh":
+        cli("--refresh")
+    elif op in ("pair", "unpair", "ring", "ping"):
+        sys.exit(cli("-d", dev(), "--" + op))
+    elif op in ("accept", "reject"):
+        call(f"{ROOT}/devices/{dev()}", "org.kde.kdeconnect.device", "acceptPairing" if op == "accept" else "cancelPairing")
+    elif op == "send":
+        d, files = dev(), a[2:]
+        bad = 0
+        for f in files:
+            bad |= cli("-d", d, "--share", os.path.abspath(f))
+        sys.exit(bad)
+    elif op == "clip":
+        sys.exit(cli("-d", dev(), "--send-clipboard"))
+    elif op == "name":
+        print(call(ROOT, "org.kde.kdeconnect.daemon", "announcedName")[0])
+    else:
+        print(__doc__.strip(), file=sys.stderr)
+        sys.exit(2)
+
+
+if __name__ == "__main__":
+    main()

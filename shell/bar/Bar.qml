@@ -24,7 +24,9 @@ PanelWindow {
         "kitty": "Terminal",
         "firefox": "Firefox",
         "org.gnome.Nautilus": "Files",
-        "mpv": "Music"
+        "mpv": "Music",
+        "org.gnome.NautilusPreviewer": "Quick Look",
+        "org.kde.kdeconnect.app": "Phone"
     })
     readonly property string appName: {
         if (!active || !active.activated) return "Islet";

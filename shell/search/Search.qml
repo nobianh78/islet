@@ -88,6 +88,7 @@ PanelWindow {
         { k: "wallpaper background hình nền", t: "Wallpaper", s: "Settings", icon: "palette", run: () => Ui.openSettings("wallpaper") },
         { k: "accent color theme icon style màu", t: "Accent color", s: "Settings", icon: "sparkle", run: () => Ui.openSettings("accent") },
         { k: "wifi wi-fi network internet mạng", t: "Wi-Fi", s: "Settings", icon: "wifi", run: () => Ui.openSettings("wifi") },
+        { k: "phone android iphone kde connect điện thoại", t: "Phone", s: "Settings", icon: "phone", run: () => Ui.openSettings("phone") },
         { k: "bluetooth headphones pair tai nghe", t: "Bluetooth", s: "Settings", icon: "bluetooth", run: () => Ui.openSettings("bluetooth") },
         { k: "sound volume audio microphone âm thanh", t: "Sound", s: "Settings", icon: "volume", run: () => Ui.openSettings("sound") },
         { k: "display resolution scale brightness monitor màn hình", t: "Displays", s: "Settings", icon: "sun", run: () => Ui.openSettings("display") },

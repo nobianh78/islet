@@ -31,6 +31,8 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("sh -c 'grep -q \"imeEnabled\": false ~/.config/islet/settings.json 2>/dev/null || exec fcitx5 -d'")
     -- app tự mở khi đăng nhập (Cài đặt › Startup Apps)
     hl.exec_cmd("islet-autostart")
+    -- kết nối điện thoại (Cài đặt › Phone): thông báo từ điện thoại lên Dynamic Island, clipboard chung
+    hl.exec_cmd("sh -c 'command -v kdeconnectd >/dev/null && exec kdeconnectd'")
     -- App GTK: nút cửa sổ bên trái theo thứ tự đóng · thu nhỏ · phóng to (CSS tô thành 🔴🟡🟢)
     hl.exec_cmd("gsettings set org.gnome.desktop.wm.preferences button-layout 'close,minimize,maximize:'")
     -- theme nút cửa sổ 🔴🟡🟢 cho mọi profile Firefox

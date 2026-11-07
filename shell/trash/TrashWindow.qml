@@ -32,6 +32,8 @@ FloatingWindow {
 
     property bool confirmEmpty: false
     property string armed: ""          // mục đang chờ bấm lần hai để xoá vĩnh viễn
+    property string selected: ""       // mục đang chọn: Space = xem nhanh (Quick Look)
+    function look(id) { if (id) QuickLook.show(Trash.dir + "/files/" + id); }
 
     function when(d) {
         if (!d) return "";
@@ -66,6 +68,9 @@ FloatingWindow {
         focus: true
         transformOrigin: Item.Top
         Keys.onEscapePressed: { if (win.confirmEmpty) win.confirmEmpty = false; else win.close(); }
+        Keys.onSpacePressed: win.look(win.selected || (Trash.items[0]?.id ?? ""))
+        Keys.onUpPressed: { const i = Trash.items.findIndex(x => x.id === win.selected); if (i > 0) win.selected = Trash.items[i - 1].id; }
+        Keys.onDownPressed: { const i = Trash.items.findIndex(x => x.id === win.selected); if (i < Trash.items.length - 1) win.selected = Trash.items[i + 1].id; }
         ParallelAnimation {
             id: intro
             NumberAnimation { target: panel; property: "opacity"; from: 0; to: 1; duration: 180; easing.type: Easing.OutCubic }
@@ -121,6 +126,7 @@ FloatingWindow {
             anchors.top: head.bottom; anchors.bottom: parent.bottom
             anchors.left: parent.left; anchors.right: parent.right
             anchors.margins: 12
+            anchors.bottomMargin: 30
             clip: true
             spacing: 2
             boundsBehavior: Flickable.StopAtBounds
@@ -130,11 +136,17 @@ FloatingWindow {
                 required property var modelData
                 required property int index
                 readonly property bool isArmed: win.armed === modelData.id
+                readonly property bool isSel: win.selected === modelData.id
                 width: list.width
                 height: 58
                 radius: 14
-                color: rm.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
-                MouseArea { id: rm; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton }
+                color: isSel ? Theme.tint(0.18) : rm.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
+                // bấm để chọn · bấm đúp hoặc Space để xem nhanh
+                MouseArea {
+                    id: rm; anchors.fill: parent; hoverEnabled: true
+                    onClicked: { win.selected = row.modelData.id; panel.forceActiveFocus(); }
+                    onDoubleClicked: win.look(row.modelData.id)
+                }
                 Image {
                     x: 14; anchors.verticalCenter: parent.verticalCenter
                     width: 34; height: 34; sourceSize: Qt.size(68, 68)
@@ -180,6 +192,12 @@ FloatingWindow {
             AppIcon { anchors.horizontalCenter: parent.horizontalCenter; size: 84; name: "trash" }
             Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Trash is empty"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.DemiBold }
             Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Drag files onto the Trash in the Dock to delete them."; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+        }
+        Text {
+            visible: Trash.count > 0
+            anchors.bottom: parent.bottom; anchors.bottomMargin: 10; anchors.horizontalCenter: parent.horizontalCenter
+            text: "Space — Quick Look  ·  double-click to preview"
+            color: "#636366"; font.family: Theme.font; font.pixelSize: 11
         }
 
         // ---------- hỏi trước khi dọn sạch ----------

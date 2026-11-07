@@ -1,0 +1,16 @@
+#!/bin/bash
+# Files › chuột phải › Scripts › "Send to Phone": gửi các file đang chọn sang điện thoại (KDE Connect).
+# islet-autostart đặt lối tắt này vào ~/.local/share/nautilus/scripts khi máy có KDE Connect.
+files=()
+if [ -n "${NAUTILUS_SCRIPT_SELECTED_FILE_PATHS:-}" ]; then
+    while IFS= read -r f; do [ -n "$f" ] && files+=("$f"); done <<<"$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS"
+else
+    files=("$@")
+fi
+[ ${#files[@]} -gt 0 ] || exit 0
+n=${#files[@]}; what=$([ "$n" = 1 ] && basename "${files[0]}" || echo "$n files")
+if err=$(islet-phone send - "${files[@]}" 2>&1); then
+    notify-send -a "Phone" -i phone "Sent to your phone" "$what"
+else
+    notify-send -a "Phone" -i phone "Couldn't send $what" "${err:-Is your phone connected? Open Settings › Phone.}"
+fi

@@ -1,6 +1,14 @@
 #!/bin/bash
 # Mở các app tự chạy khi đăng nhập: ~/.config/autostart/*.desktop (Cài đặt › Startup Apps).
 # Bỏ qua mục Hidden=true; xoá mã trường %f %u %U… khỏi dòng Exec.
+# Files › Scripts › "Send to Phone" (khi có KDE Connect)
+ns="${XDG_DATA_HOME:-$HOME/.local/share}/nautilus/scripts"
+if command -v kdeconnect-cli >/dev/null; then
+    mkdir -p "$ns" && ln -sfn /usr/bin/islet-send-to-phone "$ns/Send to Phone"
+else
+    [ -L "$ns/Send to Phone" ] && rm -f "$ns/Send to Phone"
+fi
+
 dir="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
 [ -d "$dir" ] || exit 0
 for f in "$dir"/*.desktop; do

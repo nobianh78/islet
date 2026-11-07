@@ -68,7 +68,7 @@ PanelWindow {
         const tl = ToplevelManager.toplevels.values;
         for (let i = 0; i < tl.length; i++) {
             const cls = tl[i].appId;
-            if (!cls || cls === "org.quickshell") continue;
+            if (!cls || cls === "org.quickshell" || cls === "org.gnome.NautilusPreviewer") continue;   // Islet / Quick Look: không lên dock
             if (out.some(a => a.ids.indexOf(cls) >= 0)) continue;
             out.push(makeApp(cls, false));
         }
