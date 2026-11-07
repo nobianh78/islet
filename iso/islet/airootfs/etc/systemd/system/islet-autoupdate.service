@@ -1,0 +1,12 @@
+[Unit]
+Description=Islet nightly system update
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# chỉ chạy khi cắm sạc
+ExecCondition=/bin/sh -c 'for s in /sys/class/power_supply/*/online; do [ -f "$s" ] && [ "$(cat "$s")" = 1 ] && exit 0; done; ls /sys/class/power_supply/BAT* >/dev/null 2>&1 && exit 1 || exit 0'
+ExecStart=/usr/bin/pacman -Syu --noconfirm --noprogressbar
+Nice=15
+IOSchedulingClass=idle

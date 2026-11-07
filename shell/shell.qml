@@ -63,6 +63,8 @@ ShellRoot {
     // chờ máy (tối / khoá / tắt màn hình / ngủ) + Night Light
     readonly property var idle: Idle
     readonly property var nightLight: NightLight
+    readonly property var desktopSync: DesktopSync
+    readonly property var ime: Ime
 
     // Điều khiển từ terminal hoặc phím tắt:
     //   qs -p shell ipc call island toggle

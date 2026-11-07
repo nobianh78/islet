@@ -8,16 +8,18 @@ ISO="${1:-$(ls -t "$ROOT"/out/islet-*.iso 2>/dev/null | head -1)}"
 [ -f "$ISO" ] || { echo "Không thấy ISO. Chạy ./scripts/build-iso.sh trước." >&2; exit 1; }
 
 # UEFI (OVMF) để boot qua systemd-boot như máy thật
-VARS="$ROOT/out/OVMF_VARS.fd"
+VARS=${ISLET_VARS:-"$ROOT/out/OVMF_VARS.fd"}
 [ -f "$VARS" ] || cp /usr/share/OVMF/OVMF_VARS_4M.fd "$VARS"
 
 # Ổ ảo để thử trình cài đặt: ISLET_DISK=1 → gắn out/disk.qcow2 (20 GB, tạo nếu chưa có)
 #                            ISLET_BOOT=disk → boot thẳng từ ổ đã cài (không gắn ISO)
+#   ISLET_DISK_FILE=out/khac.qcow2 / ISLET_VARS=out/khac_VARS.fd → thử cài vào ổ khác mà không đụng ổ chính
+DISKF=${ISLET_DISK_FILE:-"$ROOT/out/disk.qcow2"}
 EXTRA=()
 if [ "${ISLET_DISK:-0}" = 1 ] || [ "${ISLET_BOOT:-}" = disk ]; then
-    [ -f "$ROOT/out/disk.qcow2" ] || qemu-img create -q -f qcow2 "$ROOT/out/disk.qcow2" 20G
+    [ -f "$DISKF" ] || qemu-img create -q -f qcow2 "$DISKF" 20G
     # bootindex: boot từ ổ này trước (khi không gắn ISO), thay vì để firmware thử PXE
-    EXTRA+=(-drive file="$ROOT/out/disk.qcow2",if=none,id=hd0,format=qcow2 -device virtio-blk-pci,drive=hd0,bootindex=1)
+    EXTRA+=(-drive file="$DISKF",if=none,id=hd0,format=qcow2 -device virtio-blk-pci,drive=hd0,bootindex=1)
 fi
 MEDIA=(-drive file="$ISO",media=cdrom,if=none,id=cd0,readonly=on -device ide-cd,drive=cd0,bootindex=0)
 [ "${ISLET_BOOT:-}" = disk ] && MEDIA=()

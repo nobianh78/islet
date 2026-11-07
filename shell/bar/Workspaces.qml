@@ -7,7 +7,7 @@ Row {
     id: root
     spacing: 6
 
-    readonly property int count: 5
+    readonly property int count: Prefs.wsCount
     readonly property int current: Hyprland.focusedWorkspace?.id ?? 1
 
     function occupied(id) {

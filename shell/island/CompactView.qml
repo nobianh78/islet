@@ -24,7 +24,7 @@ Item {
         // --- hoạt động trực tiếp (thay cột ngày): quay màn hình > đồng hồ > tải file ---
         Row {
             id: live
-            readonly property string kind: Recorder.recording ? "rec" : Chrono.active ? "timer" : Downloads.active ? "dl" : ""
+            readonly property string kind: !Prefs.islandLive ? "" : Recorder.recording ? "rec" : Chrono.active ? "timer" : Downloads.active ? "dl" : ""
             visible: root.mode === "idle" && kind !== ""
             anchors.verticalCenter: parent.verticalCenter
             spacing: 8
@@ -147,7 +147,7 @@ Item {
         Item {
             id: agentPill
             readonly property var s: Agents.sessions.find(x => x.state === "attention") ?? Agents.sessions.find(x => x.state === "working") ?? null
-            visible: s !== null
+            visible: s !== null && Prefs.islandAgents
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             width: 22; height: 22

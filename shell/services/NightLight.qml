@@ -47,5 +47,7 @@ Singleton {
             }
         }
     }
+    // hình nền ban đêm dùng cùng khung giờ
+    Binding { target: Prefs; property: "nightNow"; value: root.inSchedule }
     function toggle() { Prefs.set("nightMode", active ? "off" : "on"); }
 }

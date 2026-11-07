@@ -1,6 +1,7 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import "../theme"
 
 // Đồng hồ hệ thống + định dạng ngày giờ (tiếng Anh).
 Singleton {
@@ -23,7 +24,8 @@ Singleton {
     // "Thursday, November 5"
     function longDate(d) { return dayLong[d.getDay()] + ", " + monthLong[d.getMonth()] + " " + d.getDate(); }
 
-    readonly property string time: pad(now.getHours()) + ":" + pad(now.getMinutes())
+    readonly property string time: (Prefs.clock24 ? pad(now.getHours()) : String((now.getHours() + 11) % 12 + 1)) + ":" + pad(now.getMinutes())
+        + (Prefs.clockSeconds ? ":" + pad(now.getSeconds()) : "") + (Prefs.clock24 ? "" : (now.getHours() < 12 ? " AM" : " PM"))
     // "Thu, Nov 5"
     readonly property string dateShort: dayShort[now.getDay()] + ", " + monthShort[now.getMonth()] + " " + now.getDate()
     // "THURSDAY" / "November 5" (cột ngày trên island thu gọn)

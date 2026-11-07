@@ -46,7 +46,7 @@ PanelWindow {
     property bool wasPlaying: false
 
     readonly property string mode: {
-        if (Media.hasPlayer && (Media.playing || (pausedAt > 0 && Date.now() - pausedAt < 90000)))
+        if (Prefs.islandMedia && Media.hasPlayer && (Media.playing || (pausedAt > 0 && Date.now() - pausedAt < 90000)))
             return "media";
         return "idle";
     }
@@ -64,8 +64,8 @@ PanelWindow {
         // có agent đang chạy → island nở thêm một chút để chừa chỗ cho icon agent
         return (mode === "idle" ? 300 : 380) + (agentActive ? 30 : 0) + (liveActive && mode === "idle" ? 40 : 0);
     }
-    readonly property bool liveActive: Recorder.recording || Chrono.active || Downloads.active
-    readonly property bool agentActive: Agents.sessions.some(x => x.state === "working" || x.state === "attention")
+    readonly property bool liveActive: Prefs.islandLive && (Recorder.recording || Chrono.active || Downloads.active)
+    readonly property bool agentActive: Prefs.islandAgents && Agents.sessions.some(x => x.state === "working" || x.state === "attention")
     readonly property real targetH: {
         if (view === "expanded") return Math.max(barH + 120, Math.min(360, Math.max(150, expandedView.contentHeight)));
         if (flush) return barH;
@@ -185,12 +185,15 @@ PanelWindow {
             // thông báo từ agent trong VS Code / Cursor / Antigravity → hiện thành thông báo agent
             if (Agents.fromNotification(n)) return;
             // Không làm phiền: chỉ lưu vào trung tâm thông báo (thông báo khẩn vẫn hiện)
-            if (Prefs.dnd && n.urgency !== NotificationUrgency.Critical) return;
+            if ((Prefs.dnd || Ui.dndNow) && n.urgency !== NotificationUrgency.Critical) return;
+            // app bị tắt thông báo (Cài đặt › Notifications): vẫn lưu ở trung tâm thông báo, không bật lên
+            if ((Prefs.notifMuted || []).indexOf(n.appName || "") >= 0) return;
+            if (Prefs.notifSounds) Sounds.play("notification");
             win.pushBanner({
                 kind: "notification",
                 notification: n,
                 title: n.summary || n.appName || "",
-                body: (n.body || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim(),
+                body: Prefs.notifPreview ? (n.body || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim() : "New notification",
                 appName: n.appName || "",
                 icon: Notifs.iconFor(n),
                 duration: 5000
@@ -201,6 +204,7 @@ PanelWindow {
     Connections {
         target: Agents
         function onAttention(s) {
+            if (!Prefs.islandAgents) return;
             win.pushBanner({
                 kind: "notification",
                 title: Agents.label(s.agent) + " needs you",
@@ -214,7 +218,7 @@ PanelWindow {
             win.queue = win.queue.filter(b => b.agentKey !== s.key);
         }
         function onFinished(s) {
-            if (Prefs.dnd) return;
+            if (Prefs.dnd || Ui.dndNow || !Prefs.islandAgents) return;
             win.pushBanner({
                 kind: "notification",
                 title: Agents.label(s.agent) + " finished",

@@ -1,7 +1,9 @@
 #!/bin/bash
 # Cài Islet từ bản live vào ổ cứng.  Chạy bằng root (giao diện gọi qua sudo).
 #
-#   islet-install DISK USERNAME FULLNAME_B64 HOSTNAME TIMEZONE AUTOLOGIN(0|1)
+#   islet-install DISK USERNAME FULLNAME_B64 HOSTNAME TIMEZONE AUTOLOGIN(0|1) [FS: ext4|btrfs]
+#   btrfs (chỉ UEFI): subvolume @ @home @log @pkg @snapshots, @ là subvolume mặc định (không ghi subvol=
+#   cho / ở fstab/cmdline) để `snapper rollback` đổi được hệ thống khởi động; snap-pac chụp trước/sau pacman.
 #   mật khẩu đọc từ stdin (một dòng) để không lộ trên dòng lệnh.
 #
 # In ra cho giao diện:  PROGRESS <0-100> <mô tả> · LOG <dòng> · ERROR <mô tả> · DONE
@@ -13,6 +15,7 @@ FULLNAME=$(printf '%s' "$3" | base64 -d)
 HOSTNAME_=$4
 TZONE=$5
 AUTOLOGIN=$6
+FS=${7:-ext4}
 IFS= read -r PASSWORD || true
 
 SRC=/run/archiso/airootfs
@@ -32,7 +35,9 @@ say 1 "Checking"
 [ -n "$PASSWORD" ] || { echo "ERROR No password given"; exit 1; }
 [ -f "/usr/share/zoneinfo/$TZONE" ] || TZONE=UTC
 UEFI=0; [ -d /sys/firmware/efi ] && UEFI=1
-log "Disk: $DISK · $( [ $UEFI = 1 ] && echo UEFI || echo BIOS ) · user: $USERNAME · host: $HOSTNAME_ · tz: $TZONE"
+[ "$FS" = btrfs ] && { [ $UEFI = 1 ] && command -v mkfs.btrfs >/dev/null || FS=ext4; }
+[ "$FS" = btrfs ] || FS=ext4
+log "Disk: $DISK · $( [ $UEFI = 1 ] && echo UEFI || echo BIOS ) · $FS · user: $USERNAME · host: $HOSTNAME_ · tz: $TZONE"
 
 # tên phân vùng: /dev/sda → sda1, /dev/nvme0n1 → nvme0n1p1
 part() { if [[ "$DISK" =~ [0-9]$ ]]; then echo "${DISK}p$1"; else echo "${DISK}$1"; fi; }
@@ -55,9 +60,23 @@ P1=$(part 1); P2=$(part 2)
 
 say 8 "Formatting"
 [ $UEFI = 1 ] && mkfs.fat -F32 -n ISLET-EFI "$P1" >/dev/null
-mkfs.ext4 -q -F -L Islet "$P2"
 mkdir -p "$MNT"
-mount "$P2" "$MNT"
+if [ "$FS" = btrfs ]; then
+    mkfs.btrfs -q -f -L Islet "$P2"
+    mount "$P2" "$MNT"
+    for sv in @ @home @log @pkg @snapshots; do btrfs -q subvolume create "$MNT/$sv"; done
+    btrfs subvolume set-default "$MNT/@"
+    umount "$MNT"
+    BO=noatime,compress=zstd:1
+    mount -o "$BO" "$P2" "$MNT"                  # subvolume mặc định = @
+    mkdir -p "$MNT/home" "$MNT/var/log" "$MNT/var/cache/pacman/pkg"
+    mount -o "$BO,subvol=@home" "$P2" "$MNT/home"
+    mount -o "$BO,subvol=@log" "$P2" "$MNT/var/log"
+    mount -o "$BO,subvol=@pkg" "$P2" "$MNT/var/cache/pacman/pkg"
+else
+    mkfs.ext4 -q -F -L Islet "$P2"
+    mount "$P2" "$MNT"
+fi
 mkdir -p "$MNT/boot"
 [ $UEFI = 1 ] && mount "$P1" "$MNT/boot"
 
@@ -103,13 +122,29 @@ cat > "$MNT/etc/hosts" <<EOF
 ::1         localhost
 127.0.1.1   $HOSTNAME_.localdomain $HOSTNAME_
 EOF
+if [ "$FS" = btrfs ]; then
+    # snapper tạo /.snapshots làm subvolume con; thay bằng @snapshots (nằm ngoài @, nên vẫn còn sau khi rollback)
+    arch-chroot "$MNT" snapper --no-dbus -c root create-config / >/dev/null
+    btrfs -q subvolume delete "$MNT/.snapshots"
+    mkdir -p "$MNT/.snapshots"
+    mount -o "$BO,subvol=@snapshots" "$P2" "$MNT/.snapshots"
+    chmod 750 "$MNT/.snapshots"
+    sed -i -e 's/^TIMELINE_CREATE=.*/TIMELINE_CREATE="no"/' -e 's/^NUMBER_LIMIT=.*/NUMBER_LIMIT="12"/' \
+        -e 's/^NUMBER_LIMIT_IMPORTANT=.*/NUMBER_LIMIT_IMPORTANT="6"/' "$MNT/etc/snapper/configs/root"
+    arch-chroot "$MNT" systemctl enable snapper-cleanup.timer >/dev/null 2>&1 || true
+fi
 genfstab -U "$MNT" > "$MNT/etc/fstab"
+# / phải theo subvolume mặc định — bỏ subvol=/subvolid= của dòng gốc
+[ "$FS" = btrfs ] && sed -i -E '/[[:space:]]\/[[:space:]]+btrfs/ s/,?subvolid=[0-9]+//; /[[:space:]]\/[[:space:]]+btrfs/ s/,?subvol=[^,[:space:]]+//' "$MNT/etc/fstab"
 
 # ---------------- tài khoản ----------------
 say 79 "Creating your account"
 # đổi người dùng live "islet" thành tài khoản của bạn (giữ nguyên cấu hình Islet trong thư mục nhà)
 if [ "$USERNAME" != "$LIVE_USER" ]; then
-    arch-chroot "$MNT" usermod -l "$USERNAME" -d "/home/$USERNAME" -m "$LIVE_USER"
+    # /home là subvolume riêng đang được gắn — usermod -m không đổi tên điểm gắn được, nên đổi tên thư mục trước
+    [ "$FS" = btrfs ] && mv "$MNT/home/$LIVE_USER" "$MNT/home/$USERNAME"
+    if [ "$FS" = btrfs ]; then arch-chroot "$MNT" usermod -l "$USERNAME" -d "/home/$USERNAME" "$LIVE_USER"
+    else arch-chroot "$MNT" usermod -l "$USERNAME" -d "/home/$USERNAME" -m "$LIVE_USER"; fi
     arch-chroot "$MNT" groupmod -n "$USERNAME" "$LIVE_USER"
 fi
 arch-chroot "$MNT" usermod -c "$FULLNAME" -G wheel,audio,video,input "$USERNAME"
@@ -174,6 +209,10 @@ else
     sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0"/' "$MNT/etc/default/grub" 2>/dev/null || true
     arch-chroot "$MNT" grub-install --target=i386-pc "$DISK" 2>&1 | while read -r l; do log "$l"; done
     arch-chroot "$MNT" grub-mkconfig -o /boot/grub/grub.cfg 2>&1 | while read -r l; do log "$l"; done
+fi
+
+if [ "$FS" = btrfs ]; then
+    arch-chroot "$MNT" snapper --no-dbus -c root create -c important -d "Fresh install" >/dev/null 2>&1 || true
 fi
 
 say 99 "Finishing up"

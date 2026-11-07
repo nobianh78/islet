@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+"""App mặc định (Cài đặt › Default Apps).
+    islet-defaults get <mime>                  → id .desktop đang mặc định
+    islet-defaults list <mime>                 → id<TAB>tên của các app mở được loại này
+    islet-defaults set <id.desktop> <mime...>  → đặt mặc định (xdg-mime)
+"""
+import configparser, glob, os, subprocess, sys
+
+DIRS = [os.path.expanduser("~/.local/share/applications"), "/usr/local/share/applications", "/usr/share/applications"]
+
+def apps():
+    seen = {}
+    for d in DIRS:
+        for f in glob.glob(d + "/*.desktop"):
+            i = os.path.basename(f)
+            if i in seen:
+                continue
+            c = configparser.ConfigParser(interpolation=None, strict=False)
+            try:
+                c.read(f, encoding="utf-8")
+                e = c["Desktop Entry"]
+            except Exception:
+                continue
+            if e.get("NoDisplay", "false").lower() == "true" or e.get("Hidden", "false").lower() == "true":
+                seen[i] = None
+                continue
+            seen[i] = (e.get("Name", i), [m for m in e.get("MimeType", "").split(";") if m])
+    return {k: v for k, v in seen.items() if v}
+
+a = sys.argv[1:]
+if not a:
+    sys.exit(2)
+if a[0] == "get":
+    print(subprocess.run(["xdg-mime", "query", "default", a[1]], capture_output=True, text=True).stdout.strip())
+elif a[0] == "list":
+    want = a[1]; base = want.split("/")[0] + "/*"
+    for i, (n, mimes) in sorted(apps().items(), key=lambda x: x[1][0].lower()):
+        if want in mimes or base in mimes or (want.endswith("/*") and any(m.startswith(want[:-1]) for m in mimes)):
+            print(f"{i}\t{n}")
+elif a[0] == "set":
+    app, mimes = a[1], a[2:]
+    subprocess.run(["xdg-mime", "default", app] + mimes)
+    if any(m in ("x-scheme-handler/http", "x-scheme-handler/https", "text/html") for m in mimes):
+        subprocess.run(["xdg-settings", "set", "default-web-browser", app], stderr=subprocess.DEVNULL)

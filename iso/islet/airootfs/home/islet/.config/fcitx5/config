@@ -1,0 +1,10 @@
+[Hotkey]
+# Ctrl+Space: chuyển Việt ⇄ Anh
+EnumerateWithTriggerKeys=True
+
+[Hotkey/TriggerKeys]
+0=Control+space
+
+[Behavior]
+ShareInputState=All
+ShowInputMethodInformation=False

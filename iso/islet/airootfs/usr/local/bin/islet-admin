@@ -1,0 +1,122 @@
+#!/bin/bash
+# Các việc cần quyền quản trị của app Cài đặt Islet. Chỉ nhận đúng những lệnh dưới đây, mọi tham số đều
+# được kiểm tra; shell gọi qua `sudo islet-admin …` (mật khẩu kiểm tra một lần qua PAM — xem Auth.qml).
+#
+#   timezone <Vùng/Thành_phố>            ntp on|off              hostname <tên>
+#   service on|off <sshd|docker|cups|bluetooth|ufw|avahi-daemon>
+#   firewall on|off                      charge-limit <50..100>
+#   clean pkgcache|orphans|journal       mirrors
+#   autoupdate on|off                    smart <thiết bị>          battery-health
+#   user add <tên> <tên đầy đủ b64>      user fullname <tên> <tên đầy đủ b64>
+#   wg import <file.conf>                wg up|down|remove <tên>    wg list
+#   net static <iface> <ip/cidr> <gateway> <dns>     net dhcp <iface>
+#   snapshot list|create <mô tả b64>|delete <số>|rollback <số>
+#   wifi-psk <tên mạng b64>              (mật khẩu Wi-Fi đã lưu — để tạo mã QR chia sẻ)
+set -uo pipefail
+[ "$(id -u)" = 0 ] || { echo "ERROR Administrator rights required" >&2; exit 1; }
+cmd=${1:-}; shift || true
+die() { echo "ERROR $*" >&2; exit 1; }
+name_ok() { [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$ ]]; }
+b64() { printf '%s' "$1" | base64 -d 2>/dev/null; }
+
+case "$cmd" in
+timezone)
+    tz=${1:?}; [ -f "/usr/share/zoneinfo/$tz" ] && [[ "$tz" != *..* ]] || die "Unknown time zone"
+    timedatectl set-timezone "$tz" ;;
+ntp)
+    case "${1:-}" in on) timedatectl set-ntp true ;; off) timedatectl set-ntp false ;; *) die "on|off" ;; esac ;;
+hostname)
+    h=${1:?}; [[ "$h" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]] || die "Letters, numbers and - only"
+    hostnamectl set-hostname "$h" ;;
+service)
+    op=${1:?}; svc=${2:?}
+    case "$svc" in sshd|docker|cups|bluetooth|ufw|avahi-daemon|cups-browsed) ;; *) die "Not allowed: $svc" ;; esac
+    case "$op" in on) systemctl enable --now "$svc" ;; off) systemctl disable --now "$svc" ;; *) die "on|off" ;; esac ;;
+firewall)
+    command -v ufw >/dev/null || die "ufw is not installed"
+    case "${1:-}" in
+        on) ufw default deny incoming >/dev/null; ufw default allow outgoing >/dev/null; ufw --force enable >/dev/null; systemctl enable --now ufw >/dev/null 2>&1 ;;
+        off) ufw disable >/dev/null ;;
+        *) die "on|off" ;;
+    esac ;;
+charge-limit)
+    v=${1:?}; [[ "$v" =~ ^[0-9]+$ ]] && [ "$v" -ge 50 ] && [ "$v" -le 100 ] || die "50..100"
+    n=0
+    for f in /sys/class/power_supply/BAT*/charge_control_end_threshold; do
+        [ -w "$f" ] || continue; echo "$v" > "$f" && n=$((n + 1))
+        printf 'w %s - - - - %s\n' "$f" "$v" > /etc/tmpfiles.d/islet-charge-limit.conf
+    done
+    [ $n -gt 0 ] || die "This battery does not support a charge limit" ;;
+clean)
+    case "${1:-}" in
+        pkgcache) before=$(du -sb /var/cache/pacman/pkg 2>/dev/null | cut -f1); paccache -rk1 >/dev/null 2>&1; paccache -ruk0 >/dev/null 2>&1
+                  after=$(du -sb /var/cache/pacman/pkg 2>/dev/null | cut -f1); echo "FREED $(( ${before:-0} - ${after:-0} ))" ;;
+        orphans)  o=$(pacman -Qtdq 2>/dev/null); [ -n "$o" ] && pacman -Rns --noconfirm $o >/dev/null 2>&1; echo "REMOVED $(echo -n "$o" | grep -c .)" ;;
+        journal)  journalctl --vacuum-size=100M >/dev/null 2>&1; echo "DONE" ;;
+        *) die "pkgcache|orphans|journal" ;;
+    esac ;;
+mirrors)
+    command -v reflector >/dev/null || die "reflector is not installed"
+    reflector --latest 30 --protocol https --sort rate --number 10 --save /etc/pacman.d/mirrorlist 2>/dev/null || die "Could not rank mirrors (offline?)"
+    grep -m3 '^Server' /etc/pacman.d/mirrorlist ;;
+autoupdate)
+    case "${1:-}" in on) systemctl enable --now islet-autoupdate.timer ;; off) systemctl disable --now islet-autoupdate.timer ;; *) die "on|off" ;; esac ;;
+smart)
+    d=${1:?}; [[ "$d" =~ ^/dev/(sd[a-z]|nvme[0-9]n[0-9]|vd[a-z]|mmcblk[0-9])$ ]] || die "Unknown disk"
+    command -v smartctl >/dev/null || die "smartmontools is not installed"
+    smartctl -H -j "$d" 2>/dev/null | python3 -c 'import json,sys;d=json.load(sys.stdin);s=d.get("smart_status",{});print("PASSED" if s.get("passed") else ("FAILED" if s else "UNKNOWN"))' ;;
+battery-health)
+    for b in /sys/class/power_supply/BAT*; do
+        [ -d "$b" ] || continue
+        full=$(cat "$b/energy_full" 2>/dev/null || cat "$b/charge_full" 2>/dev/null); design=$(cat "$b/energy_full_design" 2>/dev/null || cat "$b/charge_full_design" 2>/dev/null)
+        cyc=$(cat "$b/cycle_count" 2>/dev/null || echo "?")
+        [ -n "$full" ] && [ -n "$design" ] && [ "$design" -gt 0 ] && echo "$(basename $b) $(( full * 100 / design )) $cyc"
+    done ;;
+user)
+    case "${1:-}" in
+        add) u=${2:?}; fn=$(b64 "${3:-}"); [[ "$u" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || die "Invalid username"
+             id "$u" >/dev/null 2>&1 && die "User exists"
+             useradd -m -G wheel,audio,video,input -c "$fn" "$u" || die "useradd failed"
+             IFS= read -r pw; printf '%s:%s\n' "$u" "$pw" | chpasswd ;;
+        fullname) u=${2:?}; fn=$(b64 "${3:-}"); id "$u" >/dev/null 2>&1 || die "No such user"
+                  [[ "$fn" != *:* ]] || die "No colons"; chfn -f "$fn" "$u" >/dev/null ;;
+        *) die "add|fullname" ;;
+    esac ;;
+wg)
+    command -v wg-quick >/dev/null || die "wireguard-tools is not installed"
+    case "${1:-}" in
+        list) for f in /etc/wireguard/*.conf; do [ -f "$f" ] || continue; n=$(basename "$f" .conf); s=down; ip link show "$n" >/dev/null 2>&1 && s=up; echo "$n $s"; done ;;
+        import) f=${2:?}; [ -f "$f" ] || die "No such file"; grep -q '^\[Interface\]' "$f" || die "Not a WireGuard config"
+                n=$(basename "$f" .conf | tr -c 'A-Za-z0-9_=+.-' '_' | cut -c1-15); install -Dm600 "$f" "/etc/wireguard/$n.conf"; echo "$n" ;;
+        up|down) n=${2:?}; name_ok "$n" && [ -f "/etc/wireguard/$n.conf" ] || die "Unknown VPN"; wg-quick "$1" "$n" 2>&1 | tail -1 ;;
+        remove) n=${2:?}; name_ok "$n" || die "Unknown VPN"; wg-quick down "$n" >/dev/null 2>&1; rm -f "/etc/wireguard/$n.conf" ;;
+        *) die "list|import|up|down|remove" ;;
+    esac ;;
+net)
+    case "${1:-}" in
+        static) i=${2:?}; ip4=${3:?}; gw=${4:?}; dns=${5:-1.1.1.1}
+                [ -d "/sys/class/net/$i" ] || die "Unknown interface"
+                [[ "$ip4" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$ ]] || die "Address like 192.168.1.50/24"
+                [[ "$gw" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] && [[ "$dns" =~ ^[0-9a-f.:]+$ ]] || die "Bad gateway / DNS"
+                printf '[Match]\nName=%s\n\n[Network]\nAddress=%s\nGateway=%s\nDNS=%s\n' "$i" "$ip4" "$gw" "$dns" > "/etc/systemd/network/10-islet-$i.network"
+                networkctl reload; networkctl reconfigure "$i" ;;
+        dhcp)   i=${2:?}; [ -d "/sys/class/net/$i" ] || die "Unknown interface"; rm -f "/etc/systemd/network/10-islet-$i.network"; networkctl reload; networkctl reconfigure "$i" ;;
+        *) die "static|dhcp" ;;
+    esac ;;
+wifi-psk)
+    ssid=$(b64 "${1:-}"); [ -n "$ssid" ] || die "No network"
+    if [[ "$ssid" =~ ^[A-Za-z0-9\ _-]+$ ]]; then f="/var/lib/iwd/$ssid.psk"; else f="/var/lib/iwd/=$(printf %s "$ssid" | od -An -tx1 | tr -d ' \n').psk"; fi
+    [ -f "$f" ] || { [ -f "/var/lib/iwd/$ssid.open" ] && { echo "OPEN"; exit 0; }; die "This network is not saved"; }
+    sed -n 's/^Passphrase=//p' "$f" | head -1 ;;
+snapshot)
+    command -v snapper >/dev/null && snapper -c root get-config >/dev/null 2>&1 || die "Snapshots need a Btrfs system (choose Btrfs in the installer)"
+    case "${1:-}" in
+        list)     snapper -c root --jsonout list 2>/dev/null ;;
+        create)   d=$(b64 "${2:-}"); snapper -c root create -c number -d "${d:-Manual snapshot}" --print-number ;;
+        delete)   n=${2:?}; [[ "$n" =~ ^[0-9]+$ ]] || die "Bad number"; snapper -c root delete "$n" ;;
+        rollback) n=${2:?}; [[ "$n" =~ ^[0-9]+$ ]] || die "Bad number"; snapper --ambit classic -c root rollback "$n" >/dev/null && echo REBOOT ;;
+        *) die "list|create|delete|rollback" ;;
+    esac ;;
+*)
+    echo "Usage: islet-admin <command> …  (see the header of this file)" >&2; exit 2 ;;
+esac

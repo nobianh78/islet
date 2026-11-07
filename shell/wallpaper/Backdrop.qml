@@ -7,7 +7,7 @@ import "../theme"
 Item {
     id: root
     property var preset: Prefs.preset
-    property string image: Prefs.wallpaperIsImage ? Prefs.wallpaper : ""
+    property string image: Prefs.wallpaperIsImage ? Prefs.wallpaperEff : ""
     property bool animated: true
     clip: true
 

@@ -67,6 +67,99 @@ PanelWindow {
         Ui.launcherOpen = false;
     }
 
+    // ---------------- kéo thả & ghim vào dock ----------------
+    property var dragApp: null
+    property bool dragging: false
+    property real dragX: 0
+    property real dragY: 0
+    property bool dropHovered: false
+    property int dropIndex: -1
+
+    // ---------------- menu chuột phải ----------------
+    property var menuApp: null
+    property real menuX: 0
+    property real menuY: 0
+    property bool menuOpen: false
+
+    // Kích thước ước lượng của Dock để nhận diện vùng thả
+    readonly property real dockItemBase: Prefs.dockSize
+    readonly property real dockGap: 8
+    readonly property real dockSep: 17
+    readonly property real dockPad: 8
+    readonly property int pinnedCount: DockPins.pins.length
+    readonly property int unpinnedRunningCount: {
+        const tl = ToplevelManager.toplevels?.values ?? [];
+        let count = 0;
+        const pinned = DockPins.pins;
+        for (let i = 0; i < tl.length; i++) {
+            const cls = tl[i].appId;
+            if (!cls || cls === "org.quickshell") continue;
+            if (pinned.indexOf(cls) >= 0) continue;
+            count++;
+        }
+        return count;
+    }
+    // Launcher icon (1) + Pinned + Unpinned running + Settings icon (1)
+    readonly property int totalDockItems: 1 + pinnedCount + unpinnedRunningCount + 1
+    readonly property real dockWidth: totalDockItems * (dockItemBase + dockGap) + dockSep + dockPad * 2
+
+    function startDrag(app, gx, gy) {
+        if (menuOpen) menuOpen = false;
+        dragApp = app;
+        dragX = gx;
+        dragY = gy;
+        dragging = true;
+        checkDropHover(gx, gy);
+    }
+
+    function updateDrag(gx, gy) {
+        dragX = gx;
+        dragY = gy;
+        checkDropHover(gx, gy);
+    }
+
+    function checkDropHover(gx, gy) {
+        const isNearBottom = gy >= (win.height - 130);
+        const dLeft = (win.width - dockWidth) / 2 - 60;
+        const dRight = (win.width + dockWidth) / 2 + 60;
+        const inZone = isNearBottom && (gx >= dLeft && gx <= dRight);
+
+        dropHovered = inZone;
+        Ui.dockDropHover = inZone;
+
+        if (inZone) {
+            const firstPinX = (win.width - dockWidth) / 2 + dockPad + (dockItemBase + dockGap);
+            const relX = gx - firstPinX;
+            const slot = Math.round(relX / (dockItemBase + dockGap));
+            dropIndex = Math.max(0, Math.min(pinnedCount, slot));
+        } else {
+            dropIndex = -1;
+        }
+    }
+
+    function endDrag(gx, gy) {
+        checkDropHover(gx, gy);
+        if (dropHovered && dragApp) {
+            const id = dragApp.id;
+            const name = nameOf(dragApp);
+            const icon = iconOf(dragApp);
+            DockPins.pinAt(id, dropIndex >= 0 ? dropIndex : -1);
+            Ui.toast("Pinned " + name + " to the Dock", icon, "");
+        }
+        dragging = false;
+        dragApp = null;
+        dropHovered = false;
+        dropIndex = -1;
+        Ui.dockDropHover = false;
+    }
+
+    function openMenu(app, gx, gy) {
+        menuApp = app;
+        menuX = gx;
+        menuY = gy;
+        menuOpen = true;
+    }
+
     onOpenChanged: {
         if (open) {
             query = "";
@@ -74,6 +167,13 @@ PanelWindow {
             pager.positionViewAtBeginning();
             intro.restart();
             search.forceActiveFocus();
+        } else {
+            dragging = false;
+            dragApp = null;
+            dropHovered = false;
+            dropIndex = -1;
+            menuOpen = false;
+            Ui.dockDropHover = false;
         }
     }
     onQueryChanged: pager.positionViewAtBeginning()
@@ -88,7 +188,10 @@ PanelWindow {
 
         MouseArea {
             anchors.fill: parent
-            onClicked: Ui.launcherOpen = false
+            onClicked: {
+                if (win.menuOpen) win.menuOpen = false;
+                else Ui.launcherOpen = false;
+            }
             onWheel: w => pager.turn(w.angleDelta.y < 0 || w.angleDelta.x < 0 ? 1 : -1)
         }
     }
@@ -100,7 +203,10 @@ PanelWindow {
         scale: win.open ? 1 : 1.06
         Behavior on scale { NumberAnimation { duration: win.open ? 420 : 200; easing.type: win.open ? Easing.OutQuint : Easing.InCubic } }
 
-        Keys.onEscapePressed: Ui.launcherOpen = false
+        Keys.onEscapePressed: {
+            if (win.menuOpen) win.menuOpen = false;
+            else Ui.launcherOpen = false;
+        }
 
         // ---------------- tìm kiếm ----------------
         Rectangle {
@@ -135,7 +241,10 @@ PanelWindow {
                 clip: true
                 onTextChanged: win.query = text
                 onAccepted: if (win.apps.length > 0) win.launch(win.apps[0])
-                Keys.onEscapePressed: Ui.launcherOpen = false
+                Keys.onEscapePressed: {
+                    if (win.menuOpen) win.menuOpen = false;
+                    else Ui.launcherOpen = false;
+                }
                 Keys.onLeftPressed: e => { if (text === "") pager.turn(-1); else e.accepted = false; }
                 Keys.onRightPressed: e => { if (text === "") pager.turn(1); else e.accepted = false; }
                 Text {
@@ -162,7 +271,7 @@ PanelWindow {
             highlightMoveDuration: 380
             clip: false
             model: win.pages
-            interactive: win.pages > 1
+            interactive: win.pages > 1 && !win.dragging
 
             function turn(d) {
                 currentIndex = Math.max(0, Math.min(count - 1, currentIndex + d));
@@ -209,8 +318,10 @@ PanelWindow {
                                 y: 8
                                 width: 72
                                 height: 72
-                                scale: m.pressed ? 0.86 : m.containsMouse ? 1.08 : 1
+                                scale: m.pressed && !m.dragActive ? 0.86 : m.containsMouse ? 1.08 : 1
+                                opacity: win.dragging && win.dragApp === cell.modelData ? 0.35 : 1
                                 Behavior on scale { SpringAnimation { spring: 5; damping: 0.32; epsilon: 0.003 } }
+                                Behavior on opacity { NumberAnimation { duration: 150 } }
 
                                 // nền sáng khi rê
                                 Rectangle {
@@ -218,7 +329,7 @@ PanelWindow {
                                     width: 92
                                     height: 92
                                     radius: 26
-                                    color: Qt.rgba(1, 1, 1, m.containsMouse ? 0.10 : 0)
+                                    color: Qt.rgba(1, 1, 1, m.containsMouse && !win.dragging ? 0.10 : 0)
                                     Behavior on color { ColorAnimation { duration: 150 } }
                                 }
                                 AppIcon {
@@ -249,8 +360,50 @@ PanelWindow {
                                 anchors.fill: parent
                                 anchors.margins: 6
                                 hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: win.launch(cell.modelData)
+                                cursorShape: win.dragging ? Qt.ClosedHandCursor : Qt.PointingHandCursor
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                preventStealing: true
+
+                                property real pressX: 0
+                                property real pressY: 0
+                                property bool dragActive: false
+
+                                onPressed: mouse => {
+                                    if (mouse.button === Qt.RightButton) return;
+                                    pressX = mouse.x;
+                                    pressY = mouse.y;
+                                    dragActive = false;
+                                }
+
+                                onPositionChanged: mouse => {
+                                    if (!pressed || (mouse.buttons & Qt.LeftButton) === 0) return;
+                                    const dx = mouse.x - pressX;
+                                    const dy = mouse.y - pressY;
+                                    if (!dragActive && (dx * dx + dy * dy > 64)) {
+                                        dragActive = true;
+                                        const pt = mapToItem(content, mouse.x, mouse.y);
+                                        win.startDrag(cell.modelData, pt.x, pt.y);
+                                    }
+                                    if (dragActive) {
+                                        const pt = mapToItem(content, mouse.x, mouse.y);
+                                        win.updateDrag(pt.x, pt.y);
+                                    }
+                                }
+
+                                onReleased: mouse => {
+                                    if (mouse.button === Qt.RightButton) {
+                                        const pt = mapToItem(content, mouse.x, mouse.y);
+                                        win.openMenu(cell.modelData, pt.x, pt.y);
+                                        return;
+                                    }
+                                    if (dragActive) {
+                                        const pt = mapToItem(content, mouse.x, mouse.y);
+                                        win.endDrag(pt.x, pt.y);
+                                        dragActive = false;
+                                    } else {
+                                        win.launch(cell.modelData);
+                                    }
+                                }
                             }
                         }
                     }
@@ -291,6 +444,251 @@ PanelWindow {
                         anchors.margins: -5
                         cursorShape: Qt.PointingHandCursor
                         onClicked: pager.currentIndex = parent.index
+                    }
+                }
+            }
+        }
+
+        // ---------------- Vùng Dock thả ghim (hiện khi đang kéo) ----------------
+        Glass {
+            id: dropZone
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 10
+            width: Math.max(380, win.dockWidth + 48)
+            height: Prefs.dockSize + 20
+            radius: height / 2
+            z: 998
+            visible: opacity > 0.01
+
+            color: win.dropHovered
+                ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.28)
+                : Qt.rgba(1, 1, 1, 0.09)
+            border.color: win.dropHovered ? Theme.accent : Qt.rgba(1, 1, 1, 0.25)
+            border.width: win.dropHovered ? 2 : 1
+            scale: win.dragging ? (win.dropHovered ? 1.04 : 1.0) : 0.92
+            opacity: win.dragging ? 1 : 0
+
+            Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+            Behavior on scale { SpringAnimation { spring: 5; damping: 0.35; epsilon: 0.005 } }
+            Behavior on color { ColorAnimation { duration: 150 } }
+            Behavior on border.color { ColorAnimation { duration: 150 } }
+
+            Row {
+                anchors.centerIn: parent
+                spacing: 8
+                Icon {
+                    anchors.verticalCenter: parent.verticalCenter
+                    name: "pin"
+                    size: 16
+                    color: win.dropHovered ? "#FFFFFF" : Qt.rgba(1, 1, 1, 0.7)
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: win.dropHovered ? "Drop to pin to the Dock" : "Drag here to pin to the Dock"
+                    color: "#FFFFFF"
+                    font.family: Theme.font
+                    font.pixelSize: 13
+                    font.weight: win.dropHovered ? Font.Bold : Font.Medium
+                }
+            }
+        }
+
+        // ---------------- Icon đang được kéo theo con trỏ ----------------
+        Item {
+            id: dragProxy
+            visible: win.dragging && win.dragApp !== null
+            x: win.dragX - width / 2
+            y: win.dragY - height / 2
+            width: 76
+            height: 76
+            z: 9999
+
+            // Nền quầng sáng mờ xung quanh
+            Rectangle {
+                anchors.centerIn: parent
+                width: parent.width + 16
+                height: parent.height + 16
+                radius: width / 2
+                color: win.dropHovered ? Theme.accent : Qt.rgba(1, 1, 1, 0.2)
+                opacity: win.dropHovered ? 0.45 : 0.25
+                Behavior on color { ColorAnimation { duration: 150 } }
+            }
+
+            // Icon app
+            AppIcon {
+                anchors.centerIn: parent
+                size: 68
+                name: win.dragApp ? (Theme.appKey(win.dragApp.id) || Theme.appKey(win.dragApp.icon)) : ""
+                source: win.dragApp ? win.iconOf(win.dragApp) : ""
+                scale: win.dropHovered ? 1.15 : 1.05
+                Behavior on scale { SpringAnimation { spring: 5; damping: 0.35; epsilon: 0.005 } }
+            }
+
+            // Huy hiệu "+" khi rê vào Dock
+            Rectangle {
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: -4
+                anchors.rightMargin: -4
+                width: 24
+                height: 24
+                radius: 12
+                color: win.dropHovered ? Theme.accent : Qt.rgba(0.1, 0.1, 0.15, 0.85)
+                border.color: "#FFFFFF"
+                border.width: 1.5
+                scale: win.dropHovered ? 1.2 : 0.8
+                opacity: win.dropHovered ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: 120 } }
+                Behavior on scale { SpringAnimation { spring: 6; damping: 0.4; epsilon: 0.01 } }
+
+                Icon {
+                    anchors.centerIn: parent
+                    name: "plus"
+                    size: 13
+                    color: "#FFFFFF"
+                }
+            }
+        }
+
+        // ---------------- Menu chuột phải cho app trong Launcher ----------------
+        Item {
+            id: ctxMenu
+            visible: win.menuOpen
+            x: Math.max(12, Math.min(win.width - width - 12, win.menuX))
+            y: Math.max(12, Math.min(win.height - height - 12, win.menuY))
+            width: 210
+            height: menuCol.implicitHeight + 16
+            z: 10000
+
+            MouseArea {
+                anchors.fill: parent
+                // chặn click xuyên qua nền
+            }
+
+            Glass {
+                anchors.fill: parent
+                radius: 16
+                color: Qt.rgba(0.08, 0.08, 0.12, 0.94)
+                border.color: Qt.rgba(1, 1, 1, 0.18)
+
+                Column {
+                    id: menuCol
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    spacing: 3
+
+                    // Tiêu đề: Tên app
+                    Row {
+                        width: parent.width
+                        height: 28
+                        leftPadding: 6
+                        spacing: 8
+                        AppIcon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            size: 20
+                            name: win.menuApp ? (Theme.appKey(win.menuApp.id) || Theme.appKey(win.menuApp.icon)) : ""
+                            source: win.menuApp ? win.iconOf(win.menuApp) : ""
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - 34
+                            text: win.menuApp ? win.nameOf(win.menuApp) : ""
+                            elide: Text.ElideRight
+                            color: "#FFFFFF"
+                            font.family: Theme.font
+                            font.pixelSize: 13
+                            font.weight: Font.Bold
+                        }
+                    }
+
+                    // Vạch ngăn
+                    Rectangle {
+                        width: parent.width
+                        height: 1
+                        color: Qt.rgba(1, 1, 1, 0.1)
+                    }
+
+                    // Nút Ghim / Bỏ ghim
+                    Rectangle {
+                        id: pinBtn
+                        readonly property bool pinned: win.menuApp ? DockPins.isPinned(win.menuApp.id) : false
+                        width: parent.width
+                        height: 32
+                        radius: 8
+                        color: pinHover.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+                        Row {
+                            anchors.fill: parent
+                            leftPadding: 8
+                            spacing: 8
+                            Icon {
+                                anchors.verticalCenter: parent.verticalCenter
+                                name: "pin"
+                                size: 14
+                                color: Theme.accent
+                            }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: pinBtn.pinned ? "Unpin from Dock" : "Pin to Dock"
+                                color: "#FFFFFF"
+                                font.family: Theme.font
+                                font.pixelSize: 12
+                            }
+                        }
+                        MouseArea {
+                            id: pinHover
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (win.menuApp) {
+                                    if (pinBtn.pinned) {
+                                        DockPins.unpin(win.menuApp.id);
+                                        Ui.toast("Unpinned " + win.nameOf(win.menuApp) + " from the Dock", win.iconOf(win.menuApp), "");
+                                    } else {
+                                        DockPins.pin(win.menuApp.id);
+                                        Ui.toast("Pinned " + win.nameOf(win.menuApp) + " to the Dock", win.iconOf(win.menuApp), "");
+                                    }
+                                }
+                                win.menuOpen = false;
+                            }
+                        }
+                    }
+
+                    // Nút Mở ứng dụng
+                    Rectangle {
+                        width: parent.width
+                        height: 32
+                        radius: 8
+                        color: openHover.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+                        Row {
+                            anchors.fill: parent
+                            leftPadding: 8
+                            spacing: 8
+                            Icon {
+                                anchors.verticalCenter: parent.verticalCenter
+                                name: "plus"
+                                size: 14
+                                color: "#FFFFFF"
+                            }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "Open"
+                                color: "#FFFFFF"
+                                font.family: Theme.font
+                                font.pixelSize: 12
+                            }
+                        }
+                        MouseArea {
+                            id: openHover
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (win.menuApp) win.launch(win.menuApp);
+                                win.menuOpen = false;
+                            }
+                        }
                     }
                 }
             }

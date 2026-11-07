@@ -67,7 +67,7 @@ Singleton {
     property int savedProfile: -1
     readonly property real percent: UPower.displayDevice?.percentage ?? 1
     onPercentChanged: autoSave()
-    onOnBatteryChanged: autoSave()
+    onOnBatteryChanged: { autoSave(); Sounds.play(onBattery ? "unplug" : "plug"); }
     function autoSave() {
         if (!Prefs.autoSaver) return;
         const low = onBattery && percent <= 0.2;

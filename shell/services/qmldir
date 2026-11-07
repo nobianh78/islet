@@ -23,3 +23,8 @@ singleton Downloads 1.0 Downloads.qml
 singleton Privacy 1.0 Privacy.qml
 singleton Idle 1.0 Idle.qml
 singleton NightLight 1.0 NightLight.qml
+singleton Admin 1.0 Admin.qml
+singleton Sounds 1.0 Sounds.qml
+singleton DesktopSync 1.0 DesktopSync.qml
+singleton Ime 1.0 Ime.qml
+singleton BatteryLog 1.0 BatteryLog.qml

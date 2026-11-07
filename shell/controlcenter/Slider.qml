@@ -11,6 +11,7 @@ Rectangle {
     property real value: 0.5
     property color fill: Theme.text
     property bool available: true
+    property var label: null          // hàm v → chữ hiện bên phải (mặc định: phần trăm)
 
     signal moved(real v)
 
@@ -34,7 +35,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: 14
         y: 10
-        text: Math.round(root.shown * 100) + "%"
+        text: root.label ? root.label(root.shown) : Math.round(root.shown * 100) + "%"
         color: Theme.textDim
         font.family: Theme.font
         font.pixelSize: 12

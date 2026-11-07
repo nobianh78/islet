@@ -30,6 +30,9 @@ Singleton {
     Timer { interval: 3000; running: true; repeat: true; triggeredOnStart: true; onTriggered: if (!cam.running) cam.running = true }
 
     signal started(string what, string app)
+    // app nào đã dùng micro / camera (mới nhất trước, tối đa 20) — Cài đặt › Privacy
+    property var history: []
+    onStarted: (what, app) => { history = [{ what: what, app: app, time: Date.now() }].concat(history).slice(0, 20); }
     property bool _mic: false
     property bool _cam: false
     onMicChanged: { if (mic && !_mic) started("microphone", micApps[0]); _mic = mic; }

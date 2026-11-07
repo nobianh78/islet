@@ -38,6 +38,9 @@ PanelWindow {
     property string password2: ""
     property string hostName: "islet"
     property bool autologin: true
+    property bool uefi: false
+    property bool btrfs: true      // Btrfs + snapper: điểm khôi phục tự động trước mỗi lần cập nhật (chỉ máy UEFI)
+    Process { running: true; command: ["test", "-d", "/sys/firmware/efi"]; onExited: code => win.uefi = code === 0 }
     property string tz: "Asia/Ho_Chi_Minh"
 
     property int progress: 0
@@ -102,7 +105,7 @@ PanelWindow {
         id: runner
         stdinEnabled: true
         command: ["sudo", "-n", "/usr/local/bin/islet-install", win.disk, win.userName, Qt.btoa(unescape(encodeURIComponent(win.fullName))),
-                  win.hostName, win.tz, win.autologin ? "1" : "0"]
+                  win.hostName, win.tz, win.autologin ? "1" : "0", win.uefi && win.btrfs ? "btrfs" : "ext4"]
         onStarted: { write(win.password + "\n"); }
         stdout: SplitParser {
             onRead: line => {
@@ -301,6 +304,29 @@ PanelWindow {
                         }
                     }
                 }
+                Row {
+                    visible: win.uefi
+                    spacing: 12
+                    topPadding: 6
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 44; height: 26; radius: 13
+                        color: win.btrfs ? Theme.violet : Qt.rgba(1, 1, 1, 0.15)
+                        Behavior on color { ColorAnimation { duration: 160 } }
+                        Rectangle {
+                            width: 20; height: 20; radius: 10; y: 3
+                            x: win.btrfs ? 21 : 3
+                            color: "#FFFFFF"
+                            Behavior on x { SpringAnimation { spring: 5; damping: 0.35; epsilon: 0.1 } }
+                        }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: win.btrfs = !win.btrfs }
+                    }
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        Text { text: "Btrfs with snapshots"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                        Text { text: "Saves a restore point before every update — roll back from Settings › Snapshots"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                    }
+                }
             }
 
             // ③ Tài khoản
@@ -392,6 +418,7 @@ PanelWindow {
                 Repeater {
                     model: [
                         ["Disk", win.diskInfo ? (win.diskInfo.model || win.disk) + " · " + win.bytes(win.diskInfo.size) + " (" + win.disk + ")" : ""],
+                        ["File system", win.uefi && win.btrfs ? "Btrfs with snapshots" : "ext4"],
                         ["Account", win.fullName + " (" + win.userName + ")" + (win.autologin ? " · auto login" : "")],
                         ["Computer name", win.hostName],
                         ["Time zone", win.tz]

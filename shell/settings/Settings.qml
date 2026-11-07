@@ -11,14 +11,15 @@ import "../services"
 import "../common"
 import "../controlcenter"
 import "../wallpaper"
+import "pages"
 
 // App Cài đặt của Islet: Hình nền · Màu nhấn · Wi-Fi · Âm thanh · Màn hình · Giới thiệu.
 // Mở: "Cài đặt" trên dock, nút bánh răng ở trung tâm điều khiển, hoặc `islet-ipc settings open`.
 PanelWindow {
     id: win
 
-    implicitWidth: 900
-    implicitHeight: 620
+    implicitWidth: 980
+    implicitHeight: 680
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
 
@@ -31,19 +32,36 @@ PanelWindow {
     mask: Region { item: panel }
 
     readonly property string page: Ui.settingsPage
+    // nhóm · trang (k = từ khoá cho ô tìm)
+    readonly property var groups: ["Personalize", "Network & devices", "System", "Account"]
     readonly property var pages: [
-        { id: "wallpaper", label: "Wallpaper",   icon: "palette",  tint: "#B65CFF" },
-        { id: "accent",    label: "Accent color",   icon: "sparkle",  tint: "#FF6B97" },
-        { id: "wifi",      label: "Wi-Fi",      icon: "wifi",     tint: "#3B8BFF" },
-        { id: "sound",     label: "Sound",   icon: "volume",   tint: "#FF5C7A" },
-        { id: "bluetooth", label: "Bluetooth",  icon: "bluetooth", tint: "#3B8BFF" },
-        { id: "power",     label: "Power",      icon: "bolt",     tint: "#34C77B" },
-        { id: "input",     label: "Mouse & Touchpad", icon: "mouse", tint: "#A78BFA" },
-        { id: "display",   label: "Displays",   icon: "sun",      tint: "#FFB547" },
-        { id: "account",   label: "Account",    icon: "user",     tint: "#34C77B" },
-        { id: "updates",   label: "Updates",    icon: "download", tint: "#5B8CFF" },
-        { id: "about",     label: "About", icon: "islet",    tint: "#8B7CFF" }
+        { id: "wallpaper", g: 0, label: "Wallpaper",        icon: "palette",   tint: "#B65CFF", k: "background image dynamic" },
+        { id: "accent",    g: 0, label: "Appearance",       icon: "sparkle",   tint: "#FF6B97", k: "accent color icon style font text size" },
+        { id: "island",    g: 0, label: "Island & Dock",    icon: "grid",      tint: "#8B7CFF", k: "dynamic island dock size autohide activities" },
+        { id: "workspaces",g: 0, label: "Workspaces",       icon: "layers",    tint: "#5B8CFF", k: "desktops virtual animation" },
+        { id: "access",    g: 0, label: "Accessibility",    icon: "user",      tint: "#2EC4B6", k: "zoom contrast motion cursor screen reader orca" },
+        { id: "wifi",      g: 1, label: "Wi-Fi & Network",  icon: "wifi",      tint: "#3B8BFF", k: "internet hotspot vpn wireguard proxy ip qr" },
+        { id: "bluetooth", g: 1, label: "Bluetooth",        icon: "bluetooth", tint: "#3B8BFF", k: "headphones pair" },
+        { id: "sound",     g: 1, label: "Sound",            icon: "volume",    tint: "#FF5C7A", k: "volume app microphone system sounds" },
+        { id: "display",   g: 1, label: "Displays",         icon: "sun",       tint: "#FFB547", k: "resolution scale monitor arrange rotate refresh brightness" },
+        { id: "input",     g: 1, label: "Mouse & Touchpad", icon: "mouse",     tint: "#A78BFA", k: "gestures scroll tap" },
+        { id: "keyboard",  g: 1, label: "Keyboard & Language", icon: "keyboard", tint: "#34C77B", k: "vietnamese telex vni typing input method layout repeat" },
+        { id: "printers",  g: 1, label: "Printers",         icon: "document",  tint: "#7A8396", k: "print scanner cups" },
+        { id: "power",     g: 2, label: "Power & Battery",  icon: "bolt",      tint: "#34C77B", k: "sleep lock idle lid battery saver night light charge" },
+        { id: "notifs",    g: 2, label: "Notifications",    icon: "bell",      tint: "#FF5F57", k: "do not disturb apps lock screen" },
+        { id: "apps",      g: 2, label: "Default Apps",     icon: "grid",      tint: "#5B8CFF", k: "browser video music image pdf open with" },
+        { id: "startup",   g: 2, label: "Startup Apps",     icon: "play",      tint: "#FF9F43", k: "autostart login" },
+        { id: "storage",   g: 2, label: "Storage",          icon: "disk",      tint: "#2EC4B6", k: "disk space clean cache trash" },
+        { id: "snapshots", g: 2, label: "Snapshots & Backup", icon: "restart", tint: "#A78BFA", k: "rollback restore btrfs snapper backup" },
+        { id: "datetime",  g: 2, label: "Date & Time",      icon: "timer",     tint: "#FFB547", k: "timezone clock 24h ntp" },
+        { id: "privacy",   g: 2, label: "Privacy & Security", icon: "lock",    tint: "#FF6B97", k: "camera microphone firewall clipboard history" },
+        { id: "updates",   g: 2, label: "Updates",          icon: "download",  tint: "#5B8CFF", k: "upgrade mirrors automatic" },
+        { id: "account",   g: 3, label: "Users & Account",  icon: "user",      tint: "#34C77B", k: "password avatar name add user lock screen" },
+        { id: "developer", g: 3, label: "Developer",        icon: "code",      tint: "#6D4AFF", k: "ssh docker hidden files projects" },
+        { id: "about",     g: 3, label: "About",            icon: "islet",     tint: "#8B7CFF", k: "system info hostname disk health battery" }
     ]
+    property string navQuery: ""
+    function navMatch(pg) { const q = navQuery.trim().toLowerCase(); return !q || (pg.label + " " + pg.k).toLowerCase().indexOf(q) >= 0; }
 
     onOpenChanged: if (open) { panel.forceActiveFocus(); refreshPage(); }
     onPageChanged: if (open) refreshPage()
@@ -294,31 +312,75 @@ PanelWindow {
                 Text { anchors.verticalCenter: parent.verticalCenter; text: "Settings"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Bold }
             }
 
-            Column {
-                x: 12; y: 70
+            // ô tìm trang
+            Rectangle {
+                x: 12; y: 66
+                width: parent.width - 24; height: 34; radius: 12
+                color: Qt.rgba(1, 1, 1, 0.07)
+                border.width: 1
+                border.color: navIn.activeFocus ? Theme.tint(0.6) : Qt.rgba(1, 1, 1, 0.06)
+                Icon { x: 10; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 14; opacity: 0.6 }
+                TextInput {
+                    id: navIn
+                    x: 32; width: parent.width - 42; height: parent.height
+                    verticalAlignment: TextInput.AlignVCenter
+                    color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12
+                    onTextChanged: win.navQuery = text
+                    Keys.onReturnPressed: { const f = win.pages.find(pg => win.navMatch(pg)); if (f) Ui.settingsPage = f.id; }
+                    Keys.onEscapePressed: text = ""
+                }
+                Text { visible: navIn.text === ""; x: 32; anchors.verticalCenter: parent.verticalCenter; text: "Find a setting"; color: "#636366"; font.family: Theme.font; font.pixelSize: 12 }
+            }
+
+            Flickable {
+                x: 12; y: 110
                 width: parent.width - 24
-                spacing: 2
-                Repeater {
-                    model: win.pages
-                    Rectangle {
-                        id: nav
-                        required property var modelData
-                        readonly property bool on: win.page === modelData.id
-                        width: parent.width
-                        height: 35
-                        radius: 12
-                        color: on ? Theme.tint(0.22) : nm.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : "transparent"
-                        Behavior on color { ColorAnimation { duration: 140 } }
-                        Rectangle {
-                            x: 10; anchors.verticalCenter: parent.verticalCenter
-                            width: 26; height: 26; radius: 8
-                            // Tối giản: ô than, trang đang mở mang màu nhấn · Sắc màu: mỗi trang một màu
-                            color: Prefs.iconStyle === "color" ? nav.modelData.tint : nav.on ? Theme.accent : Qt.rgba(1, 1, 1, 0.09)
-                            Behavior on color { ColorAnimation { duration: 160 } }
-                            Icon { anchors.centerIn: parent; name: nav.modelData.icon; size: 15 }
+                height: parent.height - y - 10
+                contentHeight: navCol.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                Column {
+                    id: navCol
+                    width: parent.width
+                    spacing: 1
+                    Repeater {
+                        model: win.groups
+                        Column {
+                            id: grp
+                            required property string modelData
+                            required property int index
+                            readonly property var items: win.pages.filter(pg => pg.g === grp.index && win.navMatch(pg))
+                            visible: items.length > 0
+                            width: navCol.width
+                            spacing: 1
+                            Text {
+                                leftPadding: 10; topPadding: grp.index ? 10 : 0; bottomPadding: 4
+                                text: grp.modelData.toUpperCase()
+                                color: "#636366"; font.family: Theme.font; font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 0.6
+                            }
+                            Repeater {
+                                model: grp.items
+                                Rectangle {
+                                    id: nav
+                                    required property var modelData
+                                    readonly property bool on: win.page === modelData.id
+                                    width: grp.width
+                                    height: 32
+                                    radius: 11
+                                    color: on ? Theme.tint(0.22) : nm.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : "transparent"
+                                    Behavior on color { ColorAnimation { duration: 140 } }
+                                    Rectangle {
+                                        x: 8; anchors.verticalCenter: parent.verticalCenter
+                                        width: 24; height: 24; radius: 7
+                                        color: Prefs.iconStyle === "color" ? nav.modelData.tint : nav.on ? Theme.accent : Qt.rgba(1, 1, 1, 0.09)
+                                        Behavior on color { ColorAnimation { duration: 160 } }
+                                        Icon { anchors.centerIn: parent; name: nav.modelData.icon; size: 14 }
+                                    }
+                                    Text { x: 40; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 44; elide: Text.ElideRight; text: nav.modelData.label; color: nav.on ? "#FFFFFF" : "#D1D1D6"; font.family: Theme.font; font.pixelSize: 12; font.weight: nav.on ? Font.DemiBold : Font.Normal }
+                                    MouseArea { id: nm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Ui.settingsPage = nav.modelData.id }
+                                }
+                            }
                         }
-                        Text { x: 46; anchors.verticalCenter: parent.verticalCenter; text: nav.modelData.label; color: nav.on ? "#FFFFFF" : "#D1D1D6"; font.family: Theme.font; font.pixelSize: 13; font.weight: nav.on ? Font.DemiBold : Font.Normal }
-                        MouseArea { id: nm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Ui.settingsPage = nav.modelData.id }
                     }
                 }
             }
@@ -333,6 +395,46 @@ PanelWindow {
             color: xm.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.07)
             Icon { anchors.centerIn: parent; name: "close"; size: 14 }
             MouseArea { id: xm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Ui.settingsOpen = false }
+        }
+
+        // ---------- hỏi mật khẩu quản trị (Admin.askPassword) ----------
+        Rectangle {
+            id: adminSheet
+            anchors.fill: parent
+            radius: 28
+            z: 20
+            color: Qt.rgba(0, 0, 0, 0.45)
+            visible: opacity > 0.01
+            opacity: Admin.askPassword ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 160 } }
+            onVisibleChanged: if (Admin.askPassword) { adminPw.text = ""; adminPw.focusField(); }
+            MouseArea { anchors.fill: parent; onClicked: {} }
+            Rectangle {
+                anchors.centerIn: parent
+                width: 380; height: 190; radius: 22
+                color: Qt.rgba(0.1, 0.1, 0.14, 0.98)
+                border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.1)
+                scale: Admin.askPassword ? 1 : 0.92
+                Behavior on scale { SpringAnimation { spring: 5; damping: 0.32 } }
+                Column {
+                    x: 22; y: 20
+                    width: parent.width - 44
+                    spacing: 10
+                    Row {
+                        spacing: 10
+                        Icon { name: "lock"; size: 18; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "Administrator password"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+                    }
+                    Text { width: parent.width; wrapMode: Text.Wrap; text: "Enter your password to change this system setting."; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                    PwField { id: adminPw; width: parent.width; hint: "Password"; onAccepted: Admin.submit(text) }
+                    Row {
+                        spacing: 8
+                        Pill { label: Auth.busy ? "Checking…" : "Continue"; primary: true; onClicked: Admin.submit(adminPw.text) }
+                        Pill { label: "Cancel"; onClicked: Admin.cancel() }
+                        Text { anchors.verticalCenter: parent.verticalCenter; text: Admin.error; color: "#FF8A8A"; font.family: Theme.font; font.pixelSize: 12 }
+                    }
+                }
+            }
         }
 
         // ---------- nội dung ----------
@@ -462,6 +564,8 @@ PanelWindow {
                     Hint { text: "Add your own images to ~/Pictures/Wallpapers and they will show up here." }
                 }
 
+                WallpaperExtras { visible: win.page === "wallpaper"; width: parent.width; onFetched: pics.running = true }
+
                 // ================= MÀU NHẤN =================
                 Column {
                     visible: win.page === "accent"
@@ -570,6 +674,8 @@ PanelWindow {
                         }
                     }
                 }
+
+                AppearanceExtras { visible: win.page === "accent"; width: parent.width }
 
                 // ================= WI-FI =================
                 Column {
@@ -711,6 +817,8 @@ PanelWindow {
                     }
                 }
 
+                NetworkExtras { visible: win.page === "wifi"; width: parent.width; ssid: wifi.current }
+
                 // ================= ÂM THANH =================
                 Column {
                     visible: win.page === "sound"
@@ -746,6 +854,8 @@ PanelWindow {
                     }
                     DeviceList { nodes: win.sources; current: Pipewire.defaultAudioSource; onPicked: n => Pipewire.preferredDefaultAudioSource = n; empty: "No microphone found" }
                 }
+
+                SoundExtras { visible: win.page === "sound"; width: parent.width }
 
                 // ================= MÀN HÌNH =================
                 Column {
@@ -853,6 +963,8 @@ PanelWindow {
                         }
                     }
                 }
+
+                DisplayExtras { visible: win.page === "display"; width: parent.width; monitors: win.monitors; onApply: (name, patch) => win.setMonitor(name, patch) }
 
                 // ================= BLUETOOTH =================
                 Column {
@@ -1138,6 +1250,7 @@ PanelWindow {
                             Slider {
                                 width: parent.width
                                 title: "Warmth"
+                                label: v => Math.round(6500 - v * 3500) + " K"
                                 value: (6500 - Prefs.nightTemp) / 3500
                                 fill: "#FF9F43"
                                 onMoved: v => Prefs.set("nightTemp", Math.round(6500 - v * 3500))
@@ -1149,6 +1262,8 @@ PanelWindow {
                         }
                     }
                 }
+
+                PowerExtras { visible: win.page === "power" && Power.present; width: parent.width }
 
                 // ================= CHUỘT & TOUCHPAD =================
                 Column {
@@ -1289,6 +1404,8 @@ PanelWindow {
                     }
                 }
 
+                AccountExtras { visible: win.page === "account"; width: parent.width; fullName: win.fullName }
+
                 // ================= CẬP NHẬT =================
                 Column {
                     visible: win.page === "updates"
@@ -1421,6 +1538,8 @@ PanelWindow {
                     Hint { text: "Islet checks for updates every few hours and lets you know on the island. Updating needs an internet connection." }
                 }
 
+                UpdatesExtras { visible: win.page === "updates"; width: parent.width }
+
                 // ================= GIỚI THIỆU =================
                 Column {
                     visible: win.page === "about"
@@ -1477,141 +1596,24 @@ PanelWindow {
                         }
                     }
                 }
+                AboutExtras { visible: win.page === "about"; width: parent.width; sys: win.sys }
+
+                // ---- các trang mới (settings/pages) ----
+                IslandPage { visible: win.page === "island" }
+                WorkspacesPage { visible: win.page === "workspaces" }
+                AccessibilityPage { visible: win.page === "access" }
+                KeyboardPage { visible: win.page === "keyboard" }
+                PrintersPage { visible: win.page === "printers" }
+                NotificationsPage { visible: win.page === "notifs" }
+                DefaultAppsPage { visible: win.page === "apps" }
+                StartupPage { visible: win.page === "startup" }
+                StoragePage { visible: win.page === "storage" }
+                SnapshotsPage { visible: win.page === "snapshots" }
+                DateTimePage { visible: win.page === "datetime" }
+                PrivacyPage { visible: win.page === "privacy" }
+                DeveloperPage { visible: win.page === "developer" }
             }
         }
     }
 
-    // ================= thành phần =================
-    component SectionLabel: Text {
-        color: "#8E8E93"
-        font.family: Theme.font
-        font.pixelSize: 12
-        font.weight: Font.DemiBold
-    }
-    component Hint: Text {
-        width: parent ? parent.width : 300
-        wrapMode: Text.Wrap
-        color: "#636366"
-        font.family: Theme.font
-        font.pixelSize: 11
-    }
-    component Card: Rectangle {
-        radius: 18
-        color: Qt.rgba(1, 1, 1, 0.05)
-        border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.05)
-    }
-    component PwField: Rectangle {
-        id: pf
-        property string hint: ""
-        property alias text: pfIn.text
-        signal accepted()
-        height: 36; radius: 12
-        color: Qt.rgba(1, 1, 1, 0.08)
-        border.width: 1
-        border.color: pfIn.activeFocus ? Theme.tint(0.7) : Qt.rgba(1, 1, 1, 0.1)
-        TextInput {
-            id: pfIn
-            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
-            verticalAlignment: TextInput.AlignVCenter
-            echoMode: TextInput.Password
-            color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13
-            Keys.onReturnPressed: pf.accepted()
-        }
-        Text {
-            visible: pfIn.text === ""
-            anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter
-            text: pf.hint; color: "#636366"; font.family: Theme.font; font.pixelSize: 12
-        }
-        MouseArea { anchors.fill: parent; cursorShape: Qt.IBeamCursor; onClicked: pfIn.forceActiveFocus() }
-    }
-    component Toggle: Rectangle {
-        id: tg
-        property bool checked: false
-        signal toggled()
-        width: 46; height: 28; radius: 14
-        color: checked ? Theme.accent : Qt.rgba(1, 1, 1, 0.16)
-        Behavior on color { ColorAnimation { duration: 160 } }
-        Rectangle {
-            y: 3; x: tg.checked ? tg.width - width - 3 : 3
-            width: 22; height: 22; radius: 11
-            color: "#FFFFFF"
-            Behavior on x { SpringAnimation { spring: 5; damping: 0.36; epsilon: 0.1 } }
-        }
-        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: tg.toggled() }
-    }
-    component Pill: Rectangle {
-        id: pb
-        property string label: ""
-        property bool primary: false
-        signal clicked()
-        width: pl.implicitWidth + 28
-        height: 32
-        radius: 16
-        color: primary ? (pm2.containsMouse ? Qt.lighter(Theme.accent, 1.15) : Theme.accent) : (pm2.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
-        Behavior on color { ColorAnimation { duration: 130 } }
-        scale: pm2.pressed ? 0.94 : 1
-        Behavior on scale { SpringAnimation { spring: 6; damping: 0.35; epsilon: 0.003 } }
-        Text { id: pl; anchors.centerIn: parent; text: pb.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Bold }
-        MouseArea { id: pm2; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: pb.clicked() }
-    }
-    component Chip: Rectangle {
-        id: ch
-        property string label: ""
-        property bool on: false
-        signal clicked()
-        width: cl.implicitWidth + 24
-        height: 30
-        radius: 15
-        color: on ? Theme.accent : cm2.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07)
-        Behavior on color { ColorAnimation { duration: 140 } }
-        scale: cm2.pressed ? 0.94 : 1
-        Behavior on scale { SpringAnimation { spring: 6; damping: 0.35; epsilon: 0.003 } }
-        Text { id: cl; anchors.centerIn: parent; text: ch.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12; font.weight: ch.on ? Font.DemiBold : Font.Normal }
-        MouseArea { id: cm2; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: ch.clicked() }
-    }
-    component DeviceList: Rectangle {
-        id: dlst
-        property var nodes: []
-        property var current: null
-        property string empty: ""
-        signal picked(var node)
-        width: parent ? parent.width : 300
-        height: dcol.implicitHeight + 8
-        radius: 18
-        color: Qt.rgba(1, 1, 1, 0.05)
-        Column {
-            id: dcol
-            y: 4
-            width: parent.width
-            Text { visible: dlst.nodes.length === 0; leftPadding: 18; topPadding: 12; bottomPadding: 12; text: dlst.empty; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
-            Repeater {
-                model: dlst.nodes
-                Rectangle {
-                    id: dv
-                    required property var modelData
-                    readonly property bool on: dlst.current === modelData
-                    width: dcol.width
-                    height: 46
-                    radius: 14
-                    color: dvm.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
-                    Rectangle {
-                        x: 16; anchors.verticalCenter: parent.verticalCenter
-                        width: 18; height: 18; radius: 9
-                        color: "transparent"
-                        border.width: 2
-                        border.color: dv.on ? Theme.accent : Qt.rgba(1, 1, 1, 0.3)
-                        Rectangle { anchors.centerIn: parent; width: 8; height: 8; radius: 4; color: Theme.accent; visible: dv.on }
-                    }
-                    Text {
-                        x: 46; anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - 60; elide: Text.ElideRight
-                        text: dv.modelData.description || dv.modelData.nickname || dv.modelData.name
-                        color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: dv.on ? Font.DemiBold : Font.Normal
-                    }
-                    MouseArea { id: dvm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: dlst.picked(dv.modelData) }
-                }
-            }
-        }
-    }
 }

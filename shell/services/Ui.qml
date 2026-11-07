@@ -1,6 +1,7 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import "../theme"
 
 // Trạng thái giao diện dùng chung giữa các cửa sổ (thanh trên, dock, island, trung tâm điều khiển).
 Singleton {
@@ -16,6 +17,16 @@ Singleton {
     property string settingsPage: "wallpaper"
     property bool notifOpen: false       // trung tâm thông báo
     property bool searchOpen: false      // Islet Search (Super+Space)
+    // Không làm phiền theo giờ (Cài đặt › Notifications)
+    property real clockNow: Date.now()
+    Timer { interval: 30000; running: true; repeat: true; onTriggered: root.clockNow = Date.now() }
+    readonly property bool dndNow: {
+        if (!Prefs.dndScheduled) return false;
+        const d = new Date(clockNow), m = d.getHours() * 60 + d.getMinutes();
+        const t = x => { const p = x.split(":"); return +p[0] * 60 + +p[1]; };
+        const a = t(Prefs.dndFrom), b = t(Prefs.dndTo);
+        return a <= b ? (m >= a && m < b) : (m >= a || m < b);
+    }
     signal islandOpenRequested(string tab)
     function openIsland(tab) { closeAll(); islandOpenRequested(tab); }
     function toggleSearch() { const o = !searchOpen; closeAll(); searchOpen = o; }
@@ -50,6 +61,9 @@ Singleton {
         e?.execute();
     }
     function toggleControlCenter() { controlCenterOpen = !controlCenterOpen; if (controlCenterOpen) notifOpen = false; }
+
+    // Kéo thả app từ Launcher vào Dock để ghim
+    property bool dockDropHover: false
 
     // Dock báo cho island biết đang mở app nào.
     property string launchLabel: ""

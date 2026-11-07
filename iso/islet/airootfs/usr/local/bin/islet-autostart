@@ -1,0 +1,13 @@
+#!/bin/bash
+# Mở các app tự chạy khi đăng nhập: ~/.config/autostart/*.desktop (Cài đặt › Startup Apps).
+# Bỏ qua mục Hidden=true; xoá mã trường %f %u %U… khỏi dòng Exec.
+dir="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+[ -d "$dir" ] || exit 0
+for f in "$dir"/*.desktop; do
+    [ -f "$f" ] || continue
+    grep -qi '^Hidden=true' "$f" && continue
+    grep -qi '^X-Islet-Disabled=true' "$f" && continue
+    ex=$(grep -m1 '^Exec=' "$f" | cut -d= -f2- | sed -E 's/ ?%[fFuUdDnNickvm]//g')
+    [ -n "$ex" ] && setsid -f sh -c "$ex" >/dev/null 2>&1
+done
+exit 0

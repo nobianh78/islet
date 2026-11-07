@@ -59,13 +59,71 @@ Singleton {
     property bool disableWhileTyping: true
     property real pointerSpeed: 0           // -1 … 1
     property real scrollSpeed: 1
+    // ---- island & dock & workspace ----
+    property int dockSize: 46
+    property bool dockAutohide: false
+    property bool islandMedia: true
+    property bool islandLive: true
+    property bool islandAgents: true
+    property int wsCount: 5
+    property string wsAnim: "slidefade"     // slidefade | slide | fade | none
+    // ---- giờ ----
+    property bool clock24: true
+    property bool clockSeconds: false
+    // ---- thông báo ----
+    property bool notifPreview: true
+    property bool notifSounds: true
+    property var notifMuted: []
+    property bool dndScheduled: false
+    property string dndFrom: "22:00"
+    property string dndTo: "07:00"
+    // ---- âm thanh hệ thống ----
+    property bool systemSounds: true
+    // ---- trợ năng ----
+    property bool reduceMotion: false
+    property real zoom: 1
+    property int cursorSize: 24
+    property real textScale: 1
+    property bool highContrast: false
+    // ---- bàn phím & bộ gõ ----
+    property string kbLayout: "us"
+    property int repeatDelay: 400
+    property int repeatRate: 30
+    property bool imeEnabled: true
+    property string imeMethod: "Telex"
+    // ---- hình nền / giao diện ----
+    property string wallNight: ""            // hình nền ban đêm ("" = như ban ngày)
+    property string fontFamily: "Be Vietnam Pro"
 
-    readonly property color accent: (accents.find(a => a.id === accentId) ?? accents[0]).color
-    readonly property bool wallpaperIsImage: !wallpaper.startsWith("preset:")
-    readonly property var preset: presets.find(p => "preset:" + p.id === wallpaper) ?? presets[0]
+    // hình nền đang dùng: ban đêm (giờ của Night Light) có thể là hình khác
+    property bool nightNow: false
+    readonly property string wallpaperEff: nightNow && wallNight !== "" ? wallNight : wallpaper
+    readonly property bool wallpaperIsImage: !wallpaperEff.startsWith("preset:")
+    readonly property var preset: presets.find(p => "preset:" + p.id === wallpaperEff) ?? presets[0]
+
+    // màu nhấn "auto" = màu chính của hình nền, chỉnh cho đủ tươi và đủ sáng
+    ColorQuantizer {
+        id: cq
+        source: root.wallpaperIsImage ? "file://" + root.wallpaperEff : ""
+        depth: 3
+        rescaleSize: 64
+    }
+    function vivid(c) {
+        const h = c.hslHue < 0 ? 0.72 : c.hslHue;
+        return Qt.hsla(h, Math.max(0.55, Math.min(0.9, c.hslSaturation)), Math.max(0.58, Math.min(0.7, c.hslLightness)), 1);
+    }
+    readonly property color autoAccent: {
+        if (!wallpaperIsImage) return vivid(Qt.color(preset.blobs[0][0]));
+        const cols = (cq.colors || []).slice().sort((a, b) => b.hslSaturation - a.hslSaturation);
+        return cols.length ? vivid(cols[0]) : "#8B7CFF";
+    }
+    readonly property color accent: accentId === "auto" ? autoAccent : (accents.find(a => a.id === accentId) ?? accents[0]).color
 
     readonly property var simpleKeys: ["dimAfter", "lockAfter", "screenOffAfter", "sleepAfterBattery", "sleepAfterAC", "lidAction", "autoSaver",
-        "nightMode", "nightFrom", "nightTo", "nightTemp", "naturalScroll", "tapToClick", "disableWhileTyping", "pointerSpeed", "scrollSpeed"]
+        "nightMode", "nightFrom", "nightTo", "nightTemp", "naturalScroll", "tapToClick", "disableWhileTyping", "pointerSpeed", "scrollSpeed",
+        "dockSize", "dockAutohide", "islandMedia", "islandLive", "islandAgents", "wsCount", "wsAnim", "clock24", "clockSeconds",
+        "notifPreview", "notifSounds", "notifMuted", "dndScheduled", "dndFrom", "dndTo", "systemSounds", "reduceMotion", "zoom",
+        "cursorSize", "textScale", "highContrast", "kbLayout", "repeatDelay", "repeatRate", "imeEnabled", "imeMethod", "wallNight", "fontFamily"]
 
     function set(key, value) {
         root[key] = value;

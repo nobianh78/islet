@@ -13,9 +13,16 @@ Singleton {
     property var pins: defaults
 
     function isPinned(id) { return pins.indexOf(id) >= 0; }
-    function pin(id) {
-        if (isPinned(id)) return;
-        pins = pins.concat([id]);
+    function pin(id) { pinAt(id, -1); }
+    function pinAt(id, index) {
+        if (!id) return;
+        let p = pins.filter(x => x !== id);
+        if (index === undefined || index < 0 || index >= p.length) {
+            p.push(id);
+        } else {
+            p.splice(index, 0, id);
+        }
+        pins = p;
         save.restart();
     }
     function unpin(id) {

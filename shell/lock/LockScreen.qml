@@ -30,6 +30,8 @@ Scope {
     property string error: ""
     property int fails: 0
     property bool leaving: false        // đang chạy hiệu ứng mở khoá
+    property bool hasFace: false        // có ~/.face không (xem lại mỗi lần khoá)
+    Process { id: faceCheck; running: true; command: ["test", "-f", Quickshell.env("HOME") + "/.face"]; onExited: code => root.hasFace = code === 0 }
     property bool live: false           // bản chạy thử (tài khoản không mật khẩu)
     signal shake()
 
@@ -69,6 +71,7 @@ Scope {
                 root.fails = 0;
                 root.error = "";
                 root.leaving = true;
+                Sounds.play("unlock");
                 finish.restart();
             } else {
                 root.fails += 1;
@@ -96,7 +99,7 @@ Scope {
     Connections {
         target: Ui
         function onLockedChanged() {
-            if (Ui.locked && !lock.locked) { root.password = ""; root.error = ""; root.leaving = false; lock.locked = true; }
+            if (Ui.locked && !lock.locked) { root.password = ""; root.error = ""; root.leaving = false; faceCheck.running = true; lock.locked = true; Sounds.play("lock"); }
         }
     }
 
@@ -332,9 +335,27 @@ Scope {
                 sourceSize: Qt.size(336, 336)
                 source: Qt.resolvedUrl("../assets/brand/cat.svg")
                 opacity: (surf.boot ? 1 : Math.min(1, surf.fly * 2)) * (root.leaving ? surf.authIn : 1)
+                         * (face.status === Image.Ready ? 1 - Math.max(0, surf.fly * 2 - 1) : 1)
                 scale: root.leaving ? 0.85 + 0.15 * surf.authIn : 1
                 smooth: true
                 mipmap: true
+            }
+
+            // ảnh đại diện riêng (~/.face, chọn trong Cài đặt › Users & Account): hiện dần sau khi mèo bay vào vòng
+            Rounded {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: surf.avatarCY - 38
+                width: 76; height: 76; radius: 38
+                visible: face.status === Image.Ready
+                opacity: Math.max(0, surf.fly * 2 - 1) * (root.leaving ? surf.authIn : 1)
+                Image {
+                    id: face
+                    anchors.fill: parent
+                    source: root.hasFace ? "file://" + Quickshell.env("HOME") + "/.face" : ""
+                    sourceSize: Qt.size(152, 152)
+                    fillMode: Image.PreserveAspectCrop
+                    cache: false
+                }
             }
 
             // ---------- tên + mật khẩu ----------

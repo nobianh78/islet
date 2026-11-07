@@ -15,7 +15,8 @@ PanelWindow {
     anchors.bottom: true
     implicitWidth: 560
     implicitHeight: 120          // chừa chỗ cho icon nhấc lên + nhãn tên
-    exclusiveZone: 78
+    // tự ẩn: không giữ chỗ dưới đáy màn hình (cửa sổ dùng được hết chiều cao)
+    exclusiveZone: Prefs.dockAutohide ? 0 : 78
     color: "transparent"
 
     WlrLayershell.namespace: "islet-dock"
@@ -23,7 +24,7 @@ PanelWindow {
 
     mask: Region { item: hit }
 
-    readonly property real base: 46
+    readonly property real base: Prefs.dockSize
     readonly property real gap: 8
     readonly property real pad: 8
     readonly property real sepWidth: 17   // vạch ngăn 1px + khe hai bên
@@ -138,7 +139,18 @@ PanelWindow {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         width: plate.width
-        height: plate.height + plate.anchors.bottomMargin + (hover.hovered ? 44 : 0)
+        height: autoHide.hidden ? 6 : plate.height + plate.anchors.bottomMargin + (hover.hovered ? 44 : 0)
+    }
+
+    // ---- tự ẩn dock (Cài đặt › Island & Dock): rời chuột 0,7 giây thì trượt xuống, chạm đáy màn hình thì hiện ----
+    Item {
+        id: autoHide
+        property bool hidden: false
+        readonly property bool wantHidden: Prefs.dockAutohide && !hover.hovered && !Ui.launcherOpen && !menu.visible
+        onWantHiddenChanged: { if (wantHidden) hideLater.restart(); else { hideLater.stop(); hidden = false; } }
+        Timer { id: hideLater; interval: 700; onTriggered: autoHide.hidden = autoHide.wantHidden }
+        property real v: hidden ? 0 : 1
+        Behavior on v { SpringAnimation { spring: 4; damping: 0.38; epsilon: 0.005 } }
     }
 
     // ---------------- Tấm kính ----------------
@@ -155,7 +167,7 @@ PanelWindow {
     }
 
     Glass {
-        transform: Translate { y: 110 * (1 - reveal.v) }
+        transform: Translate { y: 110 * (1 - reveal.v * autoHide.v) }
         id: plate
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
@@ -163,8 +175,13 @@ PanelWindow {
         width: row.width + win.pad * 2
         height: win.base + win.pad * 2
         radius: win.base * 0.3 + win.pad
-        color: Qt.rgba(1, 1, 1, 0.09)
-        border.color: Qt.rgba(1, 1, 1, 0.16)
+        color: Ui.dockDropHover ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.09)
+        border.color: Ui.dockDropHover ? Theme.accent : Qt.rgba(1, 1, 1, 0.16)
+        border.width: Ui.dockDropHover ? 2 : 1
+        scale: Ui.dockDropHover ? 1.05 : 1
+        Behavior on scale { SpringAnimation { spring: 5; damping: 0.35; epsilon: 0.005 } }
+        Behavior on border.color { ColorAnimation { duration: 150 } }
+        Behavior on width { SpringAnimation { spring: 4; damping: 0.35; epsilon: 0.1 } }
 
         Rectangle {
             anchors.top: parent.top
@@ -226,7 +243,7 @@ PanelWindow {
 
     // ---------------- Icon ----------------
     Row {
-        transform: Translate { y: 110 * (1 - reveal.v) }
+        transform: Translate { y: 110 * (1 - reveal.v * autoHide.v) }
         id: row
         anchors.horizontalCenter: plate.horizontalCenter
         anchors.bottom: plate.bottom
@@ -289,7 +306,7 @@ PanelWindow {
 
     // ---------------- Nhãn tên (một nhãn dùng chung, trượt theo viên sáng) ----------------
     Rectangle {
-        transform: Translate { y: 110 * (1 - reveal.v) }
+        transform: Translate { y: 110 * (1 - reveal.v * autoHide.v) }
         id: tag
         readonly property var app: win.apps[win.lastNearest]
         x: plate.x + lens.cx - width / 2

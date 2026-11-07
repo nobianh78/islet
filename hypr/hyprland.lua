@@ -27,6 +27,10 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP ELECTRON_OZONE_PLATFORM_HINT HYPRLAND_INSTANCE_SIGNATURE")
     -- ISLET_BOOT=1: shell biết là vừa bật máy → vào thẳng màn hình khoá, nối tiếp màn hình khởi động
     hl.exec_cmd("env ISLET_BOOT=1 " .. qs)
+    -- bộ gõ tiếng Việt (tắt được trong Cài đặt › Keyboard & Language)
+    hl.exec_cmd("sh -c 'grep -q \"imeEnabled\": false ~/.config/islet/settings.json 2>/dev/null || exec fcitx5 -d'")
+    -- app tự mở khi đăng nhập (Cài đặt › Startup Apps)
+    hl.exec_cmd("islet-autostart")
     -- App GTK: nút cửa sổ bên trái theo thứ tự đóng · thu nhỏ · phóng to (CSS tô thành 🔴🟡🟢)
     hl.exec_cmd("gsettings set org.gnome.desktop.wm.preferences button-layout 'close,minimize,maximize:'")
     -- theme nút cửa sổ 🔴🟡🟢 cho mọi profile Firefox
@@ -48,6 +52,11 @@ hl.env("ELECTRON_OZONE_PLATFORM_HINT", "wayland")
 hl.env("MOZ_ENABLE_WAYLAND", "1")
 hl.env("SDL_VIDEODRIVER", "wayland,x11")
 hl.env("GDK_BACKEND", "wayland,x11")
+-- Bộ gõ tiếng Việt (fcitx5 + Bamboo): app Qt / SDL / X11 cần biết; GTK & Electron dùng text-input của Wayland
+hl.env("QT_IM_MODULE", "fcitx")
+hl.env("XMODIFIERS", "@im=fcitx")
+hl.env("SDL_IM_MODULE", "fcitx")
+hl.env("GLFW_IM_MODULE", "ibus")
 
 ------------------------------------------------------------
 -- Giao diện

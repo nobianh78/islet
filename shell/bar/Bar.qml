@@ -161,6 +161,27 @@ PanelWindow {
                 anchors.centerIn: parent
                 spacing: 13
 
+                // bộ gõ: VI / EN — bấm để chuyển (Ctrl+Space cũng được)
+                Rectangle {
+                    visible: Prefs.imeEnabled && Ime.running
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: imeText.implicitWidth + 12
+                    height: 18
+                    radius: 6
+                    color: Ime.vietnamese ? Theme.accent : Qt.rgba(1, 1, 1, 0.16)
+                    Behavior on color { ColorAnimation { duration: 150 } }
+                    Text {
+                        id: imeText
+                        anchors.centerIn: parent
+                        text: Ime.vietnamese ? "VI" : "EN"
+                        color: "#FFFFFF"
+                        font.family: Theme.font
+                        font.pixelSize: 10
+                        font.weight: Font.Bold
+                    }
+                    MouseArea { anchors.fill: parent; anchors.margins: -4; cursorShape: Qt.PointingHandCursor; onClicked: Ime.toggle() }
+                }
+
                 // mạng: Wi-Fi theo độ mạnh sóng / dây / mất mạng
                 Icon {
                     anchors.verticalCenter: parent.verticalCenter

@@ -1,0 +1,12 @@
+// Thành phần dùng chung của app Cài đặt.
+import QtQuick
+import "../theme"
+import "../common"
+
+Text {
+    width: parent ? parent.width : 300
+    wrapMode: Text.Wrap
+    color: "#636366"
+    font.family: Theme.font
+    font.pixelSize: 11
+}
