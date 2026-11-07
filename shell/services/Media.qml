@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Mpris
+import Quickshell.Hyprland
 
 // Chọn trình phát nhạc đang hoạt động qua MPRIS (Spotify, Firefox, mpv, ...).
 Singleton {
@@ -24,9 +25,38 @@ Singleton {
 
     readonly property bool hasPlayer: active !== null && (active.trackTitle ?? "") !== ""
     readonly property bool playing: active?.isPlaying ?? false
-    readonly property string title: active?.trackTitle || "Untitled"
-    readonly property string artist: active?.trackArtist || active?.identity || ""
-    readonly property string artUrl: active?.trackArtUrl ?? ""
+
+    // ---- YouTube trong trình duyệt ----
+    // Firefox chỉ có MỘT trình phát cho cả trình duyệt: rê chuột lên ảnh video khác (YouTube tự phát xem
+    // trước) hay quảng cáo cũng đổi tên bài nó báo. Tiêu đề tab ("<video> - YouTube") mới là video đang
+    // mở thật → tên bài khác mọi tab YouTube thì coi là "xem trước": giữ bài đang xem, đứng yên vị trí.
+    readonly property string rawTitle: active?.trackTitle ?? ""
+    readonly property bool onYouTube: /^https?:\/\/([a-z]+\.)?youtube\.com\//.test(url)
+    readonly property var ytTabs: {
+        if (!onYouTube) return [];
+        const out = [];
+        for (const t of Hyprland.toplevels.values) {
+            const m = String(t.title ?? "").match(/^(?:\(\d+\)\s+)?(.+?) - YouTube(?: Music)?(?: [\u2014-] .*)?$/);
+            if (m) out.push(norm(m[1]));
+        }
+        return out;
+    }
+    function norm(t) { return String(t).replace(/\s+/g, " ").trim(); }
+    readonly property bool preview: onYouTube && ytTabs.length > 0 && rawTitle !== "" && ytTabs.indexOf(norm(rawTitle)) < 0
+    property string goodTitle: ""          // tên bài lần cuối khớp với tab
+    property string goodArtist: ""
+    property string goodArt: ""
+    function noteGood() { if (!preview && rawTitle) { goodTitle = rawTitle; goodArtist = active?.trackArtist ?? ""; goodArt = active?.trackArtUrl ?? ""; } }
+    readonly property string rawArt: active?.trackArtUrl ?? ""
+    onRawArtChanged: noteGood()
+    onRawTitleChanged: noteGood()
+    onPreviewChanged: { noteGood(); if (preview) { frozenPos = recentPos(); } }
+
+    readonly property string title: !preview ? (rawTitle || "Untitled")
+        : ytTabs.indexOf(norm(goodTitle)) >= 0 ? goodTitle : ytTabs[0]
+    readonly property string artist: !preview ? (active?.trackArtist || active?.identity || "")
+        : title === goodTitle ? goodArtist : ""
+    readonly property string artUrl: preview && title === goodTitle ? goodArt : preview ? "" : (active?.trackArtUrl ?? "")
     readonly property string url: String(active?.metadata?.["xesam:url"] ?? "")
     // Độ dài thật của bài. Firefox (YouTube…) khi tua gửi lại metadata THIẾU mpris:length, lúc đó
     // Quickshell báo độ dài bám theo vị trí — giữ độ dài đã biết của bài đó thay vì tin con số ấy.
@@ -35,7 +65,8 @@ Singleton {
     property string lengthOf: ""
     onRawLengthChanged: updateLength()
     function updateLength() {
-        const t = (active?.trackTitle ?? "") + "\u0000" + (active?.dbusName ?? "");
+        if (preview) return;                                                     // độ dài của video xem trước
+        const t = title + "\u0000" + (active?.dbusName ?? "");
         if (t !== lengthOf) { lengthOf = t; knownLength = 0; }
         const L = rawLength;
         if (L < 5) return;                                                       // 0 / 0,004 s: chưa biết
@@ -44,8 +75,14 @@ Singleton {
     }
     // chưa biết độ dài mà Quickshell báo "độ dài" bám theo vị trí → coi như chưa biết (0)
     readonly property real length: knownLength > 0 ? knownLength
-        : (rawLength < 5 || Math.abs(rawLength - (active?.position ?? 0)) < 2 ? 0 : rawLength)
-    readonly property real position: (active?.position ?? 0) + fix
+        : preview ? 0 : (rawLength < 5 || Math.abs(rawLength - (active?.position ?? 0)) < 2 ? 0 : rawLength)
+    readonly property real rawPosition: (active?.position ?? 0) + fix
+    // vị trí lúc bắt đầu xem trước: lần đọc ngay trước đó có thể đã là của video xem trước (nhảy hẳn) → lấy lần trước nữa
+    property real frozenPos: 0
+    property real posA: 0; property real posB: 0; property double posBAt: 0
+    onRawPositionChanged: if (!preview) { posA = posB; posB = rawPosition; posBAt = Date.now(); }
+    function recentPos() { return Date.now() - posBAt < 400 && Math.abs(posB - posA) > 2 ? posA : posB; }
+    readonly property real position: preview ? frozenPos : rawPosition
     readonly property bool canSeek: (active?.canSeek ?? false) && (active?.positionSupported ?? false)
 
     // MPRIS không tự báo vị trí mới, nên phải yêu cầu cập nhật khi cần.
@@ -62,7 +99,7 @@ Singleton {
     property int zeros: 0                 // trình phát luôn trả Position = 0 (Firefox) → thôi không hỏi nữa
     Timer {
         interval: 1000; repeat: true; triggeredOnStart: true
-        running: root.wantPosition && root.busName !== "" && root.zeros < 3
+        running: root.wantPosition && root.busName !== "" && root.zeros < 3 && !root.preview
         onTriggered: if (!posProc.running) { posProc.sentAt = root.position - root.fix; posProc.running = true; }
     }
     Process {
@@ -118,7 +155,7 @@ Singleton {
     function next() { if (active?.canGoNext) active.next(); }
     function previous() { if (active?.canGoPrevious) active.previous(); }
     function seekTo(fraction) {
-        if (!canSeek || length <= 0) return;
+        if (!canSeek || length <= 0 || preview) return;
         fix = 0;
         active.position = Math.max(0, Math.min(1, fraction)) * length;
     }
