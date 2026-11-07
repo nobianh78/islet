@@ -27,6 +27,7 @@ chmod 644 "$AIR/home/islet/.config/hypr/hyprland.lua"
 python3 "$ROOT/scripts/make-icons.py" >/dev/null
 mkdir -p "$AIR/usr/share/icons"
 cp -a "$ROOT/theme/icons/Islet" "$AIR/usr/share/icons/Islet"
+cp -a "$ROOT/theme/cursors/Islet-Cursors" "$AIR/usr/share/icons/Islet-Cursors"     # con trỏ chuột (scripts/make-cursors.py)
 # Màn hình khởi động Plymouth
 rm -rf "$AIR/usr/share/plymouth/themes/islet"; mkdir -p "$AIR/usr/share/plymouth/themes"
 cp -a "$ROOT/theme/plymouth/islet" "$AIR/usr/share/plymouth/themes/islet"

@@ -16,10 +16,11 @@ Singleton {
             const g = (schema, key, val) => Quickshell.execDetached(["gsettings", "set", schema, key, String(val)]);
             g("org.gnome.desktop.interface", "text-scaling-factor", Prefs.textScale);
             g("org.gnome.desktop.a11y.interface", "high-contrast", Prefs.highContrast);
+            g("org.gnome.desktop.interface", "cursor-theme", "Islet-Cursors");
             g("org.gnome.desktop.interface", "cursor-size", Prefs.cursorSize);
             g("org.gnome.desktop.interface", "font-name", Prefs.fontFamily + " 11");
             g("org.gnome.desktop.interface", "enable-animations", !Prefs.reduceMotion);
-            Quickshell.execDetached(["hyprctl", "setcursor", "Adwaita", String(Prefs.cursorSize)]);
+            Quickshell.execDetached(["hyprctl", "setcursor", "Islet-Cursors", String(Prefs.cursorSize)]);
         }
     }
 }

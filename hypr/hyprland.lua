@@ -37,8 +37,11 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("islet-firefox-theme")
     -- bộ icon Islet (thư mục, thùng rác, app) cho GTK / Nautilus
     hl.exec_cmd("gsettings set org.gnome.desktop.interface icon-theme 'Islet'")
+    hl.exec_cmd("gsettings set org.gnome.desktop.interface cursor-theme 'Islet-Cursors'")
 end)
 
+-- con trỏ chuột của Islet (theme/cursors, vẽ bằng scripts/make-cursors.py)
+hl.env("XCURSOR_THEME", "Islet-Cursors")
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
 hl.env("QT_QPA_PLATFORM", "wayland")
