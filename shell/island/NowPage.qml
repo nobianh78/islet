@@ -144,11 +144,11 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         width: parent.width
                         text: ld.modelData[1] || "♪"
-                        key: "now#" + ld.index
-                        progress: ld.cur ? Lyrics.progress : 0
-                        pixelSize: 16
+                        key: (ld.cur ? "cur#" : "idle#") + ld.index       // thành câu đang hát → chạy chữ lại từ đầu
+                        elapsed: ld.cur ? Lyrics.elapsed : 0
+                        duration: Lyrics.lineDur
+                        pixelSize: 15
                         weight: Font.ExtraBold
-                        dim: Qt.rgba(1, 1, 1, 0.45)
                         color: "#FFFFFF"
                     }
                 }

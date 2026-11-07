@@ -1,6 +1,7 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Mpris
 
 // Chọn trình phát nhạc đang hoạt động qua MPRIS (Spotify, Firefox, mpv, ...).
@@ -26,11 +27,39 @@ Singleton {
     readonly property string artist: active?.trackArtist || active?.identity || ""
     readonly property string artUrl: active?.trackArtUrl ?? ""
     readonly property real length: active?.length ?? 0
-    readonly property real position: active?.position ?? 0
+    readonly property real position: (active?.position ?? 0) + fix
     readonly property bool canSeek: (active?.canSeek ?? false) && (active?.positionSupported ?? false)
 
     // MPRIS không tự báo vị trí mới, nên phải yêu cầu cập nhật khi cần.
     property bool wantPosition: false
+
+    // Quickshell chỉ ước lượng vị trí; trình nào không báo "Seeked" khi tua (Firefox, Spotify…) thì lệch mãi.
+    // Như bản Dynamic Island cho GNOME: khi đang xem vị trí, mỗi giây hỏi lại trình phát qua D-Bus,
+    // lệch quá 0,35 s thì bù vào (lời bài hát, thanh tiến trình theo kịp khi tua).
+    property real fix: 0
+    readonly property string busName: active?.dbusName ?? ""
+    onBusNameChanged: fix = 0
+    onTitleChanged: fix = 0
+    Timer {
+        interval: 1000; repeat: true; triggeredOnStart: true
+        running: root.wantPosition && root.busName !== ""
+        onTriggered: if (!posProc.running) { posProc.sentAt = root.position - root.fix; posProc.running = true; }
+    }
+    Process {
+        id: posProc
+        property real sentAt: 0
+        command: ["busctl", "--user", "get-property", root.busName, "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", "Position"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const m = text.trim().match(/^x\s+(-?\d+)/);
+                if (!m) return;
+                const real = Number(m[1]) / 1e6;
+                const est = (posProc.sentAt + (root.active?.position ?? 0)) / 2;   // giữa lúc hỏi và lúc nhận
+                const d = real - est;
+                root.fix = Math.abs(d) > 0.35 ? d : 0;
+            }
+        }
+    }
     FrameAnimation {
         running: root.wantPosition && root.playing
         onTriggered: root.active?.positionChanged()
@@ -64,6 +93,7 @@ Singleton {
     function previous() { if (active?.canGoPrevious) active.previous(); }
     function seekTo(fraction) {
         if (!canSeek || length <= 0) return;
+        fix = 0;
         active.position = Math.max(0, Math.min(1, fraction)) * length;
     }
 

@@ -110,33 +110,22 @@ Item {
         }
     }
 
-    // --- media: câu đang hát (karaoke) — không có lời thì tên bài · ca sĩ ---
+    // --- media: câu đang hát, chạy chữ kiểu karaoke; không có lời thì "tên bài · ca sĩ" (như bản GNOME) ---
     LyricLine {
-        visible: root.mode === "media" && Lyrics.showing
+        visible: root.mode === "media"
         anchors.left: left.right
         anchors.leftMargin: 8
         anchors.right: right.left
         anchors.rightMargin: 10
         anchors.verticalCenter: parent.verticalCenter
-        text: Lyrics.current
-        key: Lyrics.title + "#" + Lyrics.index
-        progress: Lyrics.progress
-        color: "#FFFFFF"
-        dim: Qt.rgba(1, 1, 1, 0.42)
-        pixelSize: 13
-    }
-    // --- media: tên bài · ca sĩ (trượt khi đổi bài) ---
-    SlideText {
-        visible: root.mode === "media" && !Lyrics.showing
-        anchors.left: left.right
-        anchors.leftMargin: 8
-        anchors.right: right.left
-        anchors.rightMargin: 10
-        anchors.verticalCenter: parent.verticalCenter
-        text: Media.artist ? Media.title + " · " + Media.artist : Media.title
+        text: Lyrics.showing ? Lyrics.current : (Media.artist ? Media.title + " · " + Media.artist : Media.title)
+        key: Lyrics.showing ? Lyrics.title + "#" + Lyrics.index : Media.title + "#title"
+        karaoke: Lyrics.showing
+        elapsed: Lyrics.elapsed
+        duration: Lyrics.lineDur
         color: "#F2F2F7"
         pixelSize: 13
-        weight: Font.DemiBold
+        weight: Font.Bold
     }
 
     Item {

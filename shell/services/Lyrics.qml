@@ -73,8 +73,10 @@ Singleton {
     readonly property string current: index >= 0 ? (lines[index][1] || "") : ""
     readonly property real lineStart: index >= 0 ? lines[index][0] : 0
     readonly property real lineEnd: index >= 0 ? (index + 1 < lines.length ? lines[index + 1][0] : lineStart + 5) : 0
-    // tiến độ karaoke trong câu (0…1); câu dài quá 10 giây (đoạn nhạc dạo) thì tô hết trong 10 giây
-    readonly property real progress: index < 0 ? 0 : Math.max(0, Math.min(1, (pos - lineStart) / Math.max(0.8, Math.min(10, lineEnd - lineStart))))
+    // thời lượng câu cho karaoke (0,8…10 s: câu dài quá — đoạn nhạc dạo — thì sáng hết trong 10 s)
+    readonly property real lineDur: Math.max(0.8, Math.min(10, lineEnd - lineStart))
+    readonly property real elapsed: index < 0 ? 0 : Math.max(0, pos - lineStart)
+    readonly property real progress: index < 0 ? 0 : Math.max(0, Math.min(1, elapsed / lineDur))
     // có câu để hiện trên island thu gọn
     readonly property bool showing: status === "ok" && current !== ""
 

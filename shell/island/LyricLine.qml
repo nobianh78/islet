@@ -1,80 +1,114 @@
 import QtQuick
 import "../theme"
 
-// Một câu lời kiểu karaoke: chữ mờ, phần đã hát sáng dần từ trái sang (progress 0…1).
-// Đổi câu (key khác) thì câu cũ bay lên mờ đi, câu mới nhô lên từ dưới — như SlideText.
-// Câu dài hơn chỗ trống thì trượt ngang theo phần đang hát.
+// Một câu lời, chạy chữ giống Dynamic Island cho GNOME (lib/anim.js › LyricLine):
+//   · câu mới: từng từ nhô lên từ dưới, nối đuôi nhau (cách 34 ms), mờ → hiện
+//   · karaoke: từ chưa hát mờ (41%), sáng lên đúng lúc được hát (theo tỉ lệ số chữ trong câu)
+//   · câu cũ: bay lên, mờ đi, thu nhỏ một chút
+//   · câu dài hơn chỗ trống: trượt ngang chậm theo thời lượng của câu (marquee)
 Item {
     id: root
     property string text: ""
-    property string key: text             // điệp khúc lặp lại vẫn đổi câu (key khác nhau)
-    property real progress: 0
+    property string key: text              // điệp khúc lặp lại vẫn là câu mới (key khác)
+    property real elapsed: 0               // giây đã hát của câu này
+    property real duration: 3              // thời lượng câu (giây)
+    property bool karaoke: true            // false: hiện sáng hết (tên bài…)
     property int pixelSize: 13
     property int weight: Font.Bold
     property color color: "#FFFFFF"
-    property color dim: Qt.rgba(1, 1, 1, 0.38)
-    property bool karaoke: true
+    property real dimLevel: 105 / 255
+    property bool center: false
 
-    implicitHeight: probe.implicitHeight
+    implicitHeight: probe.implicitHeight + 2
     clip: true
     Text { id: probe; visible: false; text: "Ág"; font.family: Theme.font; font.pixelSize: root.pixelSize; font.weight: root.weight }
 
-    property bool useA: true
-    onKeyChanged: {
-        const inc = useA ? b : a, old = useA ? a : b;
-        inc.text = text; inc.live = true; old.live = false;
-        if (!visible || old.text === "") { old.opacity = 0; inc.opacity = 1; inc.y = 0; }
-        else { swap.incoming = inc; swap.outgoing = old; swap.restart(); }
-        useA = !useA;
+    property Item cur: null
+    onKeyChanged: swap()
+    Component.onCompleted: swap()
+    function swap() {
+        const old = cur;
+        const animate = old !== null && root.visible && root.width > 1;
+        cur = lineComp.createObject(root, { text: root.text, animateIn: animate });
+        if (old) old.leave(animate);
     }
-    // dòng đang hiện là a khi useA, b khi không
-    onTextChanged: { const cur = useA ? a : b; if (cur.live) cur.text = text; }
-    Component.onCompleted: { a.text = text; a.live = true; }
+    // cùng câu nhưng chữ đổi (ví dụ tên bài khi không có lời)
+    onTextChanged: if (cur && !cur.leaving && cur.text !== text && key === text) swap()
 
-    component Line: Item {
-        id: ln
-        property string text: ""
-        property bool live: false
-        readonly property real fill: live ? (root.karaoke ? root.progress : 1) : 1
-        width: root.width
-        height: root.height
-        // trượt ngang khi câu dài: giữ phần đang hát ở khoảng 65% bề ngang
-        readonly property real over: Math.max(0, base.implicitWidth - width)
-        property real shift: over <= 0 ? 0 : Math.min(over, Math.max(0, base.implicitWidth * fill - width * 0.65))
-        Text {
-            id: base
-            x: -ln.shift
-            anchors.verticalCenter: parent.verticalCenter
-            text: ln.text
-            color: root.karaoke ? root.dim : root.color
-            font.family: Theme.font; font.pixelSize: root.pixelSize; font.weight: root.weight
-        }
+    Component {
+        id: lineComp
         Item {
-            id: ov
-            x: -ln.shift
-            height: parent.height
-            width: base.implicitWidth * ln.fill
-            clip: true
-            visible: root.karaoke
-            // (không dùng Behavior: tiến độ đổi mỗi khung hình, animation sẽ bị khởi động lại mãi và đứng ở 0)
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: ln.text
-                color: root.color
-                font.family: Theme.font; font.pixelSize: root.pixelSize; font.weight: root.weight
+            id: box
+            property string text: ""
+            property bool animateIn: false
+            property bool leaving: false
+            readonly property var words: text.split(/\s+/).filter(w => w.length > 0)
+            // điểm bắt đầu của mỗi từ trong câu, theo số chữ (như bản GNOME)
+            readonly property var fracs: {
+                const total = words.reduce((n, w) => n + w.length, 0) || 1;
+                let acc = 0;
+                return words.map(w => { const f = acc / total; acc += w.length; return f; });
             }
-        }
-    }
-    Line { id: a }
-    Line { id: b; opacity: 0 }
+            property real mx: 0
+            width: row.implicitWidth
+            height: root.height
+            x: (root.center && row.implicitWidth < root.width ? (root.width - row.implicitWidth) / 2 : 0) + mx
+            transformOrigin: Item.Left
 
-    ParallelAnimation {
-        id: swap
-        property Item incoming
-        property Item outgoing
-        NumberAnimation { target: swap.outgoing; property: "y"; to: -root.height * 0.6; duration: 320; easing.type: Easing.InCubic }
-        NumberAnimation { target: swap.outgoing; property: "opacity"; to: 0; duration: 280 }
-        NumberAnimation { target: swap.incoming; property: "y"; from: root.height * 0.7; to: 0; duration: 420; easing.type: Easing.OutCubic }
-        NumberAnimation { target: swap.incoming; property: "opacity"; from: 0; to: 1; duration: 300 }
+            Row {
+                id: row
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: Math.round(root.pixelSize * 0.3)
+                Repeater {
+                    model: box.words.length
+                    Text {
+                        id: w
+                        required property int index
+                        text: box.words[index]
+                        readonly property bool lit: !root.karaoke || box.leaving || root.elapsed >= box.fracs[index] * root.duration * 0.92
+                        property real intro: box.animateIn ? 0 : 1
+                        property real litV: lit ? 1 : root.dimLevel
+                        Behavior on litV { NumberAnimation { duration: 300; easing.type: Easing.OutQuad } }
+                        opacity: intro * litV
+                        transform: Translate { y: (1 - w.intro) * root.height * 0.8 }
+                        color: root.color
+                        font.family: Theme.font
+                        font.pixelSize: root.pixelSize
+                        font.weight: root.weight
+                        SequentialAnimation {
+                            running: box.animateIn
+                            PauseAnimation { duration: 60 + Math.min(w.index, 14) * 34 }
+                            NumberAnimation { target: w; property: "intro"; to: 1; duration: 560; easing.type: Easing.OutQuint }
+                        }
+                    }
+                }
+            }
+
+            function leave(animate) {
+                leaving = true;
+                if (!animate) { destroy(); return; }
+                out.start();
+            }
+            ParallelAnimation {
+                id: out
+                NumberAnimation { target: box; property: "opacity"; to: 0; duration: 320; easing.type: Easing.InCubic }
+                NumberAnimation { target: box; property: "y"; to: -root.height * 0.55; duration: 320; easing.type: Easing.InCubic }
+                NumberAnimation { target: box; property: "scale"; to: 0.96; duration: 320; easing.type: Easing.InCubic }
+                onFinished: box.destroy()
+            }
+            // câu dài: đợi island nở xong rồi trượt ngang hết câu trong khoảng thời lượng của nó
+            Timer {
+                interval: 900
+                running: !box.leaving
+                onTriggered: {
+                    const over = row.implicitWidth - root.width;
+                    if (over <= 4) return;
+                    marquee.to = -over - 6;
+                    marquee.duration = root.karaoke ? Math.max(1500, root.duration * 750) : 6000;
+                    marquee.start();
+                }
+            }
+            NumberAnimation { id: marquee; target: box; property: "mx"; easing.type: Easing.InOutSine }
+        }
     }
 }
