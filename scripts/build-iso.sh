@@ -82,6 +82,7 @@ EOF
 
         pacman -Syu --noconfirm --needed archiso imagemagick librsvg >/dev/null
         # kho [islet] cục bộ được ký bằng khoá Islet → keyring của container phải tin khoá đó
+        pacman-key --init >/dev/null 2>&1
         pacman-key --add /out/islet.gpg >/dev/null 2>&1
         pacman-key --lsign-key "$(cut -d: -f1 /out/islet-trusted)" >/dev/null 2>&1
 
