@@ -234,6 +234,7 @@ PanelWindow {
     Connections {
         target: Chrono
         function onDone(title, body) {
+            Sounds.play("alarm");
             win.pushBanner({ kind: "notification", title: title, body: body, appName: "Timer", icon: "", duration: 9000,
                              onClick: () => win.expand("timer") });
         }
@@ -284,6 +285,7 @@ PanelWindow {
             win.pushBanner({ kind: "toast", icon: "backup", text: "Backing up to " + label + "…", duration: 2600 });
         }
         function onFinished(ok, text) {
+            Sounds.play(ok ? "done" : "error");
             win.pushBanner({ kind: "notification", title: ok ? "Backup finished" : "Backup didn't finish", body: text,
                              appName: "Time Machine", icon: "", duration: 7000, onClick: () => Ui.openBackups() });
         }

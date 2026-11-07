@@ -12,6 +12,8 @@ package() {
     install -d "$D/usr/share/icons" "$D/usr/share/islet" "$D/usr/share/plymouth/themes" "$D/usr/share/pixmaps"
     cp -r --no-preserve=ownership "$S/theme/icons/Islet" "$S/theme/cursors/Islet-Cursors" "$S/theme/cursors/Islet-Cursors-Busy" "$D/usr/share/icons/"
     cp -r --no-preserve=ownership "$S/theme/wallpapers" "$D/usr/share/islet/wallpapers"
+    mkdir -p "$D/usr/share/sounds"
+    cp -r --no-preserve=ownership "$S/theme/sounds/islet" "$D/usr/share/sounds/islet"
     cp -r --no-preserve=ownership "$S/theme/plymouth/islet" "$D/usr/share/plymouth/themes/islet"
     install -Dm644 "$S/theme/firefox/userChrome.css" "$D/usr/share/islet/firefox/userChrome.css"
     install -Dm644 "$S/theme/gtk/gtk3.css" "$D/usr/share/islet/gtk/gtk3.css"

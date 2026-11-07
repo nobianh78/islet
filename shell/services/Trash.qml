@@ -32,7 +32,7 @@ Singleton {
     }
     function restore(ids) { run(["restore"].concat(ids)); }
     function remove(ids) { run(["remove"].concat(ids)); }
-    function empty() { run(["empty"], ok => { if (ok) Sounds.play("trash"); }); }
+    function empty() { run(["empty"], ok => { if (ok) Sounds.play("trashEmpty"); }); }
 
     Component { id: runner; Process {} }
 

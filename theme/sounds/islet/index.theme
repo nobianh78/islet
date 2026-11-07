@@ -1,0 +1,8 @@
+[Sound Theme]
+Name=Islet
+Comment=Sounds of the Islet desktop
+Inherits=freedesktop
+Directories=stereo
+
+[stereo]
+OutputProfile=stereo

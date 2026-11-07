@@ -6,10 +6,18 @@
 set -uo pipefail
 dir="$HOME/Pictures/Screenshots"; mkdir -p "$dir"
 f="$dir/islet-$(date +%Y%m%d-%H%M%S).png"
+# tiếng màn trập (trừ khi tắt âm thanh hệ thống trong Cài đặt › Sound)
+shutter() {
+    local s=/usr/share/sounds/islet/stereo/screen-capture.wav
+    [ -f "$s" ] || return 0
+    grep -q '"systemSounds": *false' "${XDG_CONFIG_HOME:-$HOME/.config}/islet/settings.json" 2>/dev/null && return 0
+    pw-play --volume 0.7 "$s" >/dev/null 2>&1 &
+}
 
 case "${1:-area}" in
 full)
     grim "$f" || exit 1
+    shutter
     wl-copy --type image/png < "$f"
     notify-send -a "Screenshot" -i "$f" "Screenshot copied" "Saved to Pictures/Screenshots"
     ;;
@@ -21,6 +29,7 @@ full)
     ww=$(( gw + 48 )); wh=$(( gh + 150 ))
     [ $ww -lt 760 ] && ww=760; [ $wh -lt 420 ] && wh=420
     [ $ww -gt $(( sw * 92 / 100 )) ] && ww=$(( sw * 92 / 100 )); [ $wh -gt $(( sh * 92 / 100 )) ] && wh=$(( sh * 92 / 100 ))
+    shutter
     grim -g "$g" - | satty --filename - --output-filename "$f" \
         --copy-command wl-copy --initial-tool arrow --resize "${ww}x${wh}" \
         --actions-on-enter save-to-file,save-to-clipboard,exit --actions-on-escape exit \

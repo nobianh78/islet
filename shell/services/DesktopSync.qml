@@ -6,7 +6,7 @@ import "../theme"
 // Đưa cài đặt giao diện / trợ năng sang app GTK (gsettings) và con trỏ (hyprctl setcursor).
 Singleton {
     id: root
-    readonly property string sig: [Prefs.textScale, Prefs.highContrast, Prefs.cursorSize, Prefs.fontFamily, Prefs.reduceMotion].join("|")
+    readonly property string sig: [Prefs.textScale, Prefs.highContrast, Prefs.cursorSize, Prefs.fontFamily, Prefs.reduceMotion, Prefs.systemSounds].join("|")
     onSigChanged: if (Prefs.loaded) later.restart()
     Component.onCompleted: later.restart()
     Timer {
@@ -21,6 +21,8 @@ Singleton {
             g("org.gnome.desktop.interface", "cursor-size", Prefs.cursorSize);
             g("org.gnome.desktop.interface", "font-name", Prefs.fontFamily + " 11");
             g("org.gnome.desktop.interface", "enable-animations", !Prefs.reduceMotion);
+            g("org.gnome.desktop.sound", "theme-name", "islet");                       // app GTK dùng bộ âm thanh Islet
+            g("org.gnome.desktop.sound", "event-sounds", Prefs.systemSounds);
             Quickshell.execDetached(["hyprctl", "setcursor", "Islet-Cursors", String(Prefs.cursorSize)]);
         }
     }

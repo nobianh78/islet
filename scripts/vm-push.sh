@@ -9,7 +9,7 @@ O=(-p 2222 -i "$ROOT/out/dev_key" -o StrictHostKeyChecking=no -o UserKnownHostsF
 : "${ISLET_SUDO_PASS:?đặt ISLET_SUDO_PASS}"
 A=iso/islet/airootfs
 python3 "$ROOT/scripts/make-icons.py" >/dev/null
-tar -C "$ROOT" -cf - shell hypr/hyprland.lua theme/icons/Islet theme/cursors theme/wallpapers $A/usr/share/icons/default tools $A/home/islet/.config/hypr $A/usr/local/bin $A/usr/share/applications $A/usr/local/share/applications \
+tar -C "$ROOT" -cf - shell hypr/hyprland.lua theme/icons/Islet theme/cursors theme/wallpapers theme/sounds $A/usr/share/icons/default tools $A/home/islet/.config/hypr $A/usr/local/bin $A/usr/share/applications $A/usr/local/share/applications \
     | ssh "${O[@]}" "$U@localhost" 'rm -rf /tmp/up && mkdir /tmp/up && tar -C /tmp/up -xf -'
 printf '%s\n' "$ISLET_SUDO_PASS" | ssh "${O[@]}" "$U@localhost" 'sudo -S -p "" sh -c "
     set -e; U=/tmp/up; A=\$U/iso/islet/airootfs
@@ -17,6 +17,7 @@ printf '%s\n' "$ISLET_SUDO_PASS" | ssh "${O[@]}" "$U@localhost" 'sudo -S -p "" s
     mkdir -p /usr/share/islet/hypr && cp \$U/hypr/hyprland.lua /usr/share/islet/hypr/
     rm -rf /usr/share/icons/Islet && cp -a \$U/theme/icons/Islet /usr/share/icons/Islet
     rm -rf /usr/share/islet/wallpapers && cp -a \$U/theme/wallpapers /usr/share/islet/wallpapers
+    rm -rf /usr/share/sounds/islet && cp -a \$U/theme/sounds/islet /usr/share/sounds/islet
     rm -rf /usr/share/icons/Islet-Cursors /usr/share/icons/Islet-Cursors-Busy && cp -a \$U/theme/cursors/Islet-Cursors \$U/theme/cursors/Islet-Cursors-Busy /usr/share/icons/
     mkdir -p /usr/share/icons/default && cp \$A/usr/share/icons/default/index.theme /usr/share/icons/default/
     install -m755 \$A/usr/local/bin/* /usr/local/bin/

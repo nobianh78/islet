@@ -81,7 +81,7 @@ Singleton {
     // sau khi cập nhật xong → kiểm tra lại
     Connections {
         target: Packages
-        function onFinished(pkg, op, ok) { if (pkg === "system:upgrade") { root.list = ok ? [] : root.list; recheck.restart(); } }
+        function onFinished(pkg, op, ok) { if (pkg === "system:upgrade") { root.list = ok ? [] : root.list; recheck.restart(); Sounds.play(ok ? "done" : "error"); } }
         function onRebootNeeded() { root.needsReboot = true; }
     }
     Timer { id: recheck; interval: 3000; onTriggered: root.check() }

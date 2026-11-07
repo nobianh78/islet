@@ -60,14 +60,15 @@ Column {
     SectionLabel { text: "System sounds" }
     Card {
         width: parent.width; height: 58
-        Row2 { title: "Play system sounds"; sub: "Lock and unlock, plugging in the charger, timers"; checked: Prefs.systemSounds; onToggled: Prefs.set("systemSounds", !Prefs.systemSounds) }
+        Row2 { title: "Play system sounds"; sub: "Islet's own sounds — start-up, lock and unlock, charger, timers, Trash, screenshots"; checked: Prefs.systemSounds; onToggled: Prefs.set("systemSounds", !Prefs.systemSounds) }
     }
-    Row {
+    Flow {
+        width: parent.width
         spacing: 8
         visible: Prefs.systemSounds
         Repeater {
-            model: [["notification", "Notification"], ["unlock", "Unlock"], ["lock", "Lock"], ["plug", "Charger"], ["done", "Timer"]]
-            Pill { required property var modelData; label: "▶ " + modelData[1]; onClicked: { Sounds.last = 0; Sounds.play(modelData[0]); } }
+            model: Sounds.labels
+            Pill { required property var modelData; label: "▶ " + modelData[1]; onClicked: Sounds.play(modelData[0], true) }
         }
     }
 }

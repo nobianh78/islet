@@ -33,7 +33,10 @@ ShellRoot {
     // nạp giữa chừng sẽ lỗi. Hook của islet-shell gọi `qs ipc call shell reload` khi đã cài xong.
     // Đang khoá màn hình thì đợi mở khoá rồi mới nạp (nạp lại lúc khoá làm màn hình khoá chết).
     // Bản đang phát triển (~/.config/islet/shell) vẫn tự nạp như thường.
-    Component.onCompleted: if (Quickshell.shellDir.startsWith("/usr/")) Quickshell.watchFiles = false
+    Component.onCompleted: {
+        if (Quickshell.shellDir.startsWith("/usr/")) Quickshell.watchFiles = false;
+        Sounds.startupOnce();          // tiếng bật máy (một lần mỗi phiên)
+    }
     property bool reloadPending: false
     function reloadShell() { if (Ui.locked) reloadPending = true; else Quickshell.reload(false); }
     Connections {
