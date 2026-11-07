@@ -1536,7 +1536,59 @@ FloatingWindow {
                         Pill { anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter; label: "Restart"; primary: true; onClicked: Quickshell.execDetached(["systemctl", "reboot"]) }
                     }
 
-                    SectionLabel { text: "What's new"; visible: Updates.count > 0 }
+                    // điểm khôi phục: an tâm cập nhật / hoàn tác
+                    Text {
+                        visible: Restore.supported
+                        width: parent.width; wrapMode: Text.Wrap
+                        text: Restore.lastUpdate && Updates.count === 0
+                            ? "A restore point is made before every update. Something not right since the last one? <a href=\"undo\">Go back to before it</a>."
+                            : "A restore point is made before every update, so you can always go back."
+                        textFormat: Text.StyledText; linkColor: Qt.lighter(Theme.accent, 1.3)
+                        onLinkActivated: Ui.openSettings("storage")
+                        color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                    }
+
+                    // nhật ký thay đổi của chính Islet
+                    SectionLabel { text: "New in Islet"; visible: Updates.changes.length > 0 }
+                    Card {
+                        visible: Updates.changes.length > 0
+                        width: parent.width
+                        height: Math.min(chList.implicitHeight, 340) + 8
+                        clip: true
+                        Flickable {
+                            y: 4; width: parent.width; height: parent.height - 8
+                            contentHeight: chList.implicitHeight
+                            boundsBehavior: Flickable.StopAtBounds
+                            Column {
+                                id: chList
+                                width: parent.width
+                                Repeater {
+                                    model: Updates.changes
+                                    Item {
+                                        id: chRow
+                                        required property var modelData
+                                        required property int index
+                                        width: chList.width
+                                        height: chCol.implicitHeight + 20
+                                        Rectangle { visible: chRow.index > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
+                                        Rectangle { x: 20; y: 17; width: 6; height: 6; radius: 3; color: Theme.accent }
+                                        Column {
+                                            id: chCol
+                                            x: 36; y: 10; width: parent.width - 36 - 18
+                                            spacing: 2
+                                            Text { width: parent.width; wrapMode: Text.Wrap; text: chRow.modelData.subject; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium }
+                                            Text {
+                                                visible: text !== ""; width: parent.width; wrapMode: Text.Wrap; maximumLineCount: 3; elide: Text.ElideRight
+                                                text: chRow.modelData.detail || ""; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    SectionLabel { text: Updates.changes.length > 0 ? "Packages" : "What's new"; visible: Updates.count > 0 }
                     Card {
                         visible: Updates.count > 0
                         width: parent.width

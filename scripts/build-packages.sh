@@ -22,13 +22,17 @@ fi
 gpg --list-secret-keys "$KEY" >/dev/null 2>&1 || { echo "Không thấy khoá ký $KEY trong $GNUPGHOME" >&2; exit 1; }
 
 ver() { echo "0.1.r$(git -C "$ROOT" rev-list --count HEAD -- "$@")"; }
-declare -A VER=(
-    [islet-shell]="$(ver shell hypr tools/applications packaging/islet-shell)"
-    [islet-tools]="$(ver tools/bin tools/systemd tools/libalpm tools/initcpio packaging/islet-tools)"
-    [islet-themes]="$(ver theme branding shell/assets/apps/islet.svg packaging/islet-themes)"
-    [islet-keyring]="$(ver packaging/keyring packaging/islet-keyring)"
-    [islet]="$(ver packaging/islet)"
+# thư mục của từng gói (phiên bản = số commit đụng tới chúng)
+declare -A PATHS=(
+    [islet-shell]="shell hypr tools/applications packaging/islet-shell"
+    [islet-tools]="tools/bin tools/systemd tools/libalpm tools/initcpio packaging/islet-tools"
+    [islet-themes]="theme branding shell/assets/apps/islet.svg packaging/islet-themes"
+    [islet-keyring]="packaging/keyring packaging/islet-keyring"
+    [islet]="packaging/islet"
 )
+declare -A VER=()
+# shellcheck disable=SC2086
+for p in "${!PATHS[@]}"; do VER[$p]="$(ver ${PATHS[$p]})"; done
 
 # Font Be Vietnam Pro (Google Fonts, OFL) cho islet-themes — tải một lần
 FONTS="$CACHE/fonts"; mkdir -p "$FONTS" "$CACHE/pkg"
@@ -77,4 +81,28 @@ for db in islet.db islet.files; do
     gpg --batch --yes --quiet --detach-sign --no-armor -u "$KEY" -o "$REPO/$db.tar.gz.sig" "$REPO/$db.tar.gz"
     cp "$REPO/$db.tar.gz.sig" "$REPO/$db.sig"
 done
+# Nhật ký thay đổi cho Cài đặt › Updates: mỗi commit gần đây, gói nào nó đổi và phiên bản gói đó SAU commit ấy
+# → máy đang ở 0.1.r250 lên 0.1.r262 thì hiện các commit có số trong (250, 262].
+echo "==> islet-changes.json"
+for p in "${!PATHS[@]}"; do printf '%s\t%s\n' "$p" "${PATHS[$p]}"; done | python3 - "$ROOT" "$REPO/islet-changes.json" <<'PY'
+import json, subprocess, sys
+root, out = sys.argv[1], sys.argv[2]
+paths = dict(l.rstrip("\n").split("\t", 1) for l in sys.stdin if l.strip())
+git = lambda *a: subprocess.run(["git", "-C", root, *a], capture_output=True, text=True, check=True).stdout
+changes = {}
+for pkg, ps in paths.items():
+    # mọi commit đụng tới gói, cũ → mới; vị trí trong danh sách = phiên bản của gói sau commit đó
+    hs = git("rev-list", "--reverse", "HEAD", "--", *ps.split()).split()
+    for i, h in enumerate(hs[-80:], start=len(hs) - min(80, len(hs)) + 1):
+        changes.setdefault(h, {})[pkg] = i
+items = []
+for h, revs in changes.items():
+    t, subj, body = git("show", "-s", "--format=%ct%x00%s%x00%b", h).split("\0", 2)
+    para = body.strip().split("\n\n")[0].strip()
+    items.append({"commit": h[:10], "time": int(t), "subject": subj.strip(),
+                  "detail": "" if para.startswith("Co-Authored-By") else " ".join(para.split())[:400], "revs": revs})
+items.sort(key=lambda x: -x["time"])
+json.dump({"changes": items[:120]}, open(out, "w"), ensure_ascii=False, indent=0)
+print(f"    {min(len(items), 120)} changes")
+PY
 ls -lh "$REPO"

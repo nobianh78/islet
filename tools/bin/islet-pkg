@@ -10,6 +10,7 @@
 #                                     docker / rustup / virt-manager… tự bật dịch vụ, thêm quyền cho người dùng
 #   islet-pkg remove <gói...>         (root) gỡ cùng phụ thuộc không còn dùng
 #   islet-pkg updates                 tên<TAB>bản đang có<TAB>bản mới<TAB>repo|aur   (không cần root)
+#   islet-pkg changes                 nhật ký thay đổi của Islet (islet-changes.json cạnh kho [islet]) — JSON
 #   islet-pkg upgrade                 (root) cập nhật toàn bộ hệ thống + app AUR; in PROGRESS · REBOOT · DONE
 #   Gói ghi "aur/<tên>" được lấy từ AUR: tải PKGBUILD, build bằng makepkg dưới quyền người dùng
 #   (makepkg không chạy bằng root), phụ thuộc lấy từ kho chính thức hoặc AUR, rồi pacman -U.
@@ -152,6 +153,14 @@ install)
     done
     progress 100 "Done"; echo DONE
     ;;
+changes)
+    # địa chỉ kho [islet] trong pacman.conf → tải islet-changes.json nằm cạnh islet.db
+    srv=$(awk '/^\[islet\]/{f=1;next} /^\[/{f=0} f && /^Server *=/{sub(/^Server *= */,""); print; exit}' /etc/pacman.conf)
+    [ -n "$srv" ] || { echo '{"changes": []}'; exit 0; }
+    case $srv in
+        file://*) cat "${srv#file://}/islet-changes.json" 2>/dev/null || echo '{"changes": []}' ;;
+        *) curl -fsSL --max-time 15 "$srv/islet-changes.json" 2>/dev/null || echo '{"changes": []}' ;;
+    esac ;;
 updates)
     # gói từ kho chính thức (checkupdates dùng bản sao CSDL tạm, không cần root, không đụng hệ thống)
     checkupdates 2>/dev/null | awk '{print $1 "\t" $2 "\t" $4 "\trepo"}' || true

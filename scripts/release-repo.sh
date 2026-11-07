@@ -23,7 +23,7 @@ echo "==> Tải gói lên"
 gh release upload "$TAG" -R "$GH_REPO" --clobber ./*.pkg.tar.zst ./*.pkg.tar.zst.sig
 echo "==> Tải kho lên"
 gh release upload "$TAG" -R "$GH_REPO" --clobber islet.db islet.db.sig islet.db.tar.gz islet.db.tar.gz.sig \
-    islet.files islet.files.sig islet.files.tar.gz islet.files.tar.gz.sig
+    islet.files islet.files.sig islet.files.tar.gz islet.files.tar.gz.sig islet-changes.json
 
 echo "==> Dọn bản cũ"
 gh release view "$TAG" -R "$GH_REPO" --json assets -q '.assets[].name' | while read -r n; do

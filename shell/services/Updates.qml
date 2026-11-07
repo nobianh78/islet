@@ -22,6 +22,30 @@ Singleton {
 
     signal available(int n)
 
+    // Nhật ký thay đổi của Islet cho bản cập nhật đang chờ: [{ subject, detail, time }], mới nhất trước.
+    // islet-changes.json (cạnh kho [islet]) ghi mỗi commit đổi gói nào và phiên bản gói đó sau commit;
+    // giữ các commit có phiên bản nằm trong (đang có, bản mới] của một gói Islet đang chờ cập nhật.
+    property var changes: []
+    function rev(v) { const m = String(v).match(/\.r(\d+)/); return m ? Number(m[1]) : -1; }
+    Process {
+        id: changesProc
+        property int notify: 0
+        command: ["islet-pkg", "changes"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let all = [];
+                try { all = JSON.parse(text).changes || []; } catch (e) {}
+                const pend = root.list.filter(u => u.islet);
+                root.changes = all.filter(c => pend.some(u => {
+                    const r = c.revs?.[u.name];
+                    return r !== undefined && r > root.rev(u.from) && r <= root.rev(u.to);
+                }));
+                if (changesProc.notify > 0) root.available(changesProc.notify);
+                changesProc.notify = 0;
+            }
+        }
+    }
+
     function check() {
         if (checking || running) return;
         checking = true;
@@ -45,7 +69,10 @@ Singleton {
                 }).sort((a, b) => b.islet - a.islet);          // bản cập nhật của chính Islet lên đầu
                 root.checking = false;
                 root.lastCheck = Date.now();
-                if (root.count > 0 && root.count !== before) root.available(root.count);
+                // có bản mới của Islet → lấy nhật ký thay đổi trước, rồi mới báo (island hiện được điểm mới)
+                const notify = root.count > 0 && root.count !== before ? root.count : 0;
+                if (root.isletCount > 0) { changesProc.notify = notify; changesProc.running = true; }
+                else { root.changes = []; if (notify) root.available(notify); }
             }
         }
         onExited: code => { if (code !== 0 && code !== 2) root.error = "Couldn't check for updates"; root.checking = false; }

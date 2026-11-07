@@ -265,10 +265,13 @@ PanelWindow {
         target: Updates
         function onAvailable(n) {
             if (Prefs.dnd) return;
+            const ch = Updates.changes;
             win.pushBanner({
                 kind: "notification",
-                title: n === 1 ? "1 update available" : n + " updates available",
-                body: "Click to review and update Islet",
+                title: Updates.isletCount > 0 ? "Islet update available" : n === 1 ? "1 update available" : n + " updates available",
+                body: Updates.isletCount > 0 && ch.length
+                    ? ch.slice(0, 2).map(c => c.subject).join(" · ") + (ch.length > 2 ? " · +" + (ch.length - 2) + " more" : "")
+                    : "Click to review and update Islet",
                 appName: "Updates", icon: "", duration: 8000,
                 onClick: () => Ui.openSettings("updates")
             });
