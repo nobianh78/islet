@@ -161,13 +161,17 @@ Item {
                 spacing: 4
                 opacity: lyrHover.hovered ? 1 : 0
                 Behavior on opacity { NumberAnimation { duration: 160 } }
-                LyrBtn { label: "−0.5s"; tip: "Lyrics later"; onClicked: Lyrics.nudge(-0.5) }
+                // − = lời trễ lại (ca sĩ chưa hát mà chữ đã chạy) · + = lời sớm lên
+                LyrBtn { label: "−5s"; onClicked: Lyrics.nudge(-5) }
+                LyrBtn { label: "−0.5s"; onClicked: Lyrics.nudge(-0.5) }
                 Text {
+                    readonly property real total: Lyrics.offset + Lyrics.autoOffset
                     anchors.verticalCenter: parent.verticalCenter
-                    text: (Lyrics.offset > 0 ? "+" : "") + Lyrics.offset.toFixed(1) + "s"
+                    text: (total > 0 ? "+" : "") + total.toFixed(1) + "s"
                     color: Qt.rgba(1, 1, 1, 0.55); font.family: Theme.font; font.pixelSize: 10; font.features: ({ "tnum": 1 })
                 }
-                LyrBtn { label: "+0.5s"; tip: "Lyrics earlier"; onClicked: Lyrics.nudge(0.5) }
+                LyrBtn { label: "+0.5s"; onClicked: Lyrics.nudge(0.5) }
+                LyrBtn { label: "+5s"; onClicked: Lyrics.nudge(5) }
                 LyrBtn { label: "Wrong lyrics"; onClicked: Lyrics.markWrong() }
             }
         }

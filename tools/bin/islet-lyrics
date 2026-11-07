@@ -16,7 +16,7 @@ NETEASE = "https://music.163.com/api"
 UA = "islet-lyrics/0.1 (https://github.com/nobianh78/islet)"
 BROWSER_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36"
 CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"), "islet", "lyrics")
-CACHE_VERSION = 4
+CACHE_VERSION = 5            # 5: làm sạch tên tốt hơn, tìm cả hai cách đọc tên → tìm lại các bài cũ
 
 NOISE_WORDS = r"official|lyrics?|m\/?v|audio|video|visuali[sz]er|karaoke|hd|4k|vietsub|engsub|kara|music video|performance|teaser|full|mv|lyric video|official mv|official music video|audio lyrics|prod\.?[^)\]】]*"
 NOISE_BRACKET = re.compile(r"\s*[(\[【「]([^)\]】」]*?)\b(" + NOISE_WORDS + r")\b[^)\]】」]*[)\]】」]", re.I)
@@ -42,6 +42,14 @@ def clean_title(t):
     t = re.sub(r"^\s*['\"‘’“”]+|['\"‘’“”]+\s*$", "", t)
     t = re.sub(r"(^|\s)['\"‘’“”]([^'\"‘’“”]+)['\"‘’“”](?=\s|$)", r"\1\2", t)
     t = re.sub(r"\s*\(?\b(ft\.?|feat\.?)\s.*$", "", t, flags=re.I)
+    # "… M/V", "… Official MV" ở cuối (ngoài ngoặc)
+    prev = None
+    while prev != t:
+        prev = t
+        t = re.sub(r"[\s\-–—|]+(" + NOISE_WORDS + r")\s*$", "", t, flags=re.I)
+    # tên chữ Hàn / Nhật / Trung trong ngoặc khi tên đã có chữ Latinh: "HARU HARU(하루하루)"
+    if re.search(r"[A-Za-z]", re.sub(r"[(\[【「][^)\]】」]*[)\]】」]", "", t)):
+        t = re.sub(r"\s*[(\[【「][^A-Za-z)\]】」]*[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af][^A-Za-z)\]】」]*[)\]】」]", "", t)
     return re.sub(r"\s+", " ", t).strip()
 
 
@@ -192,10 +200,13 @@ def from_lrclib(title, artist, cands, dur):
         list(ex.map(lambda j: lr(*j), jobs))
     if best["s"] >= 75 or flags["unsynced"]:
         return best, flags
-    jobs = [("/search", {"q": f"{c0[0]} {c0[1]}".strip()}, c0)]
-    if c0[1]:
-        jobs.append(("/search", {"q": c0[0]}, c0))
-    with ThreadPoolExecutor(2) as ex:
+    # vòng 2: tìm tự do, với cả hai cách đọc tên đầu tiên ("Ca sĩ - Bài" lẫn "Bài - Ca sĩ")
+    jobs = []
+    for c in cands[:2]:
+        jobs.append(("/search", {"q": f"{c[0]} {c[1]}".strip()}, c))
+        if c[1]:
+            jobs.append(("/search", {"q": c[0]}, c))
+    with ThreadPoolExecutor(4) as ex:
         list(ex.map(lambda j: lr(*j), jobs))
     return best, flags
 
@@ -304,7 +315,7 @@ def cmd_get(title, artist, length):
     data = read(path)
     if data.get("v", 0) >= CACHE_VERSION:
         lines = parse_lrc(data.get("lrc"))
-        return {"state": "ok" if lines else "none", "offset": data.get("offset", 0), "lines": lines}
+        return {"state": "ok" if lines else "none", "offset": data.get("offset", 0), "lrcDuration": data.get("lrcDuration", 0), "lines": lines}
     try:
         found = lookup(title, artist, float(length or 0))
     except Transient:
@@ -313,7 +324,7 @@ def cmd_get(title, artist, length):
     write(path, {"v": CACHE_VERSION, "title": title, "artist": artist, "length": length, "lrc": lrc,
                  "lrcDuration": (found or {}).get("duration", 0), "offset": data.get("offset", 0)})
     lines = parse_lrc(lrc)
-    return {"state": "ok" if lines else "none", "offset": data.get("offset", 0), "lines": lines}
+    return {"state": "ok" if lines else "none", "offset": data.get("offset", 0), "lrcDuration": (found or {}).get("duration", 0), "lines": lines}
 
 
 def main():
