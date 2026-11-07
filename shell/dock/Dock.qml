@@ -14,7 +14,9 @@ PanelWindow {
 
     anchors.bottom: true
     implicitWidth: 560
-    implicitHeight: dragFrom >= 0 ? 180 : 120          // chừa chỗ cho icon nhấc lên + nhãn tên (cao hơn lúc kéo icon lên)
+    // chừa chỗ cho icon nhấc lên + nhãn tên + icon đang kéo lên. Cố định: đổi cỡ lớp dock giữa chừng
+    // làm Hyprland đặt nó lệch xuống dưới mép màn hình (mất dock).
+    implicitHeight: 180
     // tự ẩn: không giữ chỗ dưới đáy màn hình (cửa sổ dùng được hết chiều cao)
     exclusiveZone: Prefs.dockAutohide ? 0 : 78
     color: "transparent"
@@ -131,6 +133,9 @@ PanelWindow {
         if (t < f && i >= t && i < f) return base + gap;
         return 0;
     }
+    // dock dựng lại (cửa sổ mở/đóng, thùng rác đổi…) trong lúc kéo → icon đang kéo bị xoá mà không kịp
+    // báo "thả"; huỷ lần kéo đó để dock không kẹt ở trạng thái kéo.
+    onAppsChanged: if (dragFrom >= 0) dragFrom = -1
     function endDrag() {
         const a = apps[dragFrom], t = dragTo, from = dragFrom, rm = removing;
         dragFrom = -1;
