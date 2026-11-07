@@ -29,6 +29,7 @@ PanelWindow {
     readonly property string appName: {
         if (!active || !active.activated) return "Islet";
         const id = active.appId ?? "";
+        if (id === "org.quickshell") return active.title || "Islet";      // cửa sổ của chính Islet (Cài đặt)
         return appNames[id] ?? (id.split(".").pop() || "Islet");
     }
 

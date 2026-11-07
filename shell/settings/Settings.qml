@@ -1,7 +1,6 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Services.Pipewire
 import Quickshell.Bluetooth
@@ -13,73 +12,91 @@ import "../controlcenter"
 import "../wallpaper"
 import "pages"
 
-// App Cài đặt của Islet: Hình nền · Màu nhấn · Wi-Fi · Âm thanh · Màn hình · Giới thiệu.
-// Mở: "Cài đặt" trên dock, nút bánh răng ở trung tâm điều khiển, hoặc `islet-ipc settings open`.
-PanelWindow {
+// App Cài đặt của Islet — một cửa sổ thật (kéo, xếp cạnh, thu nhỏ, phóng to như mọi app).
+// Mở: "Settings" trên dock, nút bánh răng ở trung tâm điều khiển, hoặc `islet-ipc settings open`.
+//
+// Mỗi thứ chỉ nằm ở MỘT trang. Tài khoản (ảnh, tên, mật khẩu, người khác) ở thẻ trên cùng cột trái.
+FloatingWindow {
     id: win
 
-    implicitWidth: 980
-    implicitHeight: 680
-    exclusionMode: ExclusionMode.Ignore
-    color: "transparent"
+    title: "Settings"
+    implicitWidth: 1040
+    implicitHeight: 720
+    minimumSize: Qt.size(820, 560)
+    color: "#0D0D15"
+    visible: false
+    readonly property bool open: Ui.settingsOpen && visible
 
-    WlrLayershell.namespace: "islet-settings"
-    WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+    // ---- mở / đóng / thu nhỏ ----
+    Connections {
+        target: Ui
+        function onSettingsOpenChanged() {
+            if (Ui.settingsOpen) { win.visible = true; intro.restart(); panel.forceActiveFocus(); win.refreshPage(); gecos.running = true; }
+            else win.visible = false;
+        }
+        function onSettingsRaiseRequested() { win.raise(); }
+    }
+    onVisibleChanged: if (!visible && Ui.settingsOpen) Ui.settingsOpen = false     // đóng bằng Super+Q / nút đóng của hệ thống
+    function close() { Ui.settingsOpen = false; }
+    // Hyprland không có "thu nhỏ" → Islet cất cửa sổ vào workspace ẩn (như mọi app), dock lấy lại
+    function minimize() {
+        Hyprland.refreshToplevels();
+        const t = hyprWin();
+        if (t) Windows.minimizeWin(t); else win.minimized = true;
+    }
+    function toggleMaximize() { win.maximized = !win.maximized; }
+    // cửa sổ của mình trong Hyprland (để lấy lại khi đang thu nhỏ)
+    function hyprWin() {
+        return Hyprland.toplevels.values.find(t => Windows.appIdOf(t) === "org.quickshell" && (t.title || t.lastIpcObject?.title) === "Settings") ?? null;
+    }
+    function raise() {
+        Hyprland.refreshToplevels();
+        const t = hyprWin();
+        if (!t) return;
+        if (Windows.isMinimized(t)) Windows.restore(t); else Windows.focusWin(t);
+    }
 
-    readonly property bool open: Ui.settingsOpen
-    visible: open || panel.opacity > 0.01
-    mask: Region { item: panel }
-
-    readonly property string page: Ui.settingsPage
-    // nhóm · trang (k = từ khoá cho ô tìm)
-    readonly property var groups: ["Personalize", "Network & devices", "System", "Account"]
+    // Trang cũ đã gộp vào trang mới
+    readonly property var aliases: ({ workspaces: "island", startup: "apps", snapshots: "storage", desktop: "island" })
+    readonly property string page: aliases[Ui.settingsPage] ?? Ui.settingsPage
+    // nhóm · trang (d = mô tả dưới tiêu đề, k = từ khoá cho ô tìm). Trang "account" là thẻ trên cùng.
+    readonly property var groups: ["Connect", "Device", "Personalize", "System"]
     readonly property var pages: [
-        { id: "wallpaper", g: 0, label: "Wallpaper",        icon: "palette",   tint: "#B65CFF", k: "background image dynamic" },
-        { id: "accent",    g: 0, label: "Appearance",       icon: "sparkle",   tint: "#FF6B97", k: "accent color icon style font text size" },
-        { id: "island",    g: 0, label: "Island & Dock",    icon: "grid",      tint: "#8B7CFF", k: "dynamic island dock size autohide activities" },
-        { id: "workspaces",g: 0, label: "Workspaces",       icon: "layers",    tint: "#5B8CFF", k: "desktops virtual animation" },
-        { id: "access",    g: 0, label: "Accessibility",    icon: "user",      tint: "#2EC4B6", k: "zoom contrast motion cursor screen reader orca" },
-        { id: "wifi",      g: 1, label: "Wi-Fi & Network",  icon: "wifi",      tint: "#3B8BFF", k: "internet hotspot vpn wireguard proxy ip qr" },
-        { id: "bluetooth", g: 1, label: "Bluetooth",        icon: "bluetooth", tint: "#3B8BFF", k: "headphones pair" },
-        { id: "sound",     g: 1, label: "Sound",            icon: "volume",    tint: "#FF5C7A", k: "volume app microphone system sounds" },
-        { id: "display",   g: 1, label: "Displays",         icon: "sun",       tint: "#FFB547", k: "resolution scale monitor arrange rotate refresh brightness" },
-        { id: "input",     g: 1, label: "Mouse & Touchpad", icon: "mouse",     tint: "#A78BFA", k: "gestures scroll tap" },
-        { id: "keyboard",  g: 1, label: "Keyboard & Language", icon: "keyboard", tint: "#34C77B", k: "vietnamese telex vni typing input method layout repeat" },
-        { id: "printers",  g: 1, label: "Printers",         icon: "document",  tint: "#7A8396", k: "print scanner cups" },
-        { id: "power",     g: 2, label: "Power & Battery",  icon: "bolt",      tint: "#34C77B", k: "sleep lock idle lid battery saver night light charge" },
-        { id: "notifs",    g: 2, label: "Notifications",    icon: "bell",      tint: "#FF5F57", k: "do not disturb apps lock screen" },
-        { id: "apps",      g: 2, label: "Default Apps",     icon: "grid",      tint: "#5B8CFF", k: "browser video music image pdf open with" },
-        { id: "startup",   g: 2, label: "Startup Apps",     icon: "play",      tint: "#FF9F43", k: "autostart login" },
-        { id: "storage",   g: 2, label: "Storage",          icon: "disk",      tint: "#2EC4B6", k: "disk space clean cache trash" },
-        { id: "snapshots", g: 2, label: "Snapshots & Backup", icon: "restart", tint: "#A78BFA", k: "rollback restore btrfs snapper backup" },
-        { id: "datetime",  g: 2, label: "Date & Time",      icon: "timer",     tint: "#FFB547", k: "timezone clock 24h ntp" },
-        { id: "privacy",   g: 2, label: "Privacy & Security", icon: "lock",    tint: "#FF6B97", k: "camera microphone firewall clipboard history" },
-        { id: "updates",   g: 2, label: "Updates",          icon: "download",  tint: "#5B8CFF", k: "upgrade mirrors automatic" },
-        { id: "account",   g: 3, label: "Users & Account",  icon: "user",      tint: "#34C77B", k: "password avatar name add user lock screen" },
-        { id: "developer", g: 3, label: "Developer",        icon: "code",      tint: "#6D4AFF", k: "ssh docker hidden files projects" },
-        { id: "about",     g: 3, label: "About",            icon: "islet",     tint: "#8B7CFF", k: "system info hostname disk health battery" }
+        { id: "account",   g: -1, label: "Account",            icon: "user",      tint: "#34C77B", d: "Your picture, name and password, and other people who use this computer", k: "user password picture avatar photo name sign in login lock startup add person people" },
+        { id: "wifi",      g: 0, label: "Wi-Fi & Network",     icon: "wifi",      tint: "#3B8BFF", d: "Wi-Fi, VPN, IP address and proxy", k: "internet wireless vpn wireguard proxy ip dns qr share password ethernet" },
+        { id: "bluetooth", g: 0, label: "Bluetooth",           icon: "bluetooth", tint: "#3B8BFF", d: "Headphones, mice, keyboards and other devices", k: "headphones pair speaker" },
+        { id: "display",   g: 1, label: "Displays",            icon: "sun",       tint: "#FFB547", d: "Resolution, scale, arrangement and Night Light", k: "resolution scale monitor arrange rotate refresh brightness night light warm blue" },
+        { id: "sound",     g: 1, label: "Sound",               icon: "volume",    tint: "#FF5C7A", d: "Speakers, microphones and the volume of each app", k: "volume audio microphone output input app system sounds" },
+        { id: "input",     g: 1, label: "Mouse & Touchpad",    icon: "mouse",     tint: "#A78BFA", d: "Pointer speed, scrolling and gestures", k: "gestures scroll tap click natural pointer speed" },
+        { id: "keyboard",  g: 1, label: "Keyboard & Typing",   icon: "keyboard",  tint: "#34C77B", d: "Vietnamese typing, keyboard layout and key repeat", k: "vietnamese telex vni typing input method layout repeat language tiếng việt" },
+        { id: "printers",  g: 1, label: "Printers",            icon: "document",  tint: "#7A8396", d: "Printers and saving as PDF", k: "print scanner cups pdf" },
+        { id: "power",     g: 1, label: "Battery & Power",     icon: "bolt",      tint: "#34C77B", d: "Power mode, when to sleep, and battery health", k: "sleep lock idle lid battery saver charge limit performance" },
+        { id: "wallpaper", g: 2, label: "Wallpaper",           icon: "palette",   tint: "#B65CFF", d: "Islet wallpapers, live wallpapers and your own photos", k: "background image picture live" },
+        { id: "accent",    g: 2, label: "Appearance",          icon: "sparkle",   tint: "#FF6B97", d: "Accent color, icon style and font", k: "accent color theme icon style font" },
+        { id: "island",    g: 2, label: "Desktop & Dock",      icon: "grid",      tint: "#8B7CFF", d: "Dynamic Island, the Dock and your desktops", k: "dynamic island dock size autohide pin workspaces desktops animation activities" },
+        { id: "notifs",    g: 2, label: "Notifications",       icon: "bell",      tint: "#FF5F57", d: "Do Not Disturb, banners and alerts from apps", k: "do not disturb dnd banner apps sound preview" },
+        { id: "apps",      g: 3, label: "Apps",                icon: "grid",      tint: "#5B8CFF", d: "Which app opens your files, and apps that start when you sign in", k: "default browser video music image pdf open with startup autostart login" },
+        { id: "storage",   g: 3, label: "Storage & Backup",    icon: "disk",      tint: "#2EC4B6", d: "Free space, clean-up, system snapshots and backups", k: "disk space clean cache trash snapshot rollback restore btrfs backup" },
+        { id: "privacy",   g: 3, label: "Privacy & Security",  icon: "lock",      tint: "#FF6B97", d: "Camera and microphone, firewall and history", k: "camera microphone firewall clipboard history recent" },
+        { id: "datetime",  g: 3, label: "Date & Time",         icon: "timer",     tint: "#FFB547", d: "Time zone and how the clock looks", k: "timezone clock 24h seconds ntp" },
+        { id: "access",    g: 3, label: "Accessibility",       icon: "user",      tint: "#2EC4B6", d: "Zoom, text size, contrast, motion and screen reader", k: "zoom contrast motion cursor text size screen reader orca" },
+        { id: "updates",   g: 3, label: "Updates",             icon: "download",  tint: "#5B8CFF", d: "Keep Islet and your apps up to date", k: "upgrade mirrors automatic" },
+        { id: "developer", g: 3, label: "Developer",           icon: "code",      tint: "#6D4AFF", d: "SSH, Docker, hidden files and Git", k: "ssh docker hidden files git projects" },
+        { id: "about",     g: 3, label: "About",               icon: "islet",     tint: "#8B7CFF", d: "This computer: its name, hardware and health", k: "system info hostname computer name disk health battery version" }
     ]
+    readonly property var cur: pages.find(p => p.id === page) ?? pages[0]
     property string navQuery: ""
     function navMatch(pg) { const q = navQuery.trim().toLowerCase(); return !q || (pg.label + " " + pg.k).toLowerCase().indexOf(q) >= 0; }
 
-    onOpenChanged: if (open) { panel.forceActiveFocus(); refreshPage(); }
-    onPageChanged: if (open) refreshPage()
+    onPageChanged: { faceCheck.running = true; if (visible) refreshPage(); }
     function refreshPage() {
-        if (page === "wallpaper") pics.running = true;
+        if (page === "wallpaper") { pics.running = true; islWalls.running = true; }
         if (page === "wifi") wifi.refresh(true);
         if (page === "display") mons.running = true;
         if (page === "about") about.running = true;
         if (page === "updates" && Date.now() - Updates.lastCheck > 10 * 60 * 1000) Updates.check();
-        if (page === "account") gecos.running = true;
         if (page === "bluetooth" && win.bt && win.bt.enabled) win.bt.discovering = true;
         if (page !== "bluetooth" && win.bt && win.bt.discovering) win.bt.discovering = false;
-    }
-
-    HyprlandFocusGrab {
-        windows: [win]
-        active: win.open
-        onCleared: Ui.settingsOpen = false
     }
 
     // ================= dữ liệu =================
@@ -87,7 +104,7 @@ PanelWindow {
     property var pictures: []
     Process {
         id: pics
-        command: ["sh", "-c", "for d in /usr/share/islet/wallpapers /usr/share/backgrounds \"$HOME/Pictures/Wallpapers\" \"$HOME/Pictures\" \"$HOME/Ảnh\"; do [ -d \"$d\" ] && find \"$d\" -maxdepth 2 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) 2>/dev/null; done | head -60"]
+        command: ["sh", "-c", "for d in /usr/share/backgrounds \"$HOME/Pictures/Wallpapers\" \"$HOME/Pictures\" \"$HOME/Ảnh\"; do [ -d \"$d\" ] && find \"$d\" -maxdepth 2 -type f \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) 2>/dev/null; done | head -60"]
         stdout: StdioCollector { onStreamFinished: win.pictures = text.split("\n").filter(x => x) }
     }
 
@@ -210,37 +227,6 @@ PanelWindow {
         command: ["sh", "-c", "getent passwd \"$USER\" | cut -d: -f5 | cut -d, -f1"]
         stdout: StdioCollector { onStreamFinished: win.fullName = text.trim() }
     }
-    property string pwMsg: ""
-    property bool pwOk: false
-    property bool pwBusy: false
-    function changePassword(oldPw, newPw, again) {
-        pwOk = false;
-        if (newPw.length < 4) { pwMsg = "The new password needs at least 4 characters"; return; }
-        if (newPw !== again) { pwMsg = "The new passwords don't match"; return; }
-        pwBusy = true; pwMsg = "";
-        // xác minh mật khẩu hiện tại một lần qua PAM; đúng rồi mới đổi bằng sudo + chpasswd
-        Auth.verify(oldPw, ok => {
-            if (!ok) { win.pwBusy = false; win.pwMsg = "Current password is wrong"; return; }
-            chpw.input = oldPw + "\n" + userName + ":" + newPw + "\n";
-            chpw.running = true;
-        });
-    }
-    Process {
-        id: chpw
-        property string input: ""
-        // sudo đọc dòng 1 (mật khẩu hiện tại = xác minh đúng người), chpasswd đọc dòng 2
-        command: ["sudo", "-S", "-p", "", "chpasswd"]
-        stdinEnabled: true
-        onStarted: { write(input); input = ""; stdinEnabled = false; }
-        stderr: StdioCollector { id: chpwErr }
-        onExited: code => {
-            stdinEnabled = true;
-            win.pwBusy = false;
-            win.pwOk = code === 0;
-            win.pwMsg = code === 0 ? "Password changed" : /incorrect|Sorry/i.test(chpwErr.text) ? "Current password is wrong" : "Couldn't change the password";
-            if (code === 0) { oldPw.text = ""; newPw.text = ""; newPw2.text = ""; }
-        }
-    }
 
     property string upPwErr: ""
     Connections { target: Packages; function onPasswordRejected() { win.upPwErr = "Wrong password"; } }
@@ -284,37 +270,107 @@ PanelWindow {
     }
     Timer { id: remon; interval: 900; onTriggered: mons.running = true }
 
+    // hình nền riêng của Islet (theme/wallpapers → /usr/share/islet/wallpapers)
+    readonly property var wallNames: ({ islet: "Islet", lagoon: "Lagoon", dusk: "Dusk Isles", aurora: "Aurora", prism: "Prism", midnight: "Midnight" })
+    readonly property var wallOrder: ["islet", "dusk", "lagoon", "aurora", "prism", "midnight"]
+    property var isletWalls: []
+    Process {
+        id: islWalls
+        command: ["sh", "-c", "ls /usr/share/islet/wallpapers/*.jpg /usr/share/islet/wallpapers/*.png 2>/dev/null"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const key = p => p.split("/").pop().replace(/\.[^.]+$/, "");
+                win.isletWalls = text.split("\n").filter(x => x).sort((a, b) => {
+                    const ia = win.wallOrder.indexOf(key(a)), ib = win.wallOrder.indexOf(key(b));
+                    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+                }).map(p => ({ path: p, name: win.wallNames[key(p)] ?? key(p) }));
+            }
+        }
+    }
+    // ảnh đại diện cho thẻ tài khoản
+    property bool hasFace: false
+    property int faceV: 0
+    Process { id: faceCheck; command: ["test", "-f", Quickshell.env("HOME") + "/.face"]; onExited: code => { win.hasFace = code === 0; win.faceV++; } }
+
     // ================= khung =================
-    Glass {
+    Item {
         id: panel
         anchors.fill: parent
-        radius: 28
-        color: Qt.rgba(0.05, 0.05, 0.09, 0.9)
-
-        opacity: win.open ? 1 : 0
-        scale: win.open ? 1 : 0.94
-        Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-        Behavior on scale { SpringAnimation { spring: 4; damping: 0.32; epsilon: 0.002 } }
-
-        Keys.onEscapePressed: Ui.settingsOpen = false
+        focus: true
+        transformOrigin: Item.Top
+        Keys.onEscapePressed: { if (Admin.askPassword) Admin.cancel(); else win.close(); }
+        ParallelAnimation {
+            id: intro
+            NumberAnimation { target: panel; property: "opacity"; from: 0; to: 1; duration: 180; easing.type: Easing.OutCubic }
+            NumberAnimation { target: panel; property: "scale"; from: 0.98; to: 1; duration: 300; easing.type: Easing.OutCubic }
+        }
 
         // ---------- cột trái ----------
         Rectangle {
             id: side
-            width: 210
+            width: 240
             height: parent.height
-            radius: 28
-            color: Qt.rgba(1, 1, 1, 0.03)
+            color: Qt.rgba(1, 1, 1, 0.035)
+            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Qt.rgba(1, 1, 1, 0.06) }
 
+            // dải trên cùng = thanh tiêu đề: kéo để di chuyển, bấm đúp để phóng to
+            TitleDrag { width: parent.width; height: 50 }
+
+            // ba nút cửa sổ (giống mọi app Islet: đóng · thu nhỏ · phóng to)
             Row {
-                x: 20; y: 22; spacing: 10
-                Image { width: 32; height: 32; sourceSize: Qt.size(64, 64); source: Theme.appIcon("settings") }
-                Text { anchors.verticalCenter: parent.verticalCenter; text: "Settings"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Bold }
+                id: lights
+                x: 20; y: 19
+                spacing: 8
+                HoverHandler { id: lightsHover }
+                Repeater {
+                    model: [
+                        { c: "#FF5F57", icon: "close",  tip: "Close",    act: () => win.close() },
+                        { c: "#FEBC2E", icon: "minus",  tip: "Minimize", act: () => win.minimize() },
+                        { c: "#28C840", icon: "expand", tip: "Maximize", act: () => win.toggleMaximize() }
+                    ]
+                    Rectangle {
+                        required property var modelData
+                        width: 13; height: 13; radius: 6.5
+                        color: modelData.c
+                        border.width: 1; border.color: Qt.rgba(0, 0, 0, 0.25)
+                        scale: dm.pressed ? 0.85 : 1
+                        Behavior on scale { NumberAnimation { duration: 90 } }
+                        Icon { anchors.centerIn: parent; name: parent.modelData.icon; size: 9; color: "#3A1A10"; opacity: lightsHover.hovered ? 0.85 : 0 }
+                        MouseArea { id: dm; anchors.fill: parent; anchors.margins: -3; cursorShape: Qt.PointingHandCursor; onClicked: parent.modelData.act() }
+                    }
+                }
             }
 
-            // ô tìm trang
+            // thẻ tài khoản — chỗ duy nhất để đổi ảnh, tên, mật khẩu
             Rectangle {
-                x: 12; y: 66
+                id: acct
+                readonly property bool on: win.page === "account"
+                x: 12; y: 52
+                width: parent.width - 24; height: 62; radius: 16
+                color: on ? Theme.tint(0.22) : acm.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : Qt.rgba(1, 1, 1, 0.04)
+                Behavior on color { ColorAnimation { duration: 140 } }
+                Item {
+                    x: 10; anchors.verticalCenter: parent.verticalCenter
+                    width: 42; height: 42
+                    Rectangle { anchors.fill: parent; radius: 21; color: Qt.rgba(1, 1, 1, 0.08) }
+                    Image { anchors.fill: parent; anchors.margins: 5; visible: sideFace.status !== Image.Ready; source: Qt.resolvedUrl("../assets/brand/cat.svg"); sourceSize: Qt.size(64, 64) }
+                    Rounded {
+                        anchors.fill: parent; radius: 21
+                        Image { id: sideFace; anchors.fill: parent; source: win.hasFace ? "file://" + Quickshell.env("HOME") + "/.face?" + win.faceV : ""; sourceSize: Qt.size(84, 84); fillMode: Image.PreserveAspectCrop; cache: false }
+                    }
+                }
+                Column {
+                    x: 62; anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - 72
+                    Text { width: parent.width; elide: Text.ElideRight; text: win.fullName || win.userName; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                    Text { text: "Account · picture, password"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                }
+                MouseArea { id: acm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Ui.settingsPage = "account" }
+            }
+
+            // ô tìm cài đặt
+            Rectangle {
+                x: 12; y: 124
                 width: parent.width - 24; height: 34; radius: 12
                 color: Qt.rgba(1, 1, 1, 0.07)
                 border.width: 1
@@ -333,7 +389,19 @@ PanelWindow {
             }
 
             Flickable {
-                x: 12; y: 110
+                id: navFlick
+                // cuộn cho mục đang chọn lọt vào tầm nhìn (khi mở thẳng một trang từ nơi khác)
+                property var shown: null
+                onHeightChanged: if (shown) reveal(shown)       // cửa sổ vừa hiện / đổi cỡ
+                function reveal(it) {
+                    shown = it;
+                    Qt.callLater(() => {
+                        const p = it.mapToItem(navCol, 0, 0);
+                        if (p.y < contentY) contentY = Math.max(0, p.y - 24);
+                        else if (p.y + it.height > contentY + height) contentY = Math.min(contentHeight - height, p.y + it.height - height + 12);
+                    });
+                }
+                x: 12; y: 168
                 width: parent.width - 24
                 height: parent.height - y - 10
                 contentHeight: navCol.implicitHeight
@@ -343,6 +411,11 @@ PanelWindow {
                     id: navCol
                     width: parent.width
                     spacing: 1
+                    // khi tìm: cả "Account" cũng hiện trong danh sách
+                    Repeater {
+                        model: win.navQuery.trim() && win.navMatch(win.pages[0]) ? [win.pages[0]] : []
+                        NavItem { required property var modelData; item: modelData; on: win.page === modelData.id; onOnChanged: if (on) navFlick.reveal(this) }
+                    }
                     Repeater {
                         model: win.groups
                         Column {
@@ -354,54 +427,30 @@ PanelWindow {
                             width: navCol.width
                             spacing: 1
                             Text {
-                                leftPadding: 10; topPadding: grp.index ? 10 : 0; bottomPadding: 4
+                                leftPadding: 10; topPadding: grp.index ? 12 : 2; bottomPadding: 4
                                 text: grp.modelData.toUpperCase()
                                 color: "#636366"; font.family: Theme.font; font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 0.6
                             }
                             Repeater {
                                 model: grp.items
-                                Rectangle {
-                                    id: nav
-                                    required property var modelData
-                                    readonly property bool on: win.page === modelData.id
-                                    width: grp.width
-                                    height: 32
-                                    radius: 11
-                                    color: on ? Theme.tint(0.22) : nm.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : "transparent"
-                                    Behavior on color { ColorAnimation { duration: 140 } }
-                                    Rectangle {
-                                        x: 8; anchors.verticalCenter: parent.verticalCenter
-                                        width: 24; height: 24; radius: 7
-                                        color: Prefs.iconStyle === "color" ? nav.modelData.tint : nav.on ? Theme.accent : Qt.rgba(1, 1, 1, 0.09)
-                                        Behavior on color { ColorAnimation { duration: 160 } }
-                                        Icon { anchors.centerIn: parent; name: nav.modelData.icon; size: 14 }
-                                    }
-                                    Text { x: 40; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 44; elide: Text.ElideRight; text: nav.modelData.label; color: nav.on ? "#FFFFFF" : "#D1D1D6"; font.family: Theme.font; font.pixelSize: 12; font.weight: nav.on ? Font.DemiBold : Font.Normal }
-                                    MouseArea { id: nm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Ui.settingsPage = nav.modelData.id }
-                                }
+                                NavItem { required property var modelData; item: modelData; on: win.page === modelData.id; onOnChanged: if (on) navFlick.reveal(this) }
                             }
                         }
                     }
+                    Text {
+                        visible: win.navQuery.trim() !== "" && !win.pages.some(pg => win.navMatch(pg))
+                        leftPadding: 10; topPadding: 8
+                        text: "No settings match"
+                        color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                    }
                 }
             }
-        }
-
-        // nút đóng
-        Rectangle {
-            anchors.right: parent.right; anchors.rightMargin: 16
-            anchors.top: parent.top; anchors.topMargin: 16
-            width: 32; height: 32; radius: 16
-            z: 5
-            color: xm.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.07)
-            Icon { anchors.centerIn: parent; name: "close"; size: 14 }
-            MouseArea { id: xm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Ui.settingsOpen = false }
         }
 
         // ---------- hỏi mật khẩu quản trị (Admin.askPassword) ----------
         Rectangle {
             id: adminSheet
             anchors.fill: parent
-            radius: 28
             z: 20
             color: Qt.rgba(0, 0, 0, 0.45)
             visible: opacity > 0.01
@@ -438,26 +487,30 @@ PanelWindow {
         }
 
         // ---------- nội dung ----------
-        Flickable {
-            id: flick
+        Item {
+            id: main
             anchors.left: side.right
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            anchors.margins: 22
-            anchors.leftMargin: 26
-            contentHeight: body.implicitHeight + 10
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
+            TitleDrag { width: parent.width; height: 34 }
+
+            Flickable {
+                id: flick
+                anchors.fill: parent
+                anchors.topMargin: 26
+                anchors.leftMargin: 30
+                anchors.rightMargin: 24
+                contentHeight: body.implicitHeight + 30
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
 
             Column {
                 id: body
-                width: flick.width
+                width: Math.min(flick.width, 860)
                 spacing: 16
 
                 // hiệu ứng đổi trang: trượt lên + hiện dần
-                property string shownPage: win.page
-                opacity: 1
                 Connections {
                     target: win
                     function onPageChanged() { flick.contentY = 0; pageIn.restart(); }
@@ -468,13 +521,694 @@ PanelWindow {
                     NumberAnimation { target: body; property: "y"; from: 14; to: 0; duration: 320; easing.type: Easing.OutCubic }
                 }
 
-                Text {
-                    text: (win.pages.find(p => p.id === win.page) ?? {}).label ?? ""
-                    color: "#FFFFFF"
-                    font.family: Theme.font
-                    font.pixelSize: 22
-                    font.weight: Font.Bold
+                // tiêu đề trang + một dòng giải thích
+                Column {
+                    width: parent.width
+                    spacing: 4
+                    bottomPadding: 4
+                    Text { text: win.cur.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 24; font.weight: Font.Bold }
+                    Text { width: parent.width; wrapMode: Text.Wrap; text: win.cur.d; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 13 }
                 }
+
+                // ================= TÀI KHOẢN =================
+                AccountPage { visible: win.page === "account"; fullName: win.fullName; onRenamed: gecos.running = true }
+
+                // ================= WI-FI =================
+                Column {
+                    visible: win.page === "wifi"
+                    width: parent.width
+                    spacing: 12
+
+                    // không có Wi-Fi
+                    Card {
+                        visible: wifi.dev === ""
+                        width: parent.width
+                        height: 84
+                        Rectangle {
+                            x: 18; anchors.verticalCenter: parent.verticalCenter
+                            width: 44; height: 44; radius: 14
+                            color: Qt.rgba(1, 1, 1, 0.08)
+                            Icon { anchors.centerIn: parent; name: Net.kind === "ethernet" ? "ethernet" : "wifi-off"; size: 20 }
+                        }
+                        Column {
+                            x: 76; anchors.verticalCenter: parent.verticalCenter
+                            Text { text: Net.kind === "ethernet" ? "Using a wired connection" : "This computer has no Wi-Fi"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                            Text { text: Net.kind === "ethernet" ? "Connected to the internet over a cable" : "Plug in a network cable or a USB Wi-Fi adapter to get online"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                        }
+                    }
+
+                    // bật / tắt
+                    Card {
+                        visible: wifi.dev !== ""
+                        width: parent.width
+                        height: 64
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Wi-Fi"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                        Text {
+                            anchors.right: wsw.left; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
+                            text: Net.wifiBlocked ? "Off" : wifi.current ? "Connected to " + wifi.current : "Not connected"
+                            color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                        }
+                        Toggle { id: wsw; anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: !Net.wifiBlocked; onToggled: { Net.toggleWifi(); wifi.refresh(true); } }
+                    }
+
+                    Row {
+                        visible: wifi.dev !== "" && !Net.wifiBlocked
+                        width: parent.width
+                        SectionLabel { text: "Nearby networks"; width: parent.width - 90 }
+                        Text {
+                            width: 90; horizontalAlignment: Text.AlignRight
+                            text: "Rescan"; color: Qt.lighter(Theme.accent, 1.25); font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: wifi.refresh(true) }
+                        }
+                    }
+                    Text { visible: wifi.error !== "" && wifi.joining === ""; text: wifi.error; color: "#FF8A8A"; font.family: Theme.font; font.pixelSize: 12 }
+
+                    Card {
+                        visible: wifi.dev !== "" && !Net.wifiBlocked
+                        width: parent.width
+                        height: netCol.implicitHeight + 8
+                        Column {
+                            id: netCol
+                            y: 4
+                            width: parent.width
+                            Text { visible: wifi.nets.length === 0; leftPadding: 18; topPadding: 14; bottomPadding: 14; text: "Looking for networks…"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                            Repeater {
+                                model: wifi.nets
+                                Rectangle {
+                                    id: net
+                                    required property var modelData
+                                    readonly property bool asking: wifi.joining === modelData.name
+                                    width: netCol.width
+                                    height: asking ? 98 : 50
+                                    color: nem.containsMouse && !asking ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+                                    radius: 14
+                                    clip: true
+                                    Behavior on height { SpringAnimation { spring: 4.5; damping: 0.35; epsilon: 0.2 } }
+                                    MouseArea {
+                                        id: nem
+                                        width: parent.width; height: 50
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            if (net.modelData.cur) return;
+                                            if (net.modelData.sec === "open" || net.modelData.saved) wifi.connect(net.modelData.name, "");
+                                            else { wifi.joining = net.modelData.name; wifi.error = ""; pwIn.text = ""; pwIn.forceActiveFocus(); }
+                                        }
+                                    }
+                                    Icon {
+                                        x: 18; y: 16; size: 18
+                                        name: net.modelData.q > 66 ? "wifi" : net.modelData.q > 33 ? "wifi-2" : "wifi-1"
+                                        color: net.modelData.cur ? Theme.accent : "#FFFFFF"
+                                    }
+                                    Text { x: 50; y: 15; text: net.modelData.name; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: net.modelData.cur ? Font.DemiBold : Font.Normal }
+                                    Row {
+                                        anchors.right: parent.right; anchors.rightMargin: 16; y: 14
+                                        spacing: 8
+                                        Text {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: wifi.busy === net.modelData.name ? "Connecting…" : net.modelData.cur ? "Connected" : net.modelData.saved ? "Saved" : ""
+                                            color: net.modelData.cur ? Qt.lighter(Theme.accent, 1.3) : "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                                        }
+                                        Icon { anchors.verticalCenter: parent.verticalCenter; name: "lock"; size: 13; opacity: 0.6; visible: net.modelData.sec !== "open" }
+                                        Rectangle {
+                                            visible: net.modelData.cur || net.modelData.saved
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            width: dl.implicitWidth + 18; height: 24; radius: 12
+                                            color: dlm.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
+                                            Text { id: dl; anchors.centerIn: parent; text: net.modelData.cur ? "Disconnect" : "Forget"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 11 }
+                                            MouseArea {
+                                                id: dlm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                                onClicked: { Quickshell.execDetached(net.modelData.cur ? ["islet-wifi", "disconnect"] : ["islet-wifi", "forget", net.modelData.name]); wifi.refresh(false); }
+                                            }
+                                        }
+                                    }
+                                    // ô mật khẩu
+                                    Rectangle {
+                                        visible: net.asking
+                                        x: 50; y: 52
+                                        width: parent.width - 50 - 110
+                                        height: 34; radius: 12
+                                        color: Qt.rgba(1, 1, 1, 0.08)
+                                        border.width: 1
+                                        border.color: wifi.error ? Qt.rgba(1, 0.42, 0.42, 0.7) : pwIn.activeFocus ? Theme.tint(0.7) : Qt.rgba(1, 1, 1, 0.1)
+                                        TextInput {
+                                            id: pwIn
+                                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
+                                            verticalAlignment: TextInput.AlignVCenter
+                                            echoMode: TextInput.Password
+                                            color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13
+                                            Keys.onReturnPressed: wifi.connect(net.modelData.name, text)
+                                            Keys.onEscapePressed: wifi.joining = ""
+                                        }
+                                        Text {
+                                            visible: pwIn.text === ""
+                                            anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter
+                                            text: wifi.error || "Wi-Fi password"; color: wifi.error ? "#FF8A8A" : "#636366"; font.family: Theme.font; font.pixelSize: 12
+                                        }
+                                    }
+                                    Pill { visible: net.asking; x: parent.width - 100; y: 53; label: "Connect"; primary: true; onClicked: wifi.connect(net.modelData.name, pwIn.text) }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                NetworkExtras { visible: win.page === "wifi"; width: parent.width; ssid: wifi.current }
+
+                // ================= BLUETOOTH =================
+                Column {
+                    visible: win.page === "bluetooth"
+                    width: parent.width
+                    spacing: 12
+
+                    Card {
+                        visible: !win.bt
+                        width: parent.width
+                        height: 84
+                        Rectangle {
+                            x: 18; anchors.verticalCenter: parent.verticalCenter
+                            width: 44; height: 44; radius: 14
+                            color: Qt.rgba(1, 1, 1, 0.08)
+                            Icon { anchors.centerIn: parent; name: "bluetooth"; size: 20; opacity: 0.6 }
+                        }
+                        Column {
+                            x: 76; anchors.verticalCenter: parent.verticalCenter
+                            Text { text: "No Bluetooth adapter"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                            Text { text: "This computer has no Bluetooth, or it is turned off in the firmware"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                        }
+                    }
+
+                    Card {
+                        visible: !!win.bt
+                        width: parent.width
+                        height: 64
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Bluetooth"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                        Text {
+                            anchors.right: btsw.left; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
+                            text: !win.bt ? "" : !win.bt.enabled ? "Off" : win.bt.discovering ? "Searching…" : "On · " + (win.bt.name || "")
+                            color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                        }
+                        Toggle {
+                            id: btsw
+                            anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
+                            checked: win.bt?.enabled ?? false
+                            onToggled: { if (win.bt) { win.bt.enabled = !win.bt.enabled; if (win.bt.enabled) btScan.restart(); } }
+                        }
+                        Timer { id: btScan; interval: 1200; onTriggered: if (win.bt && win.bt.enabled) win.bt.discovering = true }
+                    }
+
+                    Row {
+                        visible: !!win.bt && win.bt.enabled
+                        width: parent.width
+                        SectionLabel { text: "Devices"; width: parent.width - 90 }
+                        Text {
+                            width: 90; horizontalAlignment: Text.AlignRight
+                            text: win.bt?.discovering ? "Stop" : "Search"
+                            color: Qt.lighter(Theme.accent, 1.25); font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: if (win.bt) win.bt.discovering = !win.bt.discovering }
+                        }
+                    }
+
+                    Card {
+                        visible: !!win.bt && win.bt.enabled
+                        width: parent.width
+                        height: btCol.implicitHeight + 8
+                        Column {
+                            id: btCol
+                            y: 4
+                            width: parent.width
+                            Text {
+                                visible: win.btDevices.length === 0
+                                leftPadding: 18; topPadding: 14; bottomPadding: 14
+                                text: "Looking for devices… put your headphones or mouse in pairing mode"
+                                color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                            }
+                            Repeater {
+                                model: win.btDevices
+                                Rectangle {
+                                    id: dev
+                                    required property var modelData
+                                    readonly property bool busy: modelData.pairing || modelData.state === BluetoothDeviceState.Connecting || modelData.state === BluetoothDeviceState.Disconnecting
+                                    width: btCol.width
+                                    height: 54
+                                    radius: 14
+                                    color: dm2.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+                                    MouseArea { id: dm2; anchors.fill: parent; hoverEnabled: true }
+                                    Rectangle {
+                                        x: 14; anchors.verticalCenter: parent.verticalCenter
+                                        width: 34; height: 34; radius: 11
+                                        color: dev.modelData.connected ? Theme.tint(0.3) : Qt.rgba(1, 1, 1, 0.08)
+                                        Icon { anchors.centerIn: parent; name: win.btIcon(dev.modelData); size: 17 }
+                                    }
+                                    Column {
+                                        x: 60; anchors.verticalCenter: parent.verticalCenter
+                                        width: parent.width - 60 - btAct.width - 24
+                                        Text { width: parent.width; elide: Text.ElideRight; text: dev.modelData.name || dev.modelData.address; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: dev.modelData.connected ? Font.DemiBold : Font.Normal }
+                                        Text {
+                                            text: dev.modelData.pairing ? "Pairing…"
+                                                : dev.modelData.state === BluetoothDeviceState.Connecting ? "Connecting…"
+                                                : dev.modelData.connected ? "Connected" + (dev.modelData.batteryAvailable ? " · battery " + Math.round(dev.modelData.battery * 100) + "%" : "")
+                                                : dev.modelData.paired ? "Paired" : "Not paired"
+                                            color: dev.modelData.connected ? Qt.lighter(Theme.accent, 1.3) : "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                                        }
+                                    }
+                                    Row {
+                                        id: btAct
+                                        anchors.right: parent.right; anchors.rightMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 6
+                                        Pill {
+                                            visible: !dev.busy
+                                            label: dev.modelData.connected ? "Disconnect" : dev.modelData.paired ? "Connect" : "Pair"
+                                            primary: !dev.modelData.connected
+                                            onClicked: {
+                                                const d = dev.modelData;
+                                                if (d.connected) d.disconnect();
+                                                else if (d.paired) d.connect();
+                                                else { d.trusted = true; d.pair(); }
+                                            }
+                                        }
+                                        Pill {
+                                            visible: dev.modelData.paired && !dev.busy && dm2.containsMouse
+                                            label: "Forget"
+                                            onClicked: dev.modelData.forget()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ================= MÀN HÌNH =================
+                Column {
+                    visible: win.page === "display"
+                    width: parent.width
+                    spacing: 12
+
+                    // hỏi giữ thay đổi
+                    Rectangle {
+                        visible: win.pendingRevert !== null
+                        width: parent.width
+                        height: 58
+                        radius: 16
+                        color: Theme.tint(0.18)
+                        border.width: 1
+                        border.color: Theme.tint(0.5)
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Keep these display settings? Reverting in " + win.revertLeft + "s"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                        Row {
+                            anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
+                            spacing: 8
+                            Pill { label: "Revert"; onClicked: win.revertMonitor() }
+                            Pill { label: "Keep"; primary: true; onClicked: win.keepMonitor() }
+                        }
+                    }
+
+                    Slider {
+                        width: parent.width
+                        visible: Brightness.available
+                        title: "Brightness"
+                        value: Brightness.value
+                        fill: Theme.amber
+                        onMoved: v => Brightness.set(v)
+                    }
+
+                    Repeater {
+                        model: win.monitors
+                        Card {
+                            id: mon
+                            required property var modelData
+                            readonly property string curMode: modelData.width + "x" + modelData.height + "@" + Math.round(modelData.refreshRate)
+                            readonly property var modes: {
+                                const seen = {}, out = [];
+                                for (const m of (modelData.availableModes || [])) {
+                                    const r = m.match(/^(\d+)x(\d+)@([\d.]+)/);
+                                    if (!r) continue;
+                                    const k = r[1] + "x" + r[2];
+                                    if (seen[k]) continue;
+                                    seen[k] = true;
+                                    out.push({ label: r[1] + " × " + r[2], mode: k + "@" + Math.round(parseFloat(r[3])), w: +r[1] });
+                                }
+                                out.sort((a, b) => b.w - a.w);
+                                const top = out.slice(0, 11);
+                                const cur = out.find(o => o.mode.split("@")[0] === mon.curMode.split("@")[0]);
+                                if (cur && top.indexOf(cur) < 0) top.push(cur);
+                                return top;
+                            }
+                            width: parent.width
+                            height: monCol.implicitHeight + 32
+                            Column {
+                                id: monCol
+                                x: 18; y: 16
+                                width: parent.width - 36
+                                spacing: 12
+                                Row {
+                                    spacing: 12
+                                    Rectangle {
+                                        width: 54; height: 36; radius: 7
+                                        color: "transparent"; border.width: 2; border.color: Theme.accent
+                                        Rectangle { anchors.horizontalCenter: parent.horizontalCenter; anchors.top: parent.bottom; width: 14; height: 5; color: Theme.accent }
+                                    }
+                                    Column {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        Text { text: (mon.modelData.make && mon.modelData.make !== "Unknown" ? mon.modelData.make + " " : "") + (mon.modelData.model || mon.modelData.name); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                                        Text { text: mon.modelData.name + " · " + mon.modelData.width + "×" + mon.modelData.height + " · " + Math.round(mon.modelData.refreshRate) + " Hz · scale " + mon.modelData.scale; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                                    }
+                                }
+                                SectionLabel { text: "Resolution" }
+                                Flow {
+                                    width: parent.width
+                                    spacing: 8
+                                    Repeater {
+                                        model: mon.modes
+                                        Chip {
+                                            required property var modelData
+                                            label: modelData.label
+                                            on: mon.curMode.split("@")[0] === modelData.mode.split("@")[0]
+                                            onClicked: win.setMonitor(mon.modelData.name, { mode: modelData.mode })
+                                        }
+                                    }
+                                }
+                                SectionLabel { text: "Scale (make text and UI bigger or smaller)" }
+                                Row {
+                                    spacing: 8
+                                    Repeater {
+                                        model: [1, 1.25, 1.5, 1.75, 2]
+                                        Chip {
+                                            required property var modelData
+                                            label: Math.round(modelData * 100) + "%"
+                                            on: Math.abs(mon.modelData.scale - modelData) < 0.01
+                                            onClicked: win.setMonitor(mon.modelData.name, { scale: modelData })
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                DisplayExtras { visible: win.page === "display"; width: parent.width; monitors: win.monitors; onApply: (name, patch) => win.setMonitor(name, patch) }
+
+                // Night Light (trước đây ở Nguồn điện)
+                Column {
+                    visible: win.page === "display"
+                    width: parent.width
+                    spacing: 12
+                    SectionLabel { text: "Night Light" }
+                    Card {
+                        width: parent.width
+                        height: nlCol.implicitHeight + 32
+                        Column {
+                            id: nlCol
+                            x: 18; y: 16
+                            width: parent.width - 36
+                            spacing: 14
+                            Row {
+                                spacing: 8
+                                Repeater {
+                                    model: [{ v: "off", l: "Off" }, { v: "schedule", l: "Sunset to sunrise" }, { v: "on", l: "On now" }]
+                                    Chip { required property var modelData; label: modelData.l; on: Prefs.nightMode === modelData.v; onClicked: Prefs.set("nightMode", modelData.v) }
+                                }
+                            }
+                            Row {
+                                visible: Prefs.nightMode === "schedule"
+                                spacing: 10
+                                Text { anchors.verticalCenter: parent.verticalCenter; text: "From"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                                Repeater {
+                                    model: ["18:00", "19:00", "20:00", "21:00"]
+                                    Chip { required property string modelData; label: modelData; on: Prefs.nightFrom === modelData; onClicked: Prefs.set("nightFrom", modelData) }
+                                }
+                                Text { anchors.verticalCenter: parent.verticalCenter; text: "to"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                                Repeater {
+                                    model: ["05:30", "06:30", "07:30"]
+                                    Chip { required property string modelData; label: modelData; on: Prefs.nightTo === modelData; onClicked: Prefs.set("nightTo", modelData) }
+                                }
+                            }
+                            Slider {
+                                width: parent.width
+                                title: "Warmth"
+                                label: v => Math.round(6500 - v * 3500) + " K"
+                                value: (6500 - Prefs.nightTemp) / 3500
+                                fill: "#FF9F43"
+                                onMoved: v => Prefs.set("nightTemp", Math.round(6500 - v * 3500))
+                            }
+                            Text {
+                                text: NightLight.active ? "On now · " + NightLight.current + " K" : "Off now"
+                                color: NightLight.active ? "#FFB547" : "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                            }
+                        }
+                    }
+                }
+
+                // ================= ÂM THANH =================
+                Column {
+                    visible: win.page === "sound"
+                    width: parent.width
+                    spacing: 12
+
+                    Slider {
+                        width: parent.width
+                        title: "Output volume"
+                        value: Audio.muted ? 0 : Math.min(1, Audio.volume)
+                        available: Audio.sink !== null
+                        fill: Theme.accent
+                        onMoved: v => Audio.setVolume(v)
+                    }
+                    Card {
+                        width: parent.width
+                        height: 56
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Mute"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                        Toggle { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: Audio.muted; onToggled: if (Audio.sink?.audio) Audio.sink.audio.muted = !Audio.sink.audio.muted }
+                    }
+
+                    SectionLabel { text: "Output" }
+                    DeviceList { nodes: win.sinks; current: Pipewire.defaultAudioSink; onPicked: n => Pipewire.preferredDefaultAudioSink = n; empty: "No speakers or headphones found" }
+
+                    SectionLabel { text: "Input (microphone)" }
+                    Slider {
+                        width: parent.width
+                        title: "Input volume"
+                        visible: Pipewire.defaultAudioSource !== null
+                        value: Math.min(1, Pipewire.defaultAudioSource?.audio?.volume ?? 0)
+                        fill: Theme.accent
+                        onMoved: v => { if (Pipewire.defaultAudioSource?.audio) Pipewire.defaultAudioSource.audio.volume = v; }
+                    }
+                    DeviceList { nodes: win.sources; current: Pipewire.defaultAudioSource; onPicked: n => Pipewire.preferredDefaultAudioSource = n; empty: "No microphone found" }
+                }
+
+                SoundExtras { visible: win.page === "sound"; width: parent.width }
+
+                // ================= CHUỘT & TOUCHPAD =================
+                Column {
+                    visible: win.page === "input"
+                    width: parent.width
+                    spacing: 12
+                    SectionLabel { text: "Touchpad" }
+                    Card {
+                        width: parent.width
+                        height: tpCol.implicitHeight + 8
+                        Column {
+                            id: tpCol
+                            y: 4
+                            width: parent.width
+                            Repeater {
+                                model: [
+                                    { k: "naturalScroll", t: "Natural scrolling", s: "Content moves with your fingers" },
+                                    { k: "tapToClick", t: "Tap to click", s: "Tap the touchpad instead of pressing it" },
+                                    { k: "disableWhileTyping", t: "Ignore touchpad while typing", s: "Stops accidental clicks with your palm" }
+                                ]
+                                Item {
+                                    required property var modelData
+                                    required property int index
+                                    width: tpCol.width; height: 58
+                                    Rectangle { visible: parent.index > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
+                                    Column {
+                                        x: 18; anchors.verticalCenter: parent.verticalCenter
+                                        Text { text: parent.parent.modelData.t; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                                        Text { text: parent.parent.modelData.s; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                                    }
+                                    Toggle {
+                                        anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
+                                        checked: Prefs[parent.modelData.k]
+                                        onToggled: Prefs.set(parent.modelData.k, !Prefs[parent.modelData.k])
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Slider {
+                        width: parent.width
+                        title: "Pointer speed"
+                        value: (Prefs.pointerSpeed + 1) / 2
+                        fill: Theme.accent
+                        onMoved: v => Prefs.set("pointerSpeed", Math.round((v * 2 - 1) * 20) / 20)
+                    }
+                    Slider {
+                        width: parent.width
+                        title: "Scrolling speed"
+                        value: (Prefs.scrollSpeed - 0.25) / 1.75
+                        fill: Theme.accent
+                        onMoved: v => Prefs.set("scrollSpeed", Math.round((0.25 + v * 1.75) * 20) / 20)
+                    }
+                    SectionLabel { text: "Gestures" }
+                    Card {
+                        width: parent.width
+                        height: gCol.implicitHeight + 24
+                        Column {
+                            id: gCol
+                            x: 18; y: 12
+                            width: parent.width - 36
+                            spacing: 0
+                            Repeater {
+                                model: [
+                                    ["3 fingers left / right", "Switch desktop"],
+                                    ["3 fingers up · pinch 4 fingers", "Overview of all windows"],
+                                    ["3 fingers down", "Close Overview"],
+                                    ["Super + Tab", "Overview from the keyboard"]
+                                ]
+                                Item {
+                                    required property var modelData
+                                    width: gCol.width; height: 38
+                                    Text { anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[0]; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                                    Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[1]; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                KeyboardPage { visible: win.page === "keyboard" }
+
+                PrintersPage { visible: win.page === "printers" }
+
+                // ================= NGUỒN ĐIỆN =================
+                Column {
+                    visible: win.page === "power"
+                    width: parent.width
+                    spacing: 12
+
+                    // pin
+                    Card {
+                        visible: Power.present
+                        width: parent.width
+                        height: 72
+                        Rectangle {
+                            x: 18; anchors.verticalCenter: parent.verticalCenter
+                            width: 56; height: 26; radius: 7
+                            color: "transparent"; border.width: 2; border.color: Qt.rgba(1, 1, 1, 0.6)
+                            Rectangle {
+                                x: 3; y: 3; height: parent.height - 6; radius: 4
+                                width: (parent.width - 6) * Math.max(0.04, Power.percent / 100)
+                                color: Power.percent <= 20 && !Power.charging ? "#FF5F57" : Power.charging ? "#34C77B" : "#FFFFFF"
+                            }
+                            Rectangle { anchors.left: parent.right; anchors.leftMargin: 1; anchors.verticalCenter: parent.verticalCenter; width: 3; height: 10; radius: 1.5; color: Qt.rgba(1, 1, 1, 0.6) }
+                        }
+                        Column {
+                            x: 92; anchors.verticalCenter: parent.verticalCenter
+                            Text { text: Math.round(Power.percent) + "%" + (Power.charging ? " · charging" : " · on battery"); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold }
+                            Text {
+                                readonly property real secs: Power.charging ? (UPower.displayDevice?.timeToFull ?? 0) : (UPower.displayDevice?.timeToEmpty ?? 0)
+                                visible: secs > 0
+                                text: Math.floor(secs / 3600) + " h " + Math.round(secs % 3600 / 60) + " min " + (Power.charging ? "until full" : "left")
+                                color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                            }
+                        }
+                    }
+
+                    SectionLabel { text: "Power mode" }
+                    Row {
+                        spacing: 10
+                        Repeater {
+                            model: [
+                                { p: PowerProfile.PowerSaver, label: "Battery saver", sub: "Longer battery life", icon: "sleep" },
+                                { p: PowerProfile.Balanced, label: "Balanced", sub: "Good for most things", icon: "sliders" },
+                                { p: PowerProfile.Performance, label: "Performance", sub: "Fastest, uses more power", icon: "bolt" }
+                            ]
+                            Rectangle {
+                                id: pmode
+                                required property var modelData
+                                readonly property bool on: PowerProfiles.profile === modelData.p
+                                readonly property bool avail: modelData.p !== PowerProfile.Performance || PowerProfiles.hasPerformanceProfile
+                                width: (body.width - 20) / 3
+                                height: 78; radius: 18
+                                opacity: avail ? 1 : 0.4
+                                color: on ? Theme.tint(0.22) : pmm.containsMouse ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(1, 1, 1, 0.05)
+                                border.width: on ? 2 : 1
+                                border.color: on ? Theme.accent : Qt.rgba(1, 1, 1, 0.06)
+                                Icon { x: 14; y: 14; name: pmode.modelData.icon; size: 18; color: pmode.on ? Qt.lighter(Theme.accent, 1.3) : "#FFFFFF" }
+                                Column {
+                                    x: 14; y: 38
+                                    Text { text: pmode.modelData.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                    Text { text: pmode.modelData.sub; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 10 }
+                                }
+                                MouseArea { id: pmm; anchors.fill: parent; enabled: pmode.avail; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: PowerProfiles.profile = pmode.modelData.p }
+                            }
+                        }
+                    }
+                    Card {
+                        visible: Power.present
+                        width: parent.width; height: 56
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Turn on Battery saver automatically at 20%"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                        Toggle { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: Prefs.autoSaver; onToggled: Prefs.set("autoSaver", !Prefs.autoSaver) }
+                    }
+
+                    SectionLabel { text: "When the computer is idle" }
+                    Card {
+                        width: parent.width
+                        height: idleCol.implicitHeight + 24
+                        Column {
+                            id: idleCol
+                            x: 18; y: 12
+                            width: parent.width - 36
+                            spacing: 2
+                            Repeater {
+                                model: [
+                                    { k: "dimAfter", label: "Dim the screen after", opts: [0, 60, 120, 300] },
+                                    { k: "lockAfter", label: "Lock after", opts: [0, 120, 300, 600, 900] },
+                                    { k: "screenOffAfter", label: "Turn off the screen after", opts: [0, 180, 360, 600, 1200] },
+                                    { k: "sleepAfterBattery", label: "Sleep on battery after", opts: [0, 300, 600, 900, 1800] },
+                                    { k: "sleepAfterAC", label: "Sleep when plugged in after", opts: [0, 900, 1800, 3600] }
+                                ]
+                                Item {
+                                    id: irow
+                                    required property var modelData
+                                    width: idleCol.width
+                                    height: 44
+                                    Text { anchors.verticalCenter: parent.verticalCenter; text: irow.modelData.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                                    Row {
+                                        anchors.right: parent.right
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 6
+                                        Repeater {
+                                            model: irow.modelData.opts
+                                            Chip {
+                                                required property int modelData
+                                                label: modelData === 0 ? "Never" : modelData < 3600 ? (modelData / 60) + " min" : (modelData / 3600) + " h"
+                                                on: Prefs[irow.modelData.k] === modelData
+                                                onClicked: Prefs.set(irow.modelData.k, modelData)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Card {
+                        width: parent.width; height: 56
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "When I close the lid"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                        Row {
+                            anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
+                            spacing: 6
+                            Repeater {
+                                model: [{ v: "sleep", l: "Sleep" }, { v: "lock", l: "Lock only" }, { v: "nothing", l: "Do nothing" }]
+                                Chip { required property var modelData; label: modelData.l; on: Prefs.lidAction === modelData.v; onClicked: Prefs.set("lidAction", modelData.v) }
+                            }
+                        }
+                    }
+                    Hint { text: "Videos and calls keep the screen awake. The screen always locks before the computer sleeps." }
+                }
+
+                PowerExtras { visible: win.page === "power" && Power.present; width: parent.width }
 
                 // ================= HÌNH NỀN =================
                 Column {
@@ -498,6 +1232,39 @@ PanelWindow {
                             Row {
                                 anchors.centerIn: parent; spacing: 5
                                 Repeater { model: 6; Rectangle { width: 15; height: 15; radius: 5; color: Qt.rgba(1, 1, 1, 0.55 + index * 0.05) } }
+                            }
+                        }
+                    }
+
+                    SectionLabel { text: "Islet"; visible: win.isletWalls.length > 0 }
+                    Flow {
+                        visible: win.isletWalls.length > 0
+                        width: parent.width
+                        spacing: 12
+                        Repeater {
+                            model: win.isletWalls
+                            Item {
+                                id: iw
+                                required property var modelData
+                                readonly property bool on: Prefs.wallpaper === modelData.path
+                                width: (body.width - 24) / 3
+                                height: width * 0.5625 + 24
+                                Item {
+                                    id: iwThumb
+                                    width: parent.width
+                                    height: parent.width * 0.5625
+                                    scale: iwm.pressed ? 0.95 : iwm.containsMouse ? 1.03 : 1
+                                    Behavior on scale { SpringAnimation { spring: 5; damping: 0.35; epsilon: 0.002 } }
+                                    Rounded {
+                                        anchors.fill: parent
+                                        radius: 14
+                                        Rectangle { anchors.fill: parent; color: Qt.rgba(1, 1, 1, 0.06) }
+                                        Image { anchors.fill: parent; source: "file://" + iw.modelData.path; sourceSize: Qt.size(480, 270); fillMode: Image.PreserveAspectCrop; asynchronous: true }
+                                    }
+                                    Rectangle { anchors.fill: parent; radius: 14; color: "transparent"; border.width: iw.on ? 3 : 1; border.color: iw.on ? Theme.accent : Qt.rgba(1, 1, 1, 0.08) }
+                                    MouseArea { id: iwm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Prefs.set("wallpaper", iw.modelData.path) }
+                                }
+                                Text { anchors.top: iwThumb.bottom; anchors.topMargin: 5; text: iw.modelData.name; color: iw.on ? "#FFFFFF" : "#AEAEB2"; font.family: Theme.font; font.pixelSize: 12; font.weight: iw.on ? Font.DemiBold : Font.Normal }
                             }
                         }
                     }
@@ -529,7 +1296,7 @@ PanelWindow {
                         }
                     }
 
-                    SectionLabel { text: "Photos"; visible: win.pictures.length > 0 }
+                    SectionLabel { text: "Your photos"; visible: win.pictures.length > 0 }
                     Flow {
                         visible: win.pictures.length > 0
                         width: parent.width
@@ -677,734 +1444,28 @@ PanelWindow {
 
                 AppearanceExtras { visible: win.page === "accent"; width: parent.width }
 
-                // ================= WI-FI =================
-                Column {
-                    visible: win.page === "wifi"
-                    width: parent.width
-                    spacing: 12
+                // ================= DESKTOP & DOCK =================
+                IslandPage { visible: win.page === "island" }
+                SectionLabel { visible: win.page === "island"; text: "Desktops" }
+                WorkspacesPage { visible: win.page === "island" }
 
-                    // không có Wi-Fi
-                    Card {
-                        visible: wifi.dev === ""
-                        width: parent.width
-                        height: 84
-                        Rectangle {
-                            x: 18; anchors.verticalCenter: parent.verticalCenter
-                            width: 44; height: 44; radius: 14
-                            color: Qt.rgba(1, 1, 1, 0.08)
-                            Icon { anchors.centerIn: parent; name: Net.kind === "ethernet" ? "ethernet" : "wifi-off"; size: 20 }
-                        }
-                        Column {
-                            x: 76; anchors.verticalCenter: parent.verticalCenter
-                            Text { text: Net.kind === "ethernet" ? "Using a wired connection" : "This computer has no Wi-Fi"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
-                            Text { text: Net.kind === "ethernet" ? "Connected to the internet over a cable" : "Plug in a network cable or a USB Wi-Fi adapter to get online"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
-                        }
-                    }
+                NotificationsPage { visible: win.page === "notifs" }
 
-                    // bật / tắt
-                    Card {
-                        visible: wifi.dev !== ""
-                        width: parent.width
-                        height: 64
-                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Wi-Fi"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
-                        Text {
-                            anchors.right: wsw.left; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
-                            text: Net.wifiBlocked ? "Off" : wifi.current ? "Connected to " + wifi.current : "Not connected"
-                            color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
-                        }
-                        Toggle { id: wsw; anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: !Net.wifiBlocked; onToggled: { Net.toggleWifi(); wifi.refresh(true); } }
-                    }
+                // ================= APPS =================
+                SectionLabel { visible: win.page === "apps"; text: "Open files with" }
+                DefaultAppsPage { visible: win.page === "apps" }
+                SectionLabel { visible: win.page === "apps"; text: "Open when I sign in" }
+                StartupPage { visible: win.page === "apps" }
 
-                    Row {
-                        visible: wifi.dev !== "" && !Net.wifiBlocked
-                        width: parent.width
-                        SectionLabel { text: "Nearby networks"; width: parent.width - 90 }
-                        Text {
-                            width: 90; horizontalAlignment: Text.AlignRight
-                            text: "Rescan"; color: Qt.lighter(Theme.accent, 1.25); font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold
-                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: wifi.refresh(true) }
-                        }
-                    }
-                    Text { visible: wifi.error !== "" && wifi.joining === ""; text: wifi.error; color: "#FF8A8A"; font.family: Theme.font; font.pixelSize: 12 }
+                // ================= STORAGE & BACKUP =================
+                StoragePage { visible: win.page === "storage" }
+                SnapshotsPage { visible: win.page === "storage" }
 
-                    Card {
-                        visible: wifi.dev !== "" && !Net.wifiBlocked
-                        width: parent.width
-                        height: netCol.implicitHeight + 8
-                        Column {
-                            id: netCol
-                            y: 4
-                            width: parent.width
-                            Text { visible: wifi.nets.length === 0; leftPadding: 18; topPadding: 14; bottomPadding: 14; text: "Looking for networks…"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
-                            Repeater {
-                                model: wifi.nets
-                                Rectangle {
-                                    id: net
-                                    required property var modelData
-                                    readonly property bool asking: wifi.joining === modelData.name
-                                    width: netCol.width
-                                    height: asking ? 98 : 50
-                                    color: nem.containsMouse && !asking ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
-                                    radius: 14
-                                    clip: true
-                                    Behavior on height { SpringAnimation { spring: 4.5; damping: 0.35; epsilon: 0.2 } }
-                                    MouseArea {
-                                        id: nem
-                                        width: parent.width; height: 50
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            if (net.modelData.cur) return;
-                                            if (net.modelData.sec === "open" || net.modelData.saved) wifi.connect(net.modelData.name, "");
-                                            else { wifi.joining = net.modelData.name; wifi.error = ""; pwIn.text = ""; pwIn.forceActiveFocus(); }
-                                        }
-                                    }
-                                    Icon {
-                                        x: 18; y: 16; size: 18
-                                        name: net.modelData.q > 66 ? "wifi" : net.modelData.q > 33 ? "wifi-2" : "wifi-1"
-                                        color: net.modelData.cur ? Theme.accent : "#FFFFFF"
-                                    }
-                                    Text { x: 50; y: 15; text: net.modelData.name; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: net.modelData.cur ? Font.DemiBold : Font.Normal }
-                                    Row {
-                                        anchors.right: parent.right; anchors.rightMargin: 16; y: 14
-                                        spacing: 8
-                                        Text {
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            text: wifi.busy === net.modelData.name ? "Connecting…" : net.modelData.cur ? "Connected" : net.modelData.saved ? "Saved" : ""
-                                            color: net.modelData.cur ? Qt.lighter(Theme.accent, 1.3) : "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
-                                        }
-                                        Icon { anchors.verticalCenter: parent.verticalCenter; name: "lock"; size: 13; opacity: 0.6; visible: net.modelData.sec !== "open" }
-                                        Rectangle {
-                                            visible: net.modelData.cur || net.modelData.saved
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            width: dl.implicitWidth + 18; height: 24; radius: 12
-                                            color: dlm.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
-                                            Text { id: dl; anchors.centerIn: parent; text: net.modelData.cur ? "Disconnect" : "Forget"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 11 }
-                                            MouseArea {
-                                                id: dlm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                                onClicked: { Quickshell.execDetached(net.modelData.cur ? ["islet-wifi", "disconnect"] : ["islet-wifi", "forget", net.modelData.name]); wifi.refresh(false); }
-                                            }
-                                        }
-                                    }
-                                    // ô mật khẩu
-                                    Rectangle {
-                                        visible: net.asking
-                                        x: 50; y: 52
-                                        width: parent.width - 50 - 110
-                                        height: 34; radius: 12
-                                        color: Qt.rgba(1, 1, 1, 0.08)
-                                        border.width: 1
-                                        border.color: wifi.error ? Qt.rgba(1, 0.42, 0.42, 0.7) : pwIn.activeFocus ? Theme.tint(0.7) : Qt.rgba(1, 1, 1, 0.1)
-                                        TextInput {
-                                            id: pwIn
-                                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
-                                            verticalAlignment: TextInput.AlignVCenter
-                                            echoMode: TextInput.Password
-                                            color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13
-                                            Keys.onReturnPressed: wifi.connect(net.modelData.name, text)
-                                            Keys.onEscapePressed: wifi.joining = ""
-                                        }
-                                        Text {
-                                            visible: pwIn.text === ""
-                                            anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter
-                                            text: wifi.error || "Wi-Fi password"; color: wifi.error ? "#FF8A8A" : "#636366"; font.family: Theme.font; font.pixelSize: 12
-                                        }
-                                    }
-                                    Pill { visible: net.asking; x: parent.width - 100; y: 53; label: "Connect"; primary: true; onClicked: wifi.connect(net.modelData.name, pwIn.text) }
-                                }
-                            }
-                        }
-                    }
-                }
+                PrivacyPage { visible: win.page === "privacy" }
 
-                NetworkExtras { visible: win.page === "wifi"; width: parent.width; ssid: wifi.current }
+                DateTimePage { visible: win.page === "datetime" }
 
-                // ================= ÂM THANH =================
-                Column {
-                    visible: win.page === "sound"
-                    width: parent.width
-                    spacing: 12
-
-                    Slider {
-                        width: parent.width
-                        title: "Output volume"
-                        value: Audio.muted ? 0 : Math.min(1, Audio.volume)
-                        available: Audio.sink !== null
-                        fill: Theme.accent
-                        onMoved: v => Audio.setVolume(v)
-                    }
-                    Card {
-                        width: parent.width
-                        height: 56
-                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Mute"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                        Toggle { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: Audio.muted; onToggled: if (Audio.sink?.audio) Audio.sink.audio.muted = !Audio.sink.audio.muted }
-                    }
-
-                    SectionLabel { text: "Output" }
-                    DeviceList { nodes: win.sinks; current: Pipewire.defaultAudioSink; onPicked: n => Pipewire.preferredDefaultAudioSink = n; empty: "No speakers or headphones found" }
-
-                    SectionLabel { text: "Input (microphone)" }
-                    Slider {
-                        width: parent.width
-                        title: "Input volume"
-                        visible: Pipewire.defaultAudioSource !== null
-                        value: Math.min(1, Pipewire.defaultAudioSource?.audio?.volume ?? 0)
-                        fill: Theme.accent
-                        onMoved: v => { if (Pipewire.defaultAudioSource?.audio) Pipewire.defaultAudioSource.audio.volume = v; }
-                    }
-                    DeviceList { nodes: win.sources; current: Pipewire.defaultAudioSource; onPicked: n => Pipewire.preferredDefaultAudioSource = n; empty: "No microphone found" }
-                }
-
-                SoundExtras { visible: win.page === "sound"; width: parent.width }
-
-                // ================= MÀN HÌNH =================
-                Column {
-                    visible: win.page === "display"
-                    width: parent.width
-                    spacing: 12
-
-                    // hỏi giữ thay đổi
-                    Rectangle {
-                        visible: win.pendingRevert !== null
-                        width: parent.width
-                        height: 58
-                        radius: 16
-                        color: Theme.tint(0.18)
-                        border.width: 1
-                        border.color: Theme.tint(0.5)
-                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Keep these display settings? Reverting in " + win.revertLeft + "s"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                        Row {
-                            anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
-                            spacing: 8
-                            Pill { label: "Revert"; onClicked: win.revertMonitor() }
-                            Pill { label: "Keep"; primary: true; onClicked: win.keepMonitor() }
-                        }
-                    }
-
-                    Slider {
-                        width: parent.width
-                        visible: Brightness.available
-                        title: "Brightness"
-                        value: Brightness.value
-                        fill: Theme.amber
-                        onMoved: v => Brightness.set(v)
-                    }
-
-                    Repeater {
-                        model: win.monitors
-                        Card {
-                            id: mon
-                            required property var modelData
-                            readonly property string curMode: modelData.width + "x" + modelData.height + "@" + Math.round(modelData.refreshRate)
-                            readonly property var modes: {
-                                const seen = {}, out = [];
-                                for (const m of (modelData.availableModes || [])) {
-                                    const r = m.match(/^(\d+)x(\d+)@([\d.]+)/);
-                                    if (!r) continue;
-                                    const k = r[1] + "x" + r[2];
-                                    if (seen[k]) continue;
-                                    seen[k] = true;
-                                    out.push({ label: r[1] + " × " + r[2], mode: k + "@" + Math.round(parseFloat(r[3])), w: +r[1] });
-                                }
-                                out.sort((a, b) => b.w - a.w);
-                                const top = out.slice(0, 11);
-                                const cur = out.find(o => o.mode.split("@")[0] === mon.curMode.split("@")[0]);
-                                if (cur && top.indexOf(cur) < 0) top.push(cur);
-                                return top;
-                            }
-                            width: parent.width
-                            height: monCol.implicitHeight + 32
-                            Column {
-                                id: monCol
-                                x: 18; y: 16
-                                width: parent.width - 36
-                                spacing: 12
-                                Row {
-                                    spacing: 12
-                                    Rectangle {
-                                        width: 54; height: 36; radius: 7
-                                        color: "transparent"; border.width: 2; border.color: Theme.accent
-                                        Rectangle { anchors.horizontalCenter: parent.horizontalCenter; anchors.top: parent.bottom; width: 14; height: 5; color: Theme.accent }
-                                    }
-                                    Column {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        Text { text: (mon.modelData.make && mon.modelData.make !== "Unknown" ? mon.modelData.make + " " : "") + (mon.modelData.model || mon.modelData.name); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
-                                        Text { text: mon.modelData.name + " · " + mon.modelData.width + "×" + mon.modelData.height + " · " + Math.round(mon.modelData.refreshRate) + " Hz · scale " + mon.modelData.scale; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
-                                    }
-                                }
-                                SectionLabel { text: "Resolution" }
-                                Flow {
-                                    width: parent.width
-                                    spacing: 8
-                                    Repeater {
-                                        model: mon.modes
-                                        Chip {
-                                            required property var modelData
-                                            label: modelData.label
-                                            on: mon.curMode.split("@")[0] === modelData.mode.split("@")[0]
-                                            onClicked: win.setMonitor(mon.modelData.name, { mode: modelData.mode })
-                                        }
-                                    }
-                                }
-                                SectionLabel { text: "Scale (make text and UI bigger or smaller)" }
-                                Row {
-                                    spacing: 8
-                                    Repeater {
-                                        model: [1, 1.25, 1.5, 1.75, 2]
-                                        Chip {
-                                            required property var modelData
-                                            label: Math.round(modelData * 100) + "%"
-                                            on: Math.abs(mon.modelData.scale - modelData) < 0.01
-                                            onClicked: win.setMonitor(mon.modelData.name, { scale: modelData })
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                DisplayExtras { visible: win.page === "display"; width: parent.width; monitors: win.monitors; onApply: (name, patch) => win.setMonitor(name, patch) }
-
-                // ================= BLUETOOTH =================
-                Column {
-                    visible: win.page === "bluetooth"
-                    width: parent.width
-                    spacing: 12
-
-                    Card {
-                        visible: !win.bt
-                        width: parent.width
-                        height: 84
-                        Rectangle {
-                            x: 18; anchors.verticalCenter: parent.verticalCenter
-                            width: 44; height: 44; radius: 14
-                            color: Qt.rgba(1, 1, 1, 0.08)
-                            Icon { anchors.centerIn: parent; name: "bluetooth"; size: 20; opacity: 0.6 }
-                        }
-                        Column {
-                            x: 76; anchors.verticalCenter: parent.verticalCenter
-                            Text { text: "No Bluetooth adapter"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
-                            Text { text: "This computer has no Bluetooth, or it is turned off in the firmware"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
-                        }
-                    }
-
-                    Card {
-                        visible: !!win.bt
-                        width: parent.width
-                        height: 64
-                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Bluetooth"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
-                        Text {
-                            anchors.right: btsw.left; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
-                            text: !win.bt ? "" : !win.bt.enabled ? "Off" : win.bt.discovering ? "Searching…" : "On · " + (win.bt.name || "")
-                            color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
-                        }
-                        Toggle {
-                            id: btsw
-                            anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
-                            checked: win.bt?.enabled ?? false
-                            onToggled: { if (win.bt) { win.bt.enabled = !win.bt.enabled; if (win.bt.enabled) btScan.restart(); } }
-                        }
-                        Timer { id: btScan; interval: 1200; onTriggered: if (win.bt && win.bt.enabled) win.bt.discovering = true }
-                    }
-
-                    Row {
-                        visible: !!win.bt && win.bt.enabled
-                        width: parent.width
-                        SectionLabel { text: "Devices"; width: parent.width - 90 }
-                        Text {
-                            width: 90; horizontalAlignment: Text.AlignRight
-                            text: win.bt?.discovering ? "Stop" : "Search"
-                            color: Qt.lighter(Theme.accent, 1.25); font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold
-                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: if (win.bt) win.bt.discovering = !win.bt.discovering }
-                        }
-                    }
-
-                    Card {
-                        visible: !!win.bt && win.bt.enabled
-                        width: parent.width
-                        height: btCol.implicitHeight + 8
-                        Column {
-                            id: btCol
-                            y: 4
-                            width: parent.width
-                            Text {
-                                visible: win.btDevices.length === 0
-                                leftPadding: 18; topPadding: 14; bottomPadding: 14
-                                text: "Looking for devices… put your headphones or mouse in pairing mode"
-                                color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
-                            }
-                            Repeater {
-                                model: win.btDevices
-                                Rectangle {
-                                    id: dev
-                                    required property var modelData
-                                    readonly property bool busy: modelData.pairing || modelData.state === BluetoothDeviceState.Connecting || modelData.state === BluetoothDeviceState.Disconnecting
-                                    width: btCol.width
-                                    height: 54
-                                    radius: 14
-                                    color: dm2.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
-                                    MouseArea { id: dm2; anchors.fill: parent; hoverEnabled: true }
-                                    Rectangle {
-                                        x: 14; anchors.verticalCenter: parent.verticalCenter
-                                        width: 34; height: 34; radius: 11
-                                        color: dev.modelData.connected ? Theme.tint(0.3) : Qt.rgba(1, 1, 1, 0.08)
-                                        Icon { anchors.centerIn: parent; name: win.btIcon(dev.modelData); size: 17 }
-                                    }
-                                    Column {
-                                        x: 60; anchors.verticalCenter: parent.verticalCenter
-                                        width: parent.width - 60 - btAct.width - 24
-                                        Text { width: parent.width; elide: Text.ElideRight; text: dev.modelData.name || dev.modelData.address; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: dev.modelData.connected ? Font.DemiBold : Font.Normal }
-                                        Text {
-                                            text: dev.modelData.pairing ? "Pairing…"
-                                                : dev.modelData.state === BluetoothDeviceState.Connecting ? "Connecting…"
-                                                : dev.modelData.connected ? "Connected" + (dev.modelData.batteryAvailable ? " · battery " + Math.round(dev.modelData.battery * 100) + "%" : "")
-                                                : dev.modelData.paired ? "Paired" : "Not paired"
-                                            color: dev.modelData.connected ? Qt.lighter(Theme.accent, 1.3) : "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
-                                        }
-                                    }
-                                    Row {
-                                        id: btAct
-                                        anchors.right: parent.right; anchors.rightMargin: 12
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        spacing: 6
-                                        Pill {
-                                            visible: !dev.busy
-                                            label: dev.modelData.connected ? "Disconnect" : dev.modelData.paired ? "Connect" : "Pair"
-                                            primary: !dev.modelData.connected
-                                            onClicked: {
-                                                const d = dev.modelData;
-                                                if (d.connected) d.disconnect();
-                                                else if (d.paired) d.connect();
-                                                else { d.trusted = true; d.pair(); }
-                                            }
-                                        }
-                                        Pill {
-                                            visible: dev.modelData.paired && !dev.busy && dm2.containsMouse
-                                            label: "Forget"
-                                            onClicked: dev.modelData.forget()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ================= NGUỒN ĐIỆN =================
-                Column {
-                    visible: win.page === "power"
-                    width: parent.width
-                    spacing: 12
-
-                    // pin
-                    Card {
-                        visible: Power.present
-                        width: parent.width
-                        height: 72
-                        Rectangle {
-                            x: 18; anchors.verticalCenter: parent.verticalCenter
-                            width: 56; height: 26; radius: 7
-                            color: "transparent"; border.width: 2; border.color: Qt.rgba(1, 1, 1, 0.6)
-                            Rectangle {
-                                x: 3; y: 3; height: parent.height - 6; radius: 4
-                                width: (parent.width - 6) * Math.max(0.04, Power.percent / 100)
-                                color: Power.percent <= 20 && !Power.charging ? "#FF5F57" : Power.charging ? "#34C77B" : "#FFFFFF"
-                            }
-                            Rectangle { anchors.left: parent.right; anchors.leftMargin: 1; anchors.verticalCenter: parent.verticalCenter; width: 3; height: 10; radius: 1.5; color: Qt.rgba(1, 1, 1, 0.6) }
-                        }
-                        Column {
-                            x: 92; anchors.verticalCenter: parent.verticalCenter
-                            Text { text: Math.round(Power.percent) + "%" + (Power.charging ? " · charging" : " · on battery"); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold }
-                            Text {
-                                readonly property real secs: Power.charging ? (UPower.displayDevice?.timeToFull ?? 0) : (UPower.displayDevice?.timeToEmpty ?? 0)
-                                visible: secs > 0
-                                text: Math.floor(secs / 3600) + " h " + Math.round(secs % 3600 / 60) + " min " + (Power.charging ? "until full" : "left")
-                                color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
-                            }
-                        }
-                    }
-
-                    SectionLabel { text: "Power mode" }
-                    Row {
-                        spacing: 10
-                        Repeater {
-                            model: [
-                                { p: PowerProfile.PowerSaver, label: "Battery saver", sub: "Longer battery life", icon: "sleep" },
-                                { p: PowerProfile.Balanced, label: "Balanced", sub: "Good for most things", icon: "sliders" },
-                                { p: PowerProfile.Performance, label: "Performance", sub: "Fastest, uses more power", icon: "bolt" }
-                            ]
-                            Rectangle {
-                                id: pmode
-                                required property var modelData
-                                readonly property bool on: PowerProfiles.profile === modelData.p
-                                readonly property bool avail: modelData.p !== PowerProfile.Performance || PowerProfiles.hasPerformanceProfile
-                                width: (body.width - 20) / 3
-                                height: 78; radius: 18
-                                opacity: avail ? 1 : 0.4
-                                color: on ? Theme.tint(0.22) : pmm.containsMouse ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(1, 1, 1, 0.05)
-                                border.width: on ? 2 : 1
-                                border.color: on ? Theme.accent : Qt.rgba(1, 1, 1, 0.06)
-                                Icon { x: 14; y: 14; name: pmode.modelData.icon; size: 18; color: pmode.on ? Qt.lighter(Theme.accent, 1.3) : "#FFFFFF" }
-                                Column {
-                                    x: 14; y: 38
-                                    Text { text: pmode.modelData.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
-                                    Text { text: pmode.modelData.sub; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 10 }
-                                }
-                                MouseArea { id: pmm; anchors.fill: parent; enabled: pmode.avail; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: PowerProfiles.profile = pmode.modelData.p }
-                            }
-                        }
-                    }
-                    Card {
-                        visible: Power.present
-                        width: parent.width; height: 56
-                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Turn on Battery saver automatically at 20%"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                        Toggle { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: Prefs.autoSaver; onToggled: Prefs.set("autoSaver", !Prefs.autoSaver) }
-                    }
-
-                    SectionLabel { text: "When the computer is idle" }
-                    Card {
-                        width: parent.width
-                        height: idleCol.implicitHeight + 24
-                        Column {
-                            id: idleCol
-                            x: 18; y: 12
-                            width: parent.width - 36
-                            spacing: 2
-                            Repeater {
-                                model: [
-                                    { k: "dimAfter", label: "Dim the screen after", opts: [0, 60, 120, 300] },
-                                    { k: "lockAfter", label: "Lock after", opts: [0, 120, 300, 600, 900] },
-                                    { k: "screenOffAfter", label: "Turn off the screen after", opts: [0, 180, 360, 600, 1200] },
-                                    { k: "sleepAfterBattery", label: "Sleep on battery after", opts: [0, 300, 600, 900, 1800] },
-                                    { k: "sleepAfterAC", label: "Sleep when plugged in after", opts: [0, 900, 1800, 3600] }
-                                ]
-                                Item {
-                                    id: irow
-                                    required property var modelData
-                                    width: idleCol.width
-                                    height: 44
-                                    Text { anchors.verticalCenter: parent.verticalCenter; text: irow.modelData.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                                    Row {
-                                        anchors.right: parent.right
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        spacing: 6
-                                        Repeater {
-                                            model: irow.modelData.opts
-                                            Chip {
-                                                required property int modelData
-                                                label: modelData === 0 ? "Never" : modelData < 3600 ? (modelData / 60) + " min" : (modelData / 3600) + " h"
-                                                on: Prefs[irow.modelData.k] === modelData
-                                                onClicked: Prefs.set(irow.modelData.k, modelData)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Card {
-                        width: parent.width; height: 56
-                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "When I close the lid"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                        Row {
-                            anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
-                            spacing: 6
-                            Repeater {
-                                model: [{ v: "sleep", l: "Sleep" }, { v: "lock", l: "Lock only" }, { v: "nothing", l: "Do nothing" }]
-                                Chip { required property var modelData; label: modelData.l; on: Prefs.lidAction === modelData.v; onClicked: Prefs.set("lidAction", modelData.v) }
-                            }
-                        }
-                    }
-                    Hint { text: "Videos and calls keep the screen awake. The screen always locks before the computer sleeps." }
-
-                    SectionLabel { text: "Night Light" }
-                    Card {
-                        width: parent.width
-                        height: nlCol.implicitHeight + 32
-                        Column {
-                            id: nlCol
-                            x: 18; y: 16
-                            width: parent.width - 36
-                            spacing: 14
-                            Row {
-                                spacing: 8
-                                Repeater {
-                                    model: [{ v: "off", l: "Off" }, { v: "schedule", l: "Sunset to sunrise" }, { v: "on", l: "On now" }]
-                                    Chip { required property var modelData; label: modelData.l; on: Prefs.nightMode === modelData.v; onClicked: Prefs.set("nightMode", modelData.v) }
-                                }
-                            }
-                            Row {
-                                visible: Prefs.nightMode === "schedule"
-                                spacing: 10
-                                Text { anchors.verticalCenter: parent.verticalCenter; text: "From"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
-                                Repeater {
-                                    model: ["18:00", "19:00", "20:00", "21:00"]
-                                    Chip { required property string modelData; label: modelData; on: Prefs.nightFrom === modelData; onClicked: Prefs.set("nightFrom", modelData) }
-                                }
-                                Text { anchors.verticalCenter: parent.verticalCenter; text: "to"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
-                                Repeater {
-                                    model: ["05:30", "06:30", "07:30"]
-                                    Chip { required property string modelData; label: modelData; on: Prefs.nightTo === modelData; onClicked: Prefs.set("nightTo", modelData) }
-                                }
-                            }
-                            Slider {
-                                width: parent.width
-                                title: "Warmth"
-                                label: v => Math.round(6500 - v * 3500) + " K"
-                                value: (6500 - Prefs.nightTemp) / 3500
-                                fill: "#FF9F43"
-                                onMoved: v => Prefs.set("nightTemp", Math.round(6500 - v * 3500))
-                            }
-                            Text {
-                                text: NightLight.active ? "On now · " + NightLight.current + " K" : "Off now"
-                                color: NightLight.active ? "#FFB547" : "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
-                            }
-                        }
-                    }
-                }
-
-                PowerExtras { visible: win.page === "power" && Power.present; width: parent.width }
-
-                // ================= CHUỘT & TOUCHPAD =================
-                Column {
-                    visible: win.page === "input"
-                    width: parent.width
-                    spacing: 12
-                    SectionLabel { text: "Touchpad" }
-                    Card {
-                        width: parent.width
-                        height: tpCol.implicitHeight + 8
-                        Column {
-                            id: tpCol
-                            y: 4
-                            width: parent.width
-                            Repeater {
-                                model: [
-                                    { k: "naturalScroll", t: "Natural scrolling", s: "Content moves with your fingers" },
-                                    { k: "tapToClick", t: "Tap to click", s: "Tap the touchpad instead of pressing it" },
-                                    { k: "disableWhileTyping", t: "Ignore touchpad while typing", s: "Stops accidental clicks with your palm" }
-                                ]
-                                Item {
-                                    required property var modelData
-                                    required property int index
-                                    width: tpCol.width; height: 58
-                                    Rectangle { visible: parent.index > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
-                                    Column {
-                                        x: 18; anchors.verticalCenter: parent.verticalCenter
-                                        Text { text: parent.parent.modelData.t; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                                        Text { text: parent.parent.modelData.s; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
-                                    }
-                                    Toggle {
-                                        anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
-                                        checked: Prefs[parent.modelData.k]
-                                        onToggled: Prefs.set(parent.modelData.k, !Prefs[parent.modelData.k])
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Slider {
-                        width: parent.width
-                        title: "Pointer speed"
-                        value: (Prefs.pointerSpeed + 1) / 2
-                        fill: Theme.accent
-                        onMoved: v => Prefs.set("pointerSpeed", Math.round((v * 2 - 1) * 20) / 20)
-                    }
-                    Slider {
-                        width: parent.width
-                        title: "Scrolling speed"
-                        value: (Prefs.scrollSpeed - 0.25) / 1.75
-                        fill: Theme.accent
-                        onMoved: v => Prefs.set("scrollSpeed", Math.round((0.25 + v * 1.75) * 20) / 20)
-                    }
-                    SectionLabel { text: "Gestures" }
-                    Card {
-                        width: parent.width
-                        height: gCol.implicitHeight + 24
-                        Column {
-                            id: gCol
-                            x: 18; y: 12
-                            width: parent.width - 36
-                            spacing: 0
-                            Repeater {
-                                model: [
-                                    ["3 fingers left / right", "Switch desktop"],
-                                    ["3 fingers up · pinch 4 fingers", "Overview of all windows"],
-                                    ["3 fingers down", "Close Overview"],
-                                    ["Super + Tab", "Overview from the keyboard"]
-                                ]
-                                Item {
-                                    required property var modelData
-                                    width: gCol.width; height: 38
-                                    Text { anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[0]; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                                    Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[1]; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ================= TÀI KHOẢN =================
-                Column {
-                    visible: win.page === "account"
-                    width: parent.width
-                    spacing: 12
-
-                    Card {
-                        width: parent.width
-                        height: 88
-                        Image {
-                            x: 18; anchors.verticalCenter: parent.verticalCenter
-                            width: 56; height: 56
-                            sourceSize: Qt.size(112, 112)
-                            source: Qt.resolvedUrl("../assets/brand/cat.svg")
-                        }
-                        Column {
-                            x: 88; anchors.verticalCenter: parent.verticalCenter
-                            Text { text: win.fullName || win.userName; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.DemiBold }
-                            Text { text: win.userName + " · administrator"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
-                        }
-                    }
-
-                    SectionLabel { text: "Sign-in" }
-                    Card {
-                        width: parent.width
-                        height: 64
-                        Column {
-                            x: 18; anchors.verticalCenter: parent.verticalCenter
-                            Text { text: "Lock screen at startup"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                            Text { text: "Ask for your password every time the computer starts"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
-                        }
-                        Toggle { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: Prefs.lockOnBoot; onToggled: Prefs.set("lockOnBoot", !Prefs.lockOnBoot) }
-                    }
-
-                    SectionLabel { text: "Change password" }
-                    Card {
-                        width: parent.width
-                        height: pwCol.implicitHeight + 32
-                        Column {
-                            id: pwCol
-                            x: 18; y: 16
-                            width: parent.width - 36
-                            spacing: 10
-                            PwField { id: oldPw; width: parent.width; hint: "Current password" }
-                            PwField { id: newPw; width: parent.width; hint: "New password" }
-                            PwField { id: newPw2; width: parent.width; hint: "Confirm new password"; onAccepted: win.changePassword(oldPw.text, newPw.text, newPw2.text) }
-                            Row {
-                                spacing: 12
-                                Pill { label: win.pwBusy ? "Changing…" : "Change password"; primary: true; onClicked: if (!win.pwBusy) win.changePassword(oldPw.text, newPw.text, newPw2.text) }
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: win.pwMsg
-                                    color: win.pwOk ? "#34C77B" : "#FF8A8A"
-                                    font.family: Theme.font; font.pixelSize: 12
-                                }
-                            }
-                        }
-                    }
-                }
-
-                AccountExtras { visible: win.page === "account"; width: parent.width; fullName: win.fullName }
+                AccessibilityPage { visible: win.page === "access" }
 
                 // ================= CẬP NHẬT =================
                 Column {
@@ -1540,6 +1601,8 @@ PanelWindow {
 
                 UpdatesExtras { visible: win.page === "updates"; width: parent.width }
 
+                DeveloperPage { visible: win.page === "developer" }
+
                 // ================= GIỚI THIỆU =================
                 Column {
                     visible: win.page === "about"
@@ -1596,24 +1659,10 @@ PanelWindow {
                         }
                     }
                 }
-                AboutExtras { visible: win.page === "about"; width: parent.width; sys: win.sys }
 
-                // ---- các trang mới (settings/pages) ----
-                IslandPage { visible: win.page === "island" }
-                WorkspacesPage { visible: win.page === "workspaces" }
-                AccessibilityPage { visible: win.page === "access" }
-                KeyboardPage { visible: win.page === "keyboard" }
-                PrintersPage { visible: win.page === "printers" }
-                NotificationsPage { visible: win.page === "notifs" }
-                DefaultAppsPage { visible: win.page === "apps" }
-                StartupPage { visible: win.page === "startup" }
-                StoragePage { visible: win.page === "storage" }
-                SnapshotsPage { visible: win.page === "snapshots" }
-                DateTimePage { visible: win.page === "datetime" }
-                PrivacyPage { visible: win.page === "privacy" }
-                DeveloperPage { visible: win.page === "developer" }
+                AboutExtras { visible: win.page === "about"; width: parent.width; sys: win.sys }
+            }
             }
         }
     }
-
 }

@@ -154,7 +154,6 @@ hl.layer_rule({ name = "islet-dockmenu-noanim", match = { namespace = "^islet-do
 hl.layer_rule({ name = "islet-store-noanim", match = { namespace = "^islet-store$" }, no_anim = true })
 hl.layer_rule({ name = "islet-installer-noanim", match = { namespace = "^islet-installer$" }, no_anim = true })
 hl.layer_rule({ name = "islet-taskmgr-noanim", match = { namespace = "^islet-taskmgr$" }, no_anim = true })
-hl.layer_rule({ name = "islet-settings-noanim", match = { namespace = "^islet-settings$" }, no_anim = true })
 hl.layer_rule({ name = "islet-dim-noanim", match = { namespace = "^islet-dim$" }, no_anim = true })
 hl.layer_rule({ name = "islet-overview-noanim", match = { namespace = "^islet-overview$" }, no_anim = true })
 hl.layer_rule({ name = "islet-search-noanim", match = { namespace = "^islet-search$" }, no_anim = true })

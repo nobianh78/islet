@@ -159,7 +159,7 @@ PanelWindow {
                 visible: win.isApp
                 icon: "pin"
                 label: win.app?.pinned ? "Unpin from Dock" : "Pin to Dock"
-                onClicked: win.run(() => win.app.pinned ? DockPins.unpin(win.app.key) : DockPins.pin(win.app.key))
+                onClicked: win.run(() => win.app.pinned ? DockPins.unpinApp(win.app) : DockPins.pin(win.app.key))
             }
             MenuRow {
                 visible: win.windows.length > 0

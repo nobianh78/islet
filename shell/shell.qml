@@ -125,7 +125,7 @@ ShellRoot {
         target: "settings"
         function open(): void { Ui.openSettings(""); }
         function page(id: string): void { Ui.openSettings(id); }
-        function toggle(): void { if (Ui.settingsOpen) Ui.settingsOpen = false; else Ui.openSettings(""); }
+        function toggle(): void { if (Ui.settingsOpen && Windows.settingsActive) Ui.settingsOpen = false; else Ui.openSettings(""); }
     }
     IpcHandler {
         target: "notifs"

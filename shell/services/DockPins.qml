@@ -15,7 +15,7 @@ Singleton {
     function isPinned(id) { return pins.indexOf(id) >= 0; }
     function pin(id) { pinAt(id, -1); }
     function pinAt(id, index) {
-        if (!id) return;
+        if (!id || id === "islet-settings") return;      // Cài đặt luôn có sẵn ở cuối dock
         let p = pins.filter(x => x !== id);
         if (index === undefined || index < 0 || index >= p.length) {
             p.push(id);
@@ -23,6 +23,12 @@ Singleton {
             p.splice(index, 0, id);
         }
         pins = p;
+        save.restart();
+    }
+    // bỏ ghim một app của dock (mọi tên id của nó)
+    function unpinApp(app) {
+        const ids = [app.pinId, app.key].concat(app.ids ?? []);
+        pins = pins.filter(p => ids.indexOf(p) < 0);
         save.restart();
     }
     function unpin(id) {
@@ -42,7 +48,7 @@ Singleton {
         onLoaded: {
             try {
                 const d = JSON.parse(text() || "{}");
-                if (Array.isArray(d.pins)) root.pins = d.pins;
+                if (Array.isArray(d.pins)) root.pins = d.pins.filter(x => x !== "islet-settings");
             } catch (e) {}
         }
     }

@@ -120,6 +120,9 @@ GLYPH_SET = {
     "gamepad": glyph('<path d="M7.5 7.5h9a4.5 4.5 0 0 1 4.4 5.5l-.9 4a2.5 2.5 0 0 1-4.3 1.1l-1.7-2.1h-4l-1.7 2.1A2.5 2.5 0 0 1 4 17l-.9-4a4.5 4.5 0 0 1 4.4-5.5z"/>'
                      '<path d="M8 10.5v3M6.5 12h3"/><circle cx="15.5" cy="11" r=".8" fill="#fff" stroke="none"/><circle cx="17" cy="13" r=".8" fill="#fff" stroke="none"/>'),
     "toolbox": glyph('<rect x="3.5" y="8" width="17" height="11.5" rx="2.5"/><path d="M9 8V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v2M3.5 13h17M10 13v2h4v-2"/>'),
+    "edit": glyph('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>'),
+    "minus": glyph('<path d="M5 12h14"/>'),
+    "expand": glyph('<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>'),
     "pin": glyph('<path d="M9 4h6l-1 5.5 3 3H7l3-3z"/><path d="M12 12.5V20"/>'),
     "dot": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="#fff"/></svg>',
     "grid": glyph('<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/>'

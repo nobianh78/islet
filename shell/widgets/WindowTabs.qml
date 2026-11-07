@@ -40,7 +40,7 @@ PanelWindow {
     }
 
     readonly property var insideApps: ["kitty", "foot", "Alacritty", "org.wezfurlong.wezterm"]
-    readonly property var ownButtonsApps: ["chromium", "google-chrome", "code"]
+    readonly property var ownButtonsApps: ["chromium", "google-chrome", "code", "org.quickshell"]   // org.quickshell = Cài đặt của Islet (tự vẽ ba nút)
 
     function styleOf(cls) {
         if (insideApps.indexOf(cls) >= 0) return "inside";

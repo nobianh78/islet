@@ -22,8 +22,15 @@ Item {
     property int order: 0
     property real pointer: -1000      // toạ độ chuột so với tâm icon; -1000 = không rê
 
+    property bool playIntro: true      // bật lên lúc shell khởi động (không lặp lại khi dock dựng lại)
+    property bool draggable: false     // app ghim / đang chạy: kéo để đổi chỗ, kéo lên để bỏ ghim
+    property bool dragging: false
+
     signal activated()
     signal contextRequested()
+    signal dragStarted()
+    signal dragMoved(real sceneX, real dy)
+    signal dragEnded()
 
     readonly property bool hovered: mouse.containsMouse || menuOpen
 
@@ -174,7 +181,7 @@ Item {
         PauseAnimation { duration: 120 + root.order * 70 }
         NumberAnimation { target: body; property: "intro"; to: 1; duration: 620; easing.type: Easing.OutBack; easing.overshoot: 2.2 }
     }
-    Component.onCompleted: introAnim.start()
+    Component.onCompleted: { if (playIntro) introAnim.start(); else body.intro = 1; }
 
     MouseArea {
         id: mouse
@@ -183,13 +190,30 @@ Item {
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
+        preventStealing: true
+        property point press: Qt.point(0, 0)
+        property bool eatClick: false
         onPressed: m => {
+            eatClick = false;
             if (m.button === Qt.RightButton) return;
+            press = mapToItem(null, m.x, m.y);
             body.squashX = 1.06;
             body.squashY = 0.92;
         }
-        onCanceled: { body.squashX = 1; body.squashY = 1; }
+        onPositionChanged: m => {
+            if (!pressed || !root.draggable || (m.buttons & Qt.LeftButton) === 0) return;
+            const p = mapToItem(null, m.x, m.y);
+            if (!root.dragging && (Math.abs(p.x - press.x) > 6 || Math.abs(p.y - press.y) > 6)) {
+                root.dragging = true;
+                body.squashX = 1; body.squashY = 1;
+                root.dragStarted();
+            }
+            if (root.dragging) root.dragMoved(p.x, p.y - press.y);
+        }
+        onReleased: { if (root.dragging) { root.dragging = false; eatClick = true; root.dragEnded(); } }
+        onCanceled: { body.squashX = 1; body.squashY = 1; if (root.dragging) { root.dragging = false; root.dragEnded(); } }
         onClicked: m => {
+            if (eatClick) { eatClick = false; return; }
             if (m.button === Qt.RightButton) { root.contextRequested(); return; }
             jelly.restart();
             root.activated();

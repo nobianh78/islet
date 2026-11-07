@@ -19,6 +19,7 @@ AIR="$PROFILE/airootfs"
 mkdir -p "$AIR/usr/share/islet" "$AIR/usr/share/pixmaps"
 cp -a "$ROOT/shell" "$AIR/usr/share/islet/shell"
 cp -a "$ROOT/hypr" "$AIR/usr/share/islet/hypr"
+cp -a "$ROOT/theme/wallpapers" "$AIR/usr/share/islet/wallpapers"     # hình nền riêng (scripts/make-wallpapers.py)
 cp "$ROOT/hypr/hyprland.lua" "$AIR/home/islet/.config/hypr/hyprland.lua"
 chmod 644 "$AIR/home/islet/.config/hypr/hyprland.lua"
 

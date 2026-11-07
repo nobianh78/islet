@@ -14,7 +14,7 @@ PanelWindow {
 
     anchors.bottom: true
     implicitWidth: 560
-    implicitHeight: 120          // chừa chỗ cho icon nhấc lên + nhãn tên
+    implicitHeight: dragFrom >= 0 ? 180 : 120          // chừa chỗ cho icon nhấc lên + nhãn tên (cao hơn lúc kéo icon lên)
     // tự ẩn: không giữ chỗ dưới đáy màn hình (cửa sổ dùng được hết chiều cao)
     exclusiveZone: Prefs.dockAutohide ? 0 : 78
     color: "transparent"
@@ -53,6 +53,7 @@ PanelWindow {
             tile: k?.tile ?? Theme.violet,
             ids: k?.ids ?? [id, (e?.id ?? id), (e?.id ?? id).toLowerCase()],
             entry: e,
+            pinId: id,
             pinned: pinned
         };
     }
@@ -61,7 +62,7 @@ PanelWindow {
     readonly property var apps: {
         DesktopEntries.applications.values;   // dựng lại khi danh sách app quét xong / thay đổi
         const out = [{ key: "launcher", label: "Apps", icon: "apps", tile: "#8B7CFF", ids: [], launcher: true }];
-        for (const id of DockPins.pins) out.push(makeApp(id, true));
+        for (const id of DockPins.pins) if (id !== "islet-settings") out.push(makeApp(id, true));   // Cài đặt luôn ở cuối dock
         const tl = ToplevelManager.toplevels.values;
         for (let i = 0; i < tl.length; i++) {
             const cls = tl[i].appId;
@@ -84,7 +85,7 @@ PanelWindow {
     readonly property string activeId: ToplevelManager.activeToplevel?.activated ? (ToplevelManager.activeToplevel.appId ?? "") : ""
 
     function launch(app) {
-        if (app.system) { if (Ui.settingsOpen) Ui.settingsOpen = false; else Ui.openSettings(""); return; }
+        if (app.system) { Ui.openSettings(""); return; }      // mở, hoặc đưa cửa sổ Cài đặt lên / lấy lại khi đang thu nhỏ
         if (app.launcher) { Ui.toggleLauncher(); return; }
         const hidden = Windows.minimizedOf(app.ids);
         if (hidden.length > 0) { Windows.restore(hidden[0]); return; }
@@ -101,6 +102,39 @@ PanelWindow {
         if (e) Ui.launchEntry(e);
         else Quickshell.execDetached(["sh", "-c", app.key]);
     }
+
+    // ---------------- kéo thả: đổi chỗ / kéo lên để bỏ ghim / kéo app đang chạy vào để ghim ----------------
+    property int dragFrom: -1           // chỉ số trong apps của icon đang kéo
+    property real dragX: 0              // con trỏ, so với mép trái hàng icon
+    property real dragDy: 0             // < 0 = kéo lên
+    readonly property int pinnedEnd: DockPins.pins.filter(p => p !== "islet-settings").length   // apps[1 … pinnedEnd] là app ghim
+    readonly property bool removing: dragFrom >= 0 && (apps[dragFrom]?.pinned ?? false) && dragDy < -base * 1.2
+    readonly property int dragTo: {
+        if (dragFrom < 0 || removing) return dragFrom;
+        const slot = Math.round((dragX - base / 2) / (base + gap));
+        if (apps[dragFrom].pinned) return Math.max(1, Math.min(pinnedEnd, slot));
+        return slot >= 1 && slot <= pinnedEnd ? slot : dragFrom;    // app chưa ghim: thả vào giữa các app ghim = ghim
+    }
+    // icon khác nhường chỗ cho icon đang kéo
+    function shiftOf(i) {
+        if (dragFrom < 0 || i === dragFrom) return 0;
+        const f = dragFrom, t = dragTo;
+        if (removing) return i > f && i <= pinnedEnd ? -(base + gap) : 0;
+        if (f < t && i > f && i <= t) return -(base + gap);
+        if (t < f && i >= t && i < f) return base + gap;
+        return 0;
+    }
+    function endDrag() {
+        const a = apps[dragFrom], t = dragTo, from = dragFrom, rm = removing;
+        dragFrom = -1;
+        if (!a) return;
+        if (rm) { DockPins.unpinApp(a); Ui.toast("Removed " + a.label + " from the Dock", "", ""); }
+        else if (a.pinned && t !== from) DockPins.pinAt(a.pinId, t - 1);
+        else if (!a.pinned && t !== from) { DockPins.pinAt(a.key, t - 1); Ui.toast("Pinned " + a.label + " to the Dock", "", ""); }
+    }
+    // dock dựng lại khi danh sách ghim đổi → không cho icon bật lên lại như lúc khởi động
+    property bool introDone: false
+    Timer { running: true; interval: 2500; onTriggered: win.introDone = true }
 
     // ---------------- menu chuột phải ----------------
     DockMenu {
@@ -273,6 +307,21 @@ PanelWindow {
                 }
 
                 DockItem {
+                    readonly property bool held: win.dragFrom === slot.index
+                    draggable: !slot.modelData.system && !slot.modelData.launcher
+                    playIntro: !win.introDone
+                    z: held ? 10 : 0
+                    opacity: held && win.removing ? 0.45 : 1
+                    Behavior on opacity { NumberAnimation { duration: 140 } }
+                    transform: Translate {
+                        x: item.held ? win.dragX - win.centerOf(slot.index) : win.shiftOf(slot.index)
+                        y: item.held ? Math.max(-50, Math.min(0, win.dragDy)) : 0
+                        Behavior on x { enabled: !item.held; SpringAnimation { spring: 5; damping: 0.4; epsilon: 0.1 } }
+                        Behavior on y { enabled: !item.held; SpringAnimation { spring: 5; damping: 0.4; epsilon: 0.1 } }
+                    }
+                    onDragStarted: { win.dragFrom = slot.index; menu.open = false; }
+                    onDragMoved: (sx, dy) => { win.dragX = sx - row.x; win.dragDy = dy; }
+                    onDragEnded: win.endDrag()
                     label: slot.modelData.label
                     icon: slot.modelData.icon
                     iconUrl: slot.modelData.iconUrl ?? ""
@@ -284,9 +333,9 @@ PanelWindow {
                     running: slot.modelData.system ? Ui.settingsOpen
                         : slot.modelData.launcher ? Ui.launcherOpen
                         : win.windowsOf(slot.modelData.ids).length > 0
-                    minimized: !slot.modelData.system && !slot.modelData.launcher && running
+                    minimized: slot.modelData.system ? Windows.settingsMinimized : !slot.modelData.launcher && running
                         && Windows.minimizedOf(slot.modelData.ids).length === win.windowsOf(slot.modelData.ids).length
-                    focused: slot.modelData.system ? Ui.settingsOpen
+                    focused: slot.modelData.system ? Windows.settingsActive
                         : slot.modelData.launcher ? Ui.launcherOpen
                         : slot.modelData.ids.indexOf(win.activeId) >= 0
                     pointer: win.px < -999 ? -1000 : win.px - win.centerOf(slot.index)
@@ -308,17 +357,17 @@ PanelWindow {
     Rectangle {
         transform: Translate { y: 110 * (1 - reveal.v * autoHide.v) }
         id: tag
-        readonly property var app: win.apps[win.lastNearest]
-        x: plate.x + lens.cx - width / 2
+        readonly property var app: win.dragFrom >= 0 ? win.apps[win.dragFrom] : win.apps[win.lastNearest]
+        x: win.dragFrom >= 0 ? row.x + win.dragX - width / 2 : plate.x + lens.cx - width / 2
         anchors.bottom: plate.top
-        anchors.bottomMargin: 8
+        anchors.bottomMargin: 8 + (win.dragFrom >= 0 ? -Math.max(-50, Math.min(0, win.dragDy)) : 0)
         width: tagText.implicitWidth + 20
         height: 24
         radius: 12
         color: Qt.rgba(0.04, 0.04, 0.08, 0.88)
         border.color: Qt.rgba(1, 1, 1, 0.12)
-        opacity: lens.shown ? 1 : 0
-        scale: lens.shown ? 1 : 0.85
+        opacity: lens.shown || win.dragFrom >= 0 ? 1 : 0
+        scale: lens.shown || win.dragFrom >= 0 ? 1 : 0.85
         transformOrigin: Item.Bottom
         Behavior on opacity { NumberAnimation { duration: 160 } }
         Behavior on scale { SpringAnimation { spring: 5; damping: 0.32; epsilon: 0.005 } }
@@ -327,7 +376,7 @@ PanelWindow {
         Text {
             id: tagText
             anchors.centerIn: parent
-            text: tag.app.label
+            text: win.removing ? "Release to remove from Dock" : (tag.app?.label ?? "")
             color: Theme.text
             font.family: Theme.font
             font.pixelSize: 12

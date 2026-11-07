@@ -17,6 +17,11 @@ Singleton {
 
     signal minimizedApp(string appId)
 
+    // cửa sổ Cài đặt của Islet (Quickshell FloatingWindow, title "Settings")
+    function isSettings(t) { return appIdOf(t) === "org.quickshell" && ((t?.title || t?.lastIpcObject?.title) ?? "") === "Settings"; }
+    readonly property bool settingsActive: hasActive && isSettings(active)
+    readonly property bool settingsMinimized: Hyprland.toplevels.values.some(t => isSettings(t) && isMinimized(t))
+
     readonly property int openCount: Hyprland.toplevels.values.length
 
     function addr(t) {

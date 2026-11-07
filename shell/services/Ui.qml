@@ -36,7 +36,9 @@ Singleton {
     property bool bootIntro: false       // lần khoá đầu tiên là "từ boot" (con mèo bay từ giữa màn hình xuống)
 
     function lock() { closeAll(); locked = true; }
-    function openSettings(page) { closeAll(); if (page) settingsPage = page; settingsOpen = true; }
+    // Cài đặt là cửa sổ thật: mở lại khi đang mở = đưa nó lên (kể cả đang thu nhỏ)
+    signal settingsRaiseRequested()
+    function openSettings(page) { closeAll(); if (page) settingsPage = page; if (settingsOpen) settingsRaiseRequested(); settingsOpen = true; }
     function toggleNotifs() { const o = !notifOpen; closeAll(); notifOpen = o; }
     function closeAll() { controlCenterOpen = false; launcherOpen = false; powerOpen = false; notifOpen = false; }
 

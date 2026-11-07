@@ -34,7 +34,7 @@ Singleton {
 
     // ---- giá trị ----
     property string accentId: "violet"
-    property string wallpaper: "preset:islet"
+    property string wallpaper: "/usr/share/islet/wallpapers/islet.jpg"   // hình nền mặc định của Islet
     property bool dnd: false
     property string iconStyle: "minimal"   // "minimal" (Tối giản) | "color" (Sắc màu)
     property bool lockOnBoot: true         // bật máy xong vào màn hình khoá (nối tiếp màn hình khởi động)
