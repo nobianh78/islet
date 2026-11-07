@@ -26,7 +26,21 @@ Singleton {
     readonly property string title: active?.trackTitle || "Untitled"
     readonly property string artist: active?.trackArtist || active?.identity || ""
     readonly property string artUrl: active?.trackArtUrl ?? ""
-    readonly property real length: active?.length ?? 0
+    // Độ dài thật của bài. Firefox (YouTube…) khi tua gửi lại metadata THIẾU mpris:length, lúc đó
+    // Quickshell báo độ dài bám theo vị trí — giữ độ dài đã biết của bài đó thay vì tin con số ấy.
+    readonly property real rawLength: active?.length ?? 0
+    property real knownLength: 0
+    property string lengthOf: ""
+    onRawLengthChanged: updateLength()
+    function updateLength() {
+        const t = (active?.trackTitle ?? "") + "\u0000" + (active?.dbusName ?? "");
+        if (t !== lengthOf) { lengthOf = t; knownLength = 0; }
+        const L = rawLength;
+        if (L <= 0) return;
+        if (knownLength > 0 && Math.abs(L - (active?.position ?? 0)) < 2) return;   // "độ dài" giả = vị trí
+        knownLength = L;
+    }
+    readonly property real length: knownLength > 0 ? knownLength : rawLength
     readonly property real position: (active?.position ?? 0) + fix
     readonly property bool canSeek: (active?.canSeek ?? false) && (active?.positionSupported ?? false)
 
@@ -38,11 +52,13 @@ Singleton {
     // lệch quá 0,35 s thì bù vào (lời bài hát, thanh tiến trình theo kịp khi tua).
     property real fix: 0
     readonly property string busName: active?.dbusName ?? ""
-    onBusNameChanged: fix = 0
-    onTitleChanged: fix = 0
+    onBusNameChanged: { fix = 0; lastDiff = NaN; zeros = 0; updateLength(); }
+    onTitleChanged: { fix = 0; lastDiff = NaN; updateLength(); }
+    property real lastDiff: NaN
+    property int zeros: 0                 // trình phát luôn trả Position = 0 (Firefox) → thôi không hỏi nữa
     Timer {
         interval: 1000; repeat: true; triggeredOnStart: true
-        running: root.wantPosition && root.busName !== ""
+        running: root.wantPosition && root.busName !== "" && root.zeros < 3
         onTriggered: if (!posProc.running) { posProc.sentAt = root.position - root.fix; posProc.running = true; }
     }
     Process {
@@ -55,8 +71,14 @@ Singleton {
                 if (!m) return;
                 const real = Number(m[1]) / 1e6;
                 const est = (posProc.sentAt + (root.active?.position ?? 0)) / 2;   // giữa lúc hỏi và lúc nhận
+                // Firefox trả Position = 0 dù đang phát giữa bài (nó vẫn báo "Seeked" đúng, nên ước lượng của
+                // Quickshell đã chuẩn) → bỏ qua; ba lần như vậy thì thôi hỏi trình này
+                if (real < 0.05 && est > 2) { root.zeros++; root.fix = 0; return; }
                 const d = real - est;
-                root.fix = Math.abs(d) > 0.35 ? d : 0;
+                if (Math.abs(d) <= 0.35) { root.fix = 0; root.lastDiff = NaN; return; }
+                // chỉ bù khi hai lần hỏi liền nhau cùng cho thấy lệch như nhau (tránh tin một lần đọc trục trặc)
+                if (!isNaN(root.lastDiff) && Math.abs(d - root.lastDiff) < 0.5) root.fix = d;
+                root.lastDiff = d;
             }
         }
     }
