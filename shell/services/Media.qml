@@ -8,7 +8,8 @@ import Quickshell.Services.Mpris
 Singleton {
     id: root
 
-    readonly property var players: Mpris.players.values
+    // playerctld chỉ là bản sao của trình phát khác (trễ hơn, vị trí luôn 0) → bỏ, kẻo island nhảy qua lại
+    readonly property var players: Mpris.players.values.filter(p => !(p.dbusName ?? "").includes("playerctld"))
 
     // Ưu tiên trình đang phát; nếu không có thì lấy trình vừa phát gần nhất.
     property MprisPlayer last: null
