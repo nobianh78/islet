@@ -1,0 +1,9 @@
+# Islet: gói gộp — cài cái này là có đủ Islet; cập nhật qua `pacman -Syu` (hoặc Cài đặt › Updates).
+pkgname=islet
+pkgver=@VER@
+pkgrel=1
+pkgdesc="Islet desktop for Arch Linux (meta package)"
+arch=(any)
+url="https://github.com/nobianh78/islet"
+license=(custom)
+depends=(islet-shell islet-tools islet-themes islet-keyring)

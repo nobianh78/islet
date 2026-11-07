@@ -181,7 +181,7 @@ arch-chroot "$MNT" chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.config/islet
 
 say 82 "Initializing pacman keys"
 arch-chroot "$MNT" pacman-key --init >/dev/null 2>&1 || true
-arch-chroot "$MNT" pacman-key --populate archlinux >/dev/null 2>&1 || true
+arch-chroot "$MNT" pacman-key --populate >/dev/null 2>&1 || true      # archlinux + islet (khoá ký gói của Islet)
 
 say 87 "Building initramfs"
 arch-chroot "$MNT" mkinitcpio -P 2>&1 | while read -r l; do log "$l"; done

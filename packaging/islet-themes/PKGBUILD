@@ -1,0 +1,24 @@
+# Islet: bộ icon, con trỏ chuột, hình nền, màn hình khởi động Plymouth, theme GTK/Firefox, logo, font.
+pkgname=islet-themes
+pkgver=@VER@
+pkgrel=1
+pkgdesc="Islet look: icons, cursors, wallpapers, boot splash, GTK and Firefox styles, Be Vietnam Pro font"
+arch=(any)
+url="https://github.com/nobianh78/islet"
+license=(custom OFL-1.1)
+
+package() {
+    local S="$ISLET_SRC" D="$pkgdir"
+    install -d "$D/usr/share/icons" "$D/usr/share/islet" "$D/usr/share/plymouth/themes" "$D/usr/share/pixmaps"
+    cp -r --no-preserve=ownership "$S/theme/icons/Islet" "$S/theme/cursors/Islet-Cursors" "$S/theme/cursors/Islet-Cursors-Busy" "$D/usr/share/icons/"
+    cp -r --no-preserve=ownership "$S/theme/wallpapers" "$D/usr/share/islet/wallpapers"
+    cp -r --no-preserve=ownership "$S/theme/plymouth/islet" "$D/usr/share/plymouth/themes/islet"
+    install -Dm644 "$S/theme/firefox/userChrome.css" "$D/usr/share/islet/firefox/userChrome.css"
+    install -Dm644 "$S/theme/gtk/gtk3.css" "$D/usr/share/islet/gtk/gtk3.css"
+    install -Dm644 "$S/theme/gtk/gtk4.css" "$D/usr/share/islet/gtk/gtk4.css"
+    install -Dm644 "$S/branding/islet-mark-dark-bg.svg" "$D/usr/share/pixmaps/islet.svg"
+    install -Dm644 "$S/branding/islet-mark-256.png" "$D/usr/share/pixmaps/islet.png"
+    install -Dm644 "$S/shell/assets/apps/islet.svg" "$D/usr/share/pixmaps/islet-app.svg"
+    install -Dm644 -t "$D/usr/share/fonts/be-vietnam-pro" "$ISLET_FONTS"/*.ttf
+    install -Dm644 "$ISLET_FONTS/OFL.txt" "$D/usr/share/licenses/$pkgname/OFL.txt"
+}

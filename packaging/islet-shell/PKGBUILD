@@ -1,0 +1,22 @@
+# Islet: shell (Dynamic Island, Dock, Cài đặt, Cửa hàng… viết bằng Quickshell) + cấu hình Hyprland mặc định.
+# Không build tay: scripts/build-packages.sh điền pkgver và trỏ ISLET_SRC tới repo.
+pkgname=islet-shell
+pkgver=@VER@
+pkgrel=1
+pkgdesc="Islet desktop shell (Dynamic Island, Dock, Settings, Store) and its Hyprland config"
+arch=(any)
+url="https://github.com/nobianh78/islet"
+license=(custom)
+depends=(islet-tools islet-themes quickshell hyprland qt6-svg qt6-imageformats)
+source=(islet-reload.hook)
+sha256sums=(SKIP)
+
+package() {
+    install -d "$pkgdir/usr/share/islet"
+    cp -r --no-preserve=ownership "$ISLET_SRC/shell" "$pkgdir/usr/share/islet/shell"
+    find "$pkgdir/usr/share/islet/shell" \( -name '*.qmlc' -o -name '*.jsc' -o -name '__pycache__' -o -name '.qmlls.ini' \) -prune -exec rm -rf {} +
+    install -Dm644 "$ISLET_SRC/hypr/hyprland.lua" "$pkgdir/usr/share/islet/hypr/hyprland.lua"
+    echo "$pkgver" > "$pkgdir/usr/share/islet/VERSION"
+    install -Dm644 -t "$pkgdir/usr/share/applications" "$ISLET_SRC"/tools/applications/*.desktop
+    install -Dm644 "$srcdir/islet-reload.hook" "$pkgdir/usr/share/libalpm/hooks/islet-reload.hook"
+}

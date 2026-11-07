@@ -1,0 +1,9 @@
+# Bản cũ chép các lệnh islet-* vào /usr/local/bin (không thuộc gói nào) — chúng sẽ che mất bản mới trong /usr/bin.
+_cleanup() {
+    for f in admin agent autostart clip defaults demo firefox-theme ipc pkg shot thispc trash wifi; do
+        rm -f "/usr/local/bin/islet-$f"
+    done
+    rm -f /etc/systemd/system/islet-autoupdate.service /etc/systemd/system/islet-autoupdate.timer
+}
+post_install() { _cleanup; }
+post_upgrade() { _cleanup; }

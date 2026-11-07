@@ -9,7 +9,7 @@ O=(-p 2222 -i "$ROOT/out/dev_key" -o StrictHostKeyChecking=no -o UserKnownHostsF
 : "${ISLET_SUDO_PASS:?đặt ISLET_SUDO_PASS}"
 A=iso/islet/airootfs
 python3 "$ROOT/scripts/make-icons.py" >/dev/null
-tar -C "$ROOT" -cf - shell hypr/hyprland.lua theme/icons/Islet theme/cursors theme/wallpapers $A/usr/share/icons/default $A/usr/local/bin $A/usr/share/applications $A/usr/local/share/applications \
+tar -C "$ROOT" -cf - shell hypr/hyprland.lua theme/icons/Islet theme/cursors theme/wallpapers $A/usr/share/icons/default tools $A/home/islet/.config/hypr $A/usr/local/bin $A/usr/share/applications $A/usr/local/share/applications \
     | ssh "${O[@]}" "$U@localhost" 'rm -rf /tmp/up && mkdir /tmp/up && tar -C /tmp/up -xf -'
 printf '%s\n' "$ISLET_SUDO_PASS" | ssh "${O[@]}" "$U@localhost" 'sudo -S -p "" sh -c "
     set -e; U=/tmp/up; A=\$U/iso/islet/airootfs
@@ -20,11 +20,14 @@ printf '%s\n' "$ISLET_SUDO_PASS" | ssh "${O[@]}" "$U@localhost" 'sudo -S -p "" s
     rm -rf /usr/share/icons/Islet-Cursors /usr/share/icons/Islet-Cursors-Busy && cp -a \$U/theme/cursors/Islet-Cursors \$U/theme/cursors/Islet-Cursors-Busy /usr/share/icons/
     mkdir -p /usr/share/icons/default && cp \$A/usr/share/icons/default/index.theme /usr/share/icons/default/
     install -m755 \$A/usr/local/bin/* /usr/local/bin/
-    install -m644 \$A/usr/share/applications/*.desktop /usr/share/applications/
+    install -m755 \$U/tools/bin/* /usr/bin/
+    for f in \$U/tools/bin/*; do rm -f /usr/local/bin/\$(basename \$f); done
+    install -m644 \$U/tools/systemd/* /usr/lib/systemd/system/
+    install -m644 \$A/usr/share/applications/*.desktop \$U/tools/applications/*.desktop /usr/share/applications/
     mkdir -p /usr/local/share/applications && install -m644 \$A/usr/local/share/applications/*.desktop /usr/local/share/applications/
     chown -R root:root /usr/share/islet /usr/share/icons/Islet /usr/share/icons/Islet-Cursors /usr/share/icons/Islet-Cursors-Busy
 "'
-ssh "${O[@]}" "$U@localhost" 'cp /tmp/up/hypr/hyprland.lua ~/.config/hypr/hyprland.lua; rm -rf /tmp/up ~/.config/islet/shell
+ssh "${O[@]}" "$U@localhost" 'cp /tmp/up/iso/islet/airootfs/home/islet/.config/hypr/hyprland.lua ~/.config/hypr/hyprland.lua; rm -rf /tmp/up ~/.config/islet/shell
     export XDG_RUNTIME_DIR=/run/user/$(id -u) WAYLAND_DISPLAY=wayland-1 HYPRLAND_INSTANCE_SIGNATURE=$(ls /run/user/$(id -u)/hypr | head -1)
     hyprctl reload >/dev/null 2>&1 || true
     # chạy lại shell QUA Hyprland để nó có đúng môi trường của phiên (XDG_SESSION_TYPE=wayland…);

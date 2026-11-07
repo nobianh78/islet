@@ -1,0 +1,16 @@
+# Islet: các lệnh islet-* (Wi-Fi, Cửa hàng, thùng rác, ảnh chụp màn hình, quản trị…) và dịch vụ tự cập nhật.
+pkgname=islet-tools
+pkgver=@VER@
+pkgrel=1
+pkgdesc="Command-line helpers behind the Islet desktop (islet-wifi, islet-pkg, islet-trash, islet-admin, ...)"
+arch=(any)
+url="https://github.com/nobianh78/islet"
+license=(custom)
+depends=(bash python glib2 pacman-contrib)
+optdepends=('satty: edit screenshots' 'wl-clipboard: clipboard history' 'iwd: Wi-Fi' 'snapper: system snapshots')
+install=islet-tools.install
+
+package() {
+    install -Dm755 -t "$pkgdir/usr/bin" "$ISLET_SRC"/tools/bin/*
+    install -Dm644 -t "$pkgdir/usr/lib/systemd/system" "$ISLET_SRC"/tools/systemd/*
+}

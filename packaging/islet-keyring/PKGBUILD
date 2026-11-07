@@ -1,0 +1,14 @@
+# Islet: khoá công khai dùng để ký các gói trong kho [islet].
+pkgname=islet-keyring
+pkgver=@VER@
+pkgrel=1
+pkgdesc="PGP key that signs the Islet package repository"
+arch=(any)
+url="https://github.com/nobianh78/islet"
+license=(custom)
+install=islet-keyring.install
+
+package() {
+    install -Dm644 -t "$pkgdir/usr/share/pacman/keyrings" "$ISLET_SRC"/packaging/keyring/islet.gpg \
+        "$ISLET_SRC"/packaging/keyring/islet-trusted "$ISLET_SRC"/packaging/keyring/islet-revoked
+}

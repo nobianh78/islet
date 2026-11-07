@@ -128,6 +128,7 @@ FloatingWindow {
             echo "ram=$(awk '/MemTotal/{printf "%.1f GB", $2/1048576}' /proc/meminfo)"
             echo "gpu=$(lspci 2>/dev/null | sed -n 's/.*\\(VGA\\|3D\\|Display\\)[^:]*: //p' | head -1)"
             echo "disk=$(df -h / | awk 'NR==2{print $3 " / " $2}')"
+            echo "islet=$(cat /usr/share/islet/VERSION 2>/dev/null || echo dev)"
             echo "hypr=$(hyprctl version 2>/dev/null | sed -n 's/^Hyprland \\([0-9.]*\\).*/\\1/p' | head -1)"
             awk '{s=int($1); d=int(s/86400); h=int(s%86400/3600); m=int(s%3600/60); printf "up="; if (d) printf "%dd ", d; if (h) printf "%dh ", h; printf "%d min\n", m}' /proc/uptime
         `]
@@ -1613,7 +1614,7 @@ FloatingWindow {
                             width: parent.width
                             Repeater {
                                 model: [
-                                    ["Computer name", win.sys.host], ["Processor", (win.sys.cpu || "") + (win.sys.cores ? " · " + win.sys.cores + " threads" : "")],
+                                    ["Islet", win.sys.islet], ["Computer name", win.sys.host], ["Processor", (win.sys.cpu || "") + (win.sys.cores ? " · " + win.sys.cores + " threads" : "")],
                                     ["Memory", win.sys.ram], ["Graphics", win.sys.gpu], ["Disk", win.sys.disk],
                                     ["Linux kernel", win.sys.kernel], ["Hyprland", win.sys.hypr], ["Uptime", win.sys.up]
                                 ]
