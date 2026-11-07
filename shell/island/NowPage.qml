@@ -95,6 +95,83 @@ Item {
             }
         }
 
+        // ---- lời bài hát: cuộn mượt, câu đang hát ở giữa (tô karaoke) ----
+        Item {
+            id: lyr
+            visible: Prefs.islandLyrics && Lyrics.status !== "off" && Lyrics.status !== "idle"
+            width: parent.width
+            height: Lyrics.status === "ok" ? 74 : 22
+            HoverHandler { id: lyrHover }
+            Text {
+                visible: Lyrics.status !== "ok"
+                anchors.verticalCenter: parent.verticalCenter
+                text: Lyrics.status === "loading" ? "Finding lyrics…" : Lyrics.status === "error" ? "Lyrics unavailable offline" : "No lyrics for this song"
+                color: Qt.rgba(1, 1, 1, 0.4); font.family: Theme.font; font.pixelSize: 12; font.italic: true
+            }
+            ListView {
+                id: lyrList
+                visible: Lyrics.status === "ok"
+                anchors.fill: parent
+                clip: true
+                interactive: false
+                model: Lyrics.status === "ok" ? Lyrics.lines : []
+                // dòng cao cố định → tự đặt vị trí cuộn: câu đang hát luôn ở giữa, cuộn mượt khi đổi câu
+                readonly property real rowH: 24
+                contentY: Math.max(0, Lyrics.index) * rowH - (height / 2 - rowH / 2) + originY
+                Behavior on contentY { NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
+                topMargin: height
+                bottomMargin: height
+                delegate: Item {
+                    id: ld
+                    required property var modelData
+                    required property int index
+                    readonly property bool cur: index === Lyrics.index
+                    width: lyrList.width
+                    height: lyrList.rowH
+                    Text {
+                        id: txt
+                        visible: !ld.cur
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width
+                        text: ld.modelData[1] || "♪"
+                        elide: Text.ElideRight
+                        color: Qt.rgba(1, 1, 1, Math.abs(ld.index - Lyrics.index) === 1 ? 0.42 : 0.22)
+                        font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold
+                    }
+                    LyricLine {
+                        id: curLine
+                        visible: ld.cur
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width
+                        text: ld.modelData[1] || "♪"
+                        key: "now#" + ld.index
+                        progress: ld.cur ? Lyrics.progress : 0
+                        pixelSize: 16
+                        weight: Font.ExtraBold
+                        dim: Qt.rgba(1, 1, 1, 0.45)
+                        color: "#FFFFFF"
+                    }
+                }
+            }
+            // chỉnh tay khi lời lệch / sai (hiện khi rê chuột vào lời)
+            Row {
+                visible: Lyrics.status === "ok"
+                anchors.right: parent.right
+                anchors.top: parent.top
+                spacing: 4
+                opacity: lyrHover.hovered ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: 160 } }
+                LyrBtn { label: "−0.5s"; tip: "Lyrics later"; onClicked: Lyrics.nudge(-0.5) }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: (Lyrics.offset > 0 ? "+" : "") + Lyrics.offset.toFixed(1) + "s"
+                    color: Qt.rgba(1, 1, 1, 0.55); font.family: Theme.font; font.pixelSize: 10; font.features: ({ "tnum": 1 })
+                }
+                LyrBtn { label: "+0.5s"; tip: "Lyrics earlier"; onClicked: Lyrics.nudge(0.5) }
+                LyrBtn { label: "Wrong lyrics"; onClicked: Lyrics.markWrong() }
+            }
+        }
+
         // tiến trình
         Row {
             width: parent.width
@@ -174,5 +251,18 @@ Item {
                 }
             }
         }
+    }
+
+    component LyrBtn: Rectangle {
+        id: lb
+        property string label: ""
+        property string tip: ""
+        signal clicked()
+        width: lbt.implicitWidth + 14
+        height: 20
+        radius: 10
+        color: lbm.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.1)
+        Text { id: lbt; anchors.centerIn: parent; text: lb.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 10; font.weight: Font.DemiBold }
+        MouseArea { id: lbm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: lb.clicked() }
     }
 }

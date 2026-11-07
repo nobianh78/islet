@@ -110,9 +110,24 @@ Item {
         }
     }
 
+    // --- media: câu đang hát (karaoke) — không có lời thì tên bài · ca sĩ ---
+    LyricLine {
+        visible: root.mode === "media" && Lyrics.showing
+        anchors.left: left.right
+        anchors.leftMargin: 8
+        anchors.right: right.left
+        anchors.rightMargin: 10
+        anchors.verticalCenter: parent.verticalCenter
+        text: Lyrics.current
+        key: Lyrics.title + "#" + Lyrics.index
+        progress: Lyrics.progress
+        color: "#FFFFFF"
+        dim: Qt.rgba(1, 1, 1, 0.42)
+        pixelSize: 13
+    }
     // --- media: tên bài · ca sĩ (trượt khi đổi bài) ---
     SlideText {
-        visible: root.mode === "media"
+        visible: root.mode === "media" && !Lyrics.showing
         anchors.left: left.right
         anchors.leftMargin: 8
         anchors.right: right.left

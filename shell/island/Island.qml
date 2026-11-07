@@ -62,12 +62,12 @@ PanelWindow {
             return Math.max(200, toastMetrics.width + (banner.tile || banner.icon ? 74 : 44));
         }
         // có agent đang chạy → island nở thêm một chút để chừa chỗ cho icon agent
-        return (mode === "idle" ? 300 : 380) + (agentActive ? 30 : 0) + (liveActive && mode === "idle" ? 40 : 0);
+        return (mode === "idle" ? 300 : Lyrics.status === "ok" ? 420 : 380) + (agentActive ? 30 : 0) + (liveActive && mode === "idle" ? 40 : 0);
     }
     readonly property bool liveActive: Prefs.islandLive && (Recorder.recording || Chrono.active || Downloads.active)
     readonly property bool agentActive: Prefs.islandAgents && Agents.sessions.some(x => x.state === "working" || x.state === "attention")
     readonly property real targetH: {
-        if (view === "expanded") return Math.max(barH + 120, Math.min(360, Math.max(150, expandedView.contentHeight)));
+        if (view === "expanded") return Math.max(barH + 120, Math.min(420, Math.max(150, expandedView.contentHeight)));
         if (flush) return barH;
         return Math.max(70, barH + 8);
     }
@@ -320,7 +320,8 @@ PanelWindow {
     // mode "media" hết hạn 90 s sau khi tạm dừng
     Timer { interval: 5000; repeat: true; running: win.pausedAt > 0; onTriggered: win.pausedAtChanged() }
 
-    onViewChanged: Media.wantPosition = (view === "expanded")
+    // vị trí bài hát cần cập nhật liên tục khi đang xem tab Now, hoặc khi island thu gọn đang hiện lời
+    Binding { target: Media; property: "wantPosition"; value: win.view === "expanded" || (win.view === "compact" && win.mode === "media" && Lyrics.status === "ok") }
 
     // ---------------- khung ----------------
     Item {
@@ -383,7 +384,7 @@ PanelWindow {
             // ---- các màn ----
             Fader {
                 shown: win.view === "compact"
-                width: (win.mode === "idle" ? 300 : 380) + (win.agentActive ? 30 : 0) + (win.liveActive && win.mode === "idle" ? 40 : 0)
+                width: (win.mode === "idle" ? 300 : Lyrics.status === "ok" ? 420 : 380) + (win.agentActive ? 30 : 0) + (win.liveActive && win.mode === "idle" ? 40 : 0)
                 height: win.barH
                 CompactView {
                     id: compactView

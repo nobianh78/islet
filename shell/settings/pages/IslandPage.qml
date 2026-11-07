@@ -19,6 +19,7 @@ Column {
             id: iCol
             y: 4; width: parent.width
             Row2 { title: "Now playing"; sub: "Album art, title and sound waves while music plays"; checked: Prefs.islandMedia; onToggled: Prefs.set("islandMedia", !Prefs.islandMedia) }
+            Row2 { divider: true; title: "Lyrics"; sub: "Synced lyrics while music plays (looks up the song title and artist on LRCLIB and NetEase)"; checked: Prefs.islandLyrics; onToggled: Prefs.set("islandLyrics", !Prefs.islandLyrics) }
             Row2 { divider: true; title: "Live activities"; sub: "Timers, screen recording and downloads"; checked: Prefs.islandLive; onToggled: Prefs.set("islandLive", !Prefs.islandLive) }
             Row2 { divider: true; title: "Coding agents"; sub: "Claude Code, Codex, Gemini, OpenCode, editors"; checked: Prefs.islandAgents; onToggled: Prefs.set("islandAgents", !Prefs.islandAgents) }
             Row2 { divider: true; title: "Notification banners"; sub: Prefs.dnd ? "Paused by Do Not Disturb" : "Messages slide out of the island"; checked: !Prefs.dnd; onToggled: Prefs.set("dnd", !Prefs.dnd) }

@@ -1,0 +1,337 @@
+#!/usr/bin/env python3
+"""Lời bài hát chạy theo nhạc cho Dynamic Island (chuyển từ project Dynamic Island cho GNOME, lib/lyrics.js).
+
+    islet-lyrics get   <title> <artist> <length-giây>   → JSON {state: ok|none|error, offset, lines: [[t, "câu"], …]}
+    islet-lyrics nudge <title> <artist> <length> <±giây> → lưu độ lệch riêng cho bài (+ = hiện lời sớm hơn)
+    islet-lyrics wrong <title> <artist> <length>         → "lời này của bài khác": nhớ là không có lời
+
+Hai nguồn miễn phí, hỏi song song: LRCLIB (lrclib.net) và NetEase Cloud Music (nhiều bài châu Á / Việt).
+Chỉ gửi tên bài, ca sĩ và độ dài. Kết quả (kể cả "không có") lưu ở ~/.cache/islet/lyrics nên mỗi bài chỉ tìm một lần.
+"""
+import hashlib, json, os, re, sys, time, unicodedata, urllib.parse, urllib.request
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
+
+LRCLIB = "https://lrclib.net/api"
+NETEASE = "https://music.163.com/api"
+UA = "islet-lyrics/0.1 (https://github.com/nobianh78/islet)"
+BROWSER_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36"
+CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"), "islet", "lyrics")
+CACHE_VERSION = 4
+
+NOISE_WORDS = r"official|lyrics?|m\/?v|audio|video|visuali[sz]er|karaoke|hd|4k|vietsub|engsub|kara|music video|performance|teaser|full|mv|lyric video|official mv|official music video|audio lyrics|prod\.?[^)\]】]*"
+NOISE_BRACKET = re.compile(r"\s*[(\[【「]([^)\]】」]*?)\b(" + NOISE_WORDS + r")\b[^)\]】」]*[)\]】」]", re.I)
+NOISE_SEGMENT = re.compile(r"^(" + NOISE_WORDS + r"|\s|-|#\S+)+$", re.I)
+CREDIT = re.compile(r"^(作词|作曲|编曲|制作人|制作|混音|母带|录音|和声|吉他|贝斯|鼓|弦乐|出品|监制|策划|统筹|发行|词|曲|演唱|原唱|OP|SP|Lyricist|Lyrics|Composer|Arranger|Producer|Mixing|Mastering|Written by)\s*[:：]|纯音乐，请欣赏", re.I)
+
+
+def norm(s):
+    s = unicodedata.normalize("NFD", s or "")
+    s = "".join(ch for ch in s if not unicodedata.combining(ch)).replace("đ", "d").replace("Đ", "d").lower()
+    return re.sub(r"[^\w]+|_", " ", s).strip()
+
+
+def clean_artist(a):
+    a = re.sub(r"\s*-\s*Topic$", "", a or "", flags=re.I)
+    a = re.sub(r"VEVO$", "", a, flags=re.I)
+    return re.sub(r"\s+(official|channel|music|entertainment|records)\b.*$", "", a, flags=re.I).strip()
+
+
+def clean_title(t):
+    t = NOISE_BRACKET.sub("", t or "")
+    t = re.sub(r"\s*[(\[]([^)\]]*?)\b(album|track|ep|ost|soundtrack|from)\b[^)\]]*[)\]]", "", t, flags=re.I)
+    t = re.sub(r"^\s*['\"‘’“”]+|['\"‘’“”]+\s*$", "", t)
+    t = re.sub(r"(^|\s)['\"‘’“”]([^'\"‘’“”]+)['\"‘’“”](?=\s|$)", r"\1\2", t)
+    t = re.sub(r"\s*\(?\b(ft\.?|feat\.?)\s.*$", "", t, flags=re.I)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def candidates(title, artist):
+    out = []
+
+    def add(t, a):
+        t, a = clean_title(t), clean_artist(a)
+        if t and not NOISE_SEGMENT.match(t) and not any(norm(c[0]) == norm(t) and norm(c[1]) == norm(a) for c in out):
+            out.append((t, a))
+    ca = clean_artist(artist)
+    segs = [x.strip() for x in re.split(r"\s*[|｜]\s*", clean_title(title)) if x.strip() and not NOISE_SEGMENT.match(x.strip())]
+    for seg in segs or [title]:
+        m = re.match(r"^(.+?)\s+[-–—]\s+(.+)$", seg)
+        if m:
+            add(m.group(2), m.group(1))      # "Ca sĩ - Tên bài"
+            add(m.group(1), m.group(2))      # "Tên bài - Ca sĩ"
+        ns, na = norm(seg), norm(ca)
+        credit = (na and (ns == na or ns.startswith(na + " ") or ns.endswith(" " + na))) or \
+            (len(segs) > 1 and re.search(r"\s(x|&|ft\.?|feat\.?|vs\.?)\s", seg, re.I) and not m)
+        if not credit:
+            add(seg, ca)
+    if len(segs) >= 2 and not out:
+        add(segs[1], segs[0])
+    return out[:5]
+
+
+def title_score(rt, ct):
+    if not rt or not ct:
+        return 0
+    if rt == ct:
+        return 50
+    short, long_ = (rt, ct) if len(rt) < len(ct) else (ct, rt)
+    return 30 if long_.startswith(short + " ") and len(short) / len(long_) >= 0.5 else 0
+
+
+def artist_matches(ra, hint):
+    if not ra or not hint:
+        return False
+    sq = lambda x: x.replace(" ", "")
+    return ra in hint or sq(ra) in sq(hint) or any(w in hint.split(" ") for w in ra.split(" ") if len(w) > 2)
+
+
+def strip_brackets(t):
+    return re.sub(r"\s*[(\[【「][^)\]】」]*[)\]】」]", "", t or "")
+
+
+def score(r, cand, artist_hint, dur):
+    ct = norm(cand[0])
+    ts = max(title_score(norm(r.get("trackName")), ct), title_score(norm(strip_brackets(r.get("trackName"))), ct) - 5)
+    if not ts:
+        return None
+    s = ts
+    hint = norm(cand[1] + " " + artist_hint)
+    artist_ok = any(artist_matches(norm(a), hint) for a in re.split(r"\s*[,;&/]\s*|\s+x\s+|\s+feat\.?\s+", r.get("artistName") or "", flags=re.I))
+    if artist_ok:
+        s += 30
+    rd = float(r.get("duration") or 0)
+    if dur and rd:
+        d = abs(rd - dur)
+        if d > 45:
+            return None
+        s += 25 if d <= 3 else 15 if d <= 10 else 5
+    return {"s": s, "synced": bool(r.get("syncedLyrics")), "artistOk": artist_ok, "duration": rd}
+
+
+def worth_looking_up(title, artist, length):
+    if length and (length < 30 or length > 20 * 60):
+        return False
+    return not re.search(r"youtube premium|quảng cáo|advertisement|\bads?\b", f"{title} {artist}", re.I) and \
+        not re.match(r"^youtube( presents)?$", (artist or "").strip(), re.I)
+
+
+def parse_lrc(lrc):
+    lines = []
+    for raw in (lrc or "").split("\n"):
+        stamps = re.findall(r"\[(\d+):(\d+(?:[.:]\d+)?)\]", raw)
+        if not stamps:
+            continue
+        text = re.sub(r"\[[^\]]*\]", "", raw).strip()
+        if CREDIT.search(text):
+            continue
+        for mm, ss in stamps:
+            lines.append([round(int(mm) * 60 + float(ss.replace(":", ".")), 2), text])
+    return sorted(lines, key=lambda x: x[0])
+
+
+class Transient(Exception):
+    pass
+
+
+def fetch(url, headers=None, attempt=0):
+    req = urllib.request.Request(url, headers={"User-Agent": UA, **(headers or {})})
+    try:
+        with urllib.request.urlopen(req, timeout=6) as r:
+            return json.loads(r.read().decode("utf-8", "replace"))
+    except urllib.error.HTTPError as e:
+        if (e.code == 429 and attempt < 2) or (e.code >= 500 and attempt < 1):
+            time.sleep((1.5 if e.code == 429 else 0.6) * (attempt + 1))
+            return fetch(url, headers, attempt + 1)
+        if e.code == 429 or e.code >= 500:
+            raise Transient(f"HTTP {e.code}")
+        return None
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
+        raise Transient(str(e))
+    except ValueError:
+        return None
+
+
+def q(params):
+    return urllib.parse.urlencode(params)
+
+
+def from_lrclib(title, artist, cands, dur):
+    best = {"s": -1, "lrc": None, "duration": 0}
+    flags = {"unsynced": False, "transient": False}
+
+    def consider(res, cand):
+        for r in res if isinstance(res, list) else [res]:
+            if not r:
+                continue
+            sc = score(r, cand, f"{artist} {title}", dur)
+            if not sc:
+                continue
+            if not sc["synced"]:
+                if sc["artistOk"] and sc["s"] >= 75:
+                    flags["unsynced"] = True
+                continue
+            if sc["s"] > best["s"]:
+                best.update(s=sc["s"], lrc=r["syncedLyrics"], duration=sc["duration"])
+
+    def lr(path, params, cand):
+        try:
+            consider(fetch(f"{LRCLIB}{path}?{q(params)}"), cand)
+        except Transient:
+            flags["transient"] = True
+
+    c0 = cands[0]
+    jobs = []
+    if c0[1]:
+        p = {"track_name": c0[0], "artist_name": c0[1]}
+        if dur:
+            p["duration"] = str(dur)
+        jobs.append(("/get", p, c0))
+    for c in [c for c in cands[:2] if c[1]]:
+        jobs.append(("/search", {"track_name": c[0], "artist_name": c[1]}, c))
+    with ThreadPoolExecutor(4) as ex:
+        list(ex.map(lambda j: lr(*j), jobs))
+    if best["s"] >= 75 or flags["unsynced"]:
+        return best, flags
+    jobs = [("/search", {"q": f"{c0[0]} {c0[1]}".strip()}, c0)]
+    if c0[1]:
+        jobs.append(("/search", {"q": c0[0]}, c0))
+    with ThreadPoolExecutor(2) as ex:
+        list(ex.map(lambda j: lr(*j), jobs))
+    return best, flags
+
+
+def from_netease(title, artist, cands, dur):
+    hdr = {"Referer": "https://music.163.com/", "User-Agent": BROWSER_UA}
+    flags = {"transient": False}
+    c0 = cands[0]
+    queries = [(f"{c0[0]} {c0[1]}".strip(), c0), (c0[0], c0)]
+    if len(cands) > 1 and norm(cands[1][0]) != norm(c0[0]):
+        queries.append((f"{cands[1][0]} {cands[1][1]}".strip(), cands[1]))
+    uniq = list({norm(x[0]): x for x in queries}.values())
+
+    def search(qc):
+        try:
+            d = fetch(f"{NETEASE}/search/get?{q({'s': qc[0], 'type': '1', 'limit': '8'})}", hdr)
+        except Transient:
+            flags["transient"] = True
+            return []
+        return [(s, qc[1]) for s in ((d or {}).get("result") or {}).get("songs") or []]
+    with ThreadPoolExecutor(3) as ex:
+        hits = [h for res in ex.map(search, uniq) for h in res]
+    ranked = []
+    for song, cand in hits:
+        r = {"trackName": song.get("name"), "artistName": ", ".join(a.get("name", "") for a in song.get("artists") or song.get("ar") or []),
+             "duration": (song.get("duration") or song.get("dt") or 0) / 1000, "syncedLyrics": True}
+        sc = score(r, cand, f"{artist} {title}", dur)
+        if sc and sc["s"] >= 75 and sc["artistOk"]:
+            ranked.append((sc["s"], song.get("id"), sc["duration"]))
+    ranked.sort(reverse=True)
+    seen = []
+    for s, sid, d in ranked:
+        if sid in seen or len(seen) >= 2:
+            continue
+        seen.append(sid)
+        try:
+            data = fetch(f"{NETEASE}/song/lyric?{q({'id': str(sid), 'lv': '1'})}", hdr)
+        except Transient:
+            flags["transient"] = True
+            continue
+        lrc = ((data or {}).get("lrc") or {}).get("lyric")
+        if lrc and len([l for l in parse_lrc(lrc) if l[1]]) >= 4:
+            return {"s": s - 2, "lrc": lrc, "duration": d}, flags      # hoà điểm thì ưu tiên LRCLIB
+    return {"s": -1, "lrc": None}, flags
+
+
+def lookup(title, artist, length):
+    if not worth_looking_up(title, artist, length):
+        return None
+    dur = round(length or 0)
+    cands = candidates(title, artist)
+    if not cands:
+        return None
+    results, transient = [], False
+    with ThreadPoolExecutor(2) as ex:
+        futs = [ex.submit(from_lrclib, title, artist, cands, dur), ex.submit(from_netease, title, artist, cands, dur)]
+        deadline, grace = time.time() + 8, None
+        pending = set(futs)
+        while pending and time.time() < deadline and (grace is None or time.time() < grace):
+            done, pending = wait(pending, timeout=min(0.2, max(0, deadline - time.time())), return_when=FIRST_COMPLETED)
+            for f in done:
+                try:
+                    best, flags = f.result()
+                except Exception:
+                    transient = True
+                    continue
+                transient |= flags.get("transient", False)
+                results.append(best)
+                if best.get("lrc") and best["s"] >= 105:
+                    pending = set()
+                elif best.get("lrc") and best["s"] >= 75 and grace is None:
+                    grace = time.time() + 1.2
+        for f in pending:
+            f.cancel()
+    good = sorted([r for r in results if r.get("lrc") and r["s"] >= 75], key=lambda r: -r["s"])
+    if good:
+        return {"lrc": good[0]["lrc"], "duration": good[0].get("duration") or 0}
+    if transient:
+        raise Transient("network")
+    return None
+
+
+def cache_file(title, artist, length):
+    key = f"{title}\0{artist}\0{round(float(length or 0))}"
+    return os.path.join(CACHE, hashlib.sha1(key.encode()).hexdigest() + ".json")
+
+
+def read(path):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception:
+        return {}
+
+
+def write(path, data):
+    os.makedirs(CACHE, mode=0o700, exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, ensure_ascii=False)
+    os.replace(tmp, path)
+
+
+def cmd_get(title, artist, length):
+    path = cache_file(title, artist, length)
+    data = read(path)
+    if data.get("v", 0) >= CACHE_VERSION:
+        lines = parse_lrc(data.get("lrc"))
+        return {"state": "ok" if lines else "none", "offset": data.get("offset", 0), "lines": lines}
+    try:
+        found = lookup(title, artist, float(length or 0))
+    except Transient:
+        return {"state": "error", "offset": data.get("offset", 0), "lines": []}     # mạng lỗi: không lưu "không có"
+    lrc = (found or {}).get("lrc")
+    write(path, {"v": CACHE_VERSION, "title": title, "artist": artist, "length": length, "lrc": lrc,
+                 "lrcDuration": (found or {}).get("duration", 0), "offset": data.get("offset", 0)})
+    lines = parse_lrc(lrc)
+    return {"state": "ok" if lines else "none", "offset": data.get("offset", 0), "lines": lines}
+
+
+def main():
+    a = sys.argv[1:]
+    if len(a) >= 4 and a[0] == "get":
+        print(json.dumps(cmd_get(a[1], a[2], a[3]), ensure_ascii=False))
+    elif len(a) >= 5 and a[0] == "nudge":
+        path = cache_file(a[1], a[2], a[3])
+        data = read(path)
+        data["offset"] = round(float(data.get("offset", 0)) + float(a[4]), 1)
+        write(path, data)
+        print(data["offset"])
+    elif len(a) >= 4 and a[0] == "wrong":
+        write(cache_file(a[1], a[2], a[3]), {"v": CACHE_VERSION, "title": a[1], "artist": a[2], "length": a[3], "lrc": None, "wrong": True})
+    else:
+        print(__doc__.strip(), file=sys.stderr)
+        sys.exit(2)
+
+
+if __name__ == "__main__":
+    main()

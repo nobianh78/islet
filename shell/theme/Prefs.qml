@@ -65,6 +65,7 @@ Singleton {
     property bool islandMedia: true
     property bool islandLive: true
     property bool islandAgents: true
+    property bool islandLyrics: true        // lời bài hát trên island (LRCLIB + NetEase)
     property int wsCount: 5
     property string wsAnim: "slidefade"     // slidefade | slide | fade | none
     // ---- giờ ----
@@ -121,7 +122,7 @@ Singleton {
 
     readonly property var simpleKeys: ["dimAfter", "lockAfter", "screenOffAfter", "sleepAfterBattery", "sleepAfterAC", "lidAction", "autoSaver",
         "nightMode", "nightFrom", "nightTo", "nightTemp", "naturalScroll", "tapToClick", "disableWhileTyping", "pointerSpeed", "scrollSpeed",
-        "dockSize", "dockAutohide", "islandMedia", "islandLive", "islandAgents", "wsCount", "wsAnim", "clock24", "clockSeconds",
+        "dockSize", "dockAutohide", "islandMedia", "islandLive", "islandAgents", "islandLyrics", "wsCount", "wsAnim", "clock24", "clockSeconds",
         "notifPreview", "notifSounds", "notifMuted", "dndScheduled", "dndFrom", "dndTo", "systemSounds", "reduceMotion", "zoom",
         "cursorSize", "textScale", "highContrast", "kbLayout", "repeatDelay", "repeatRate", "imeEnabled", "imeMethod", "wallNight", "fontFamily"]
 
