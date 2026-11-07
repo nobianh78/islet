@@ -25,6 +25,24 @@ import "theme"
 
 // Islet shell. Chạy bằng: qs -p shell
 ShellRoot {
+    id: root
+
+    // Bản cài từ gói (/usr/share/islet/shell): KHÔNG tự nạp lại khi file đổi — pacman thay file từng cái,
+    // nạp giữa chừng sẽ lỗi. Hook của islet-shell gọi `qs ipc call shell reload` khi đã cài xong.
+    // Đang khoá màn hình thì đợi mở khoá rồi mới nạp (nạp lại lúc khoá làm màn hình khoá chết).
+    // Bản đang phát triển (~/.config/islet/shell) vẫn tự nạp như thường.
+    Component.onCompleted: if (Quickshell.shellDir.startsWith("/usr/")) Quickshell.watchFiles = false
+    property bool reloadPending: false
+    function reloadShell() { if (Ui.locked) reloadPending = true; else Quickshell.reload(false); }
+    Connections {
+        target: Ui
+        function onLockedChanged() { if (!Ui.locked && root.reloadPending) { root.reloadPending = false; reloadLater.restart(); } }
+    }
+    Timer { id: reloadLater; interval: 2000; onTriggered: Quickshell.reload(false) }
+    IpcHandler {
+        target: "shell"
+        function reload(): void { root.reloadShell(); }
+    }
     // Màn hình khoá dựng TRƯỚC và ngay (lúc bật máy nó nối tiếp màn hình khởi động, nên phải hiện
     // càng sớm càng tốt). Mọi thứ khác nạp ngầm (activeAsync) để không làm chậm khung đầu tiên.
     LockScreen {}

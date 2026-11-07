@@ -1,11 +1,13 @@
 #!/bin/bash
 # Gọi từ pacman hook sau khi cập nhật Islet: mọi phiên Hyprland đang chạy nạp lại cấu hình mới.
-# (Shell Quickshell tự nạp lại khi file QML đổi.)
+# Shell (Quickshell) cài từ gói không tự theo dõi file → báo nó nạp lại qua IPC (đang khoá thì nó tự đợi).
 for d in /run/user/*/hypr/*/; do
     [ -S "$d.socket.sock" ] || continue
     uid=$(stat -c %u "$d") || continue
     user=$(id -nu "$uid" 2>/dev/null) || continue
     runuser -u "$user" -- env XDG_RUNTIME_DIR="/run/user/$uid" HYPRLAND_INSTANCE_SIGNATURE="$(basename "$d")" \
         hyprctl reload >/dev/null 2>&1 || true
+    runuser -u "$user" -- env XDG_RUNTIME_DIR="/run/user/$uid" \
+        timeout 10 qs -p /usr/share/islet/shell ipc call shell reload >/dev/null 2>&1 || true
 done
 exit 0

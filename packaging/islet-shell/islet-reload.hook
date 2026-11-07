@@ -3,6 +3,7 @@ Operation = Install
 Operation = Upgrade
 Type = Package
 Target = islet-shell
+Target = islet-themes
 
 [Action]
 Description = Reloading Islet in running sessions...
