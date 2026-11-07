@@ -1554,7 +1554,15 @@ FloatingWindow {
                                         required property var modelData
                                         width: upList.width
                                         height: 38
-                                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData.name; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: Updates.isletNames[parent.modelData.name] ?? parent.modelData.name; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: parent.modelData.islet ? Font.DemiBold : Font.Normal }
+                                        Rectangle {
+                                            visible: parent.modelData.islet
+                                            x: 18 + isletW.implicitWidth + 8; anchors.verticalCenter: parent.verticalCenter
+                                            width: 40; height: 18; radius: 9
+                                            color: Theme.tint(0.22)
+                                            Text { anchors.centerIn: parent; text: "ISLET"; color: Qt.lighter(Theme.accent, 1.35); font.family: Theme.font; font.pixelSize: 9; font.weight: Font.Bold }
+                                            Text { id: isletW; visible: false; text: Updates.isletNames[parent.parent.modelData.name] ?? ""; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                        }
                                         Rectangle {
                                             visible: parent.modelData.aur
                                             x: 18 + nameW.implicitWidth + 8; anchors.verticalCenter: parent.verticalCenter

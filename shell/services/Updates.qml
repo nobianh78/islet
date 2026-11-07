@@ -8,7 +8,11 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    property var list: []            // { name, from, to, aur }
+    property var list: []            // { name, from, to, aur, islet }
+    // tên dễ hiểu cho các gói của Islet (kho [islet])
+    readonly property var isletNames: ({ "islet": "Islet", "islet-shell": "Islet desktop", "islet-tools": "Islet tools",
+                                         "islet-themes": "Islet look (icons, wallpapers, cursors)", "islet-keyring": "Islet signing key" })
+    readonly property int isletCount: list.filter(u => u.islet).length
     property bool checking: false
     property real lastCheck: 0
     property string error: ""
@@ -37,8 +41,8 @@ Singleton {
                 const before = root.count;
                 root.list = text.split("\n").filter(l => l).map(l => {
                     const p = l.split("\t");
-                    return { name: p[0], from: p[1], to: p[2], aur: p[3] === "aur" };
-                });
+                    return { name: p[0], from: p[1], to: p[2], aur: p[3] === "aur", islet: /^islet(-|$)/.test(p[0]) };
+                }).sort((a, b) => b.islet - a.islet);          // bản cập nhật của chính Islet lên đầu
                 root.checking = false;
                 root.lastCheck = Date.now();
                 if (root.count > 0 && root.count !== before) root.available(root.count);
