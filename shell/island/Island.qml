@@ -277,6 +277,17 @@ PanelWindow {
             });
         }
     }
+    // Time Machine
+    Connections {
+        target: Backup
+        function onStarted(label) {
+            win.pushBanner({ kind: "toast", icon: "backup", text: "Backing up to " + label + "…", duration: 2600 });
+        }
+        function onFinished(ok, text) {
+            win.pushBanner({ kind: "notification", title: ok ? "Backup finished" : "Backup didn't finish", body: text,
+                             appName: "Time Machine", icon: "", duration: 7000, onClick: () => Ui.openBackups() });
+        }
+    }
     // vừa khởi động vào một điểm khôi phục (chọn ở menu khởi động)
     Connections {
         target: Restore

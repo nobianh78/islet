@@ -46,6 +46,10 @@ Singleton {
     function openTrash() { launcherOpen = false; if (trashOpen) trashRaiseRequested(); trashOpen = true; }
     signal trashEmptyAsked()           // menu dock › Empty Trash: mở cửa sổ và hỏi xác nhận
     function askEmptyTrash() { openTrash(); trashEmptyAsked(); }
+    // Time Machine: xem lại / khôi phục file từ các bản sao lưu
+    property bool backupsOpen: false
+    signal backupsRaiseRequested()
+    function openBackups() { launcherOpen = false; if (backupsOpen) backupsRaiseRequested(); backupsOpen = true; }
     function openStore() { launcherOpen = false; if (storeOpen) storeRaiseRequested(); storeOpen = true; }
     function openSettings(page) { closeAll(); if (page) settingsPage = page; if (settingsOpen) settingsRaiseRequested(); settingsOpen = true; }
     function toggleNotifs() { const o = !notifOpen; closeAll(); notifOpen = o; }

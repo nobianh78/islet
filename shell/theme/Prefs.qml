@@ -95,6 +95,11 @@ Singleton {
     // ---- hình nền / giao diện ----
     property string wallNight: ""            // hình nền ban đêm ("" = như ban ngày)
     property string fontFamily: "Be Vietnam Pro"
+    // ---- Time Machine (islet-backup) ----
+    property string backupDrive: ""          // UUID ổ sao lưu ("" = chưa chọn)
+    property string backupLabel: ""
+    property bool backupAuto: true           // cắm ổ là tự sao lưu (rồi mỗi giờ một lần khi còn cắm)
+    property real backupLast: 0              // lần sao lưu xong gần nhất (ms)
 
     // hình nền đang dùng: ban đêm (giờ của Night Light) có thể là hình khác
     property bool nightNow: false
@@ -124,7 +129,8 @@ Singleton {
         "nightMode", "nightFrom", "nightTo", "nightTemp", "naturalScroll", "tapToClick", "disableWhileTyping", "pointerSpeed", "scrollSpeed",
         "dockSize", "dockAutohide", "islandMedia", "islandLive", "islandAgents", "islandLyrics", "wsCount", "wsAnim", "clock24", "clockSeconds",
         "notifPreview", "notifSounds", "notifMuted", "dndScheduled", "dndFrom", "dndTo", "systemSounds", "reduceMotion", "zoom",
-        "cursorSize", "textScale", "highContrast", "kbLayout", "repeatDelay", "repeatRate", "imeEnabled", "imeMethod", "wallNight", "fontFamily"]
+        "cursorSize", "textScale", "highContrast", "kbLayout", "repeatDelay", "repeatRate", "imeEnabled", "imeMethod", "wallNight", "fontFamily",
+        "backupDrive", "backupLabel", "backupAuto", "backupLast"]
 
     function set(key, value) {
         root[key] = value;

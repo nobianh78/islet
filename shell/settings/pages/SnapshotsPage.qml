@@ -15,7 +15,7 @@ Column {
     width: parent ? parent.width : 600
     spacing: 12
     property string msg: ""
-    onVisibleChanged: if (visible) { Restore.refresh(); targets.running = true; }
+    onVisibleChanged: if (visible) { Restore.refresh(); Backup.refresh(); Backup.refreshList(); }
     readonly property bool supported: Restore.supported
     readonly property var snaps: Restore.snaps
 
@@ -160,51 +160,99 @@ Column {
         Text { visible: Restore.msg !== ""; width: parent.width; wrapMode: Text.Wrap; text: Restore.msg; color: Restore.needsRestart ? "#34C77B" : "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
     }
 
-    SectionLabel { text: "Back up your files" }
-    property var drives: []
-    property string target: ""
-    property bool backing: false
-    property string progress: ""
-    Process {
-        id: targets
-        command: ["sh", "-c", "lsblk -J -o MOUNTPOINTS,RM,HOTPLUG,LABEL,FSAVAIL"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const out = [];
-                const walk = ds => { for (const d of ds || []) { walk(d.children); const m = (d.mountpoints || []).filter(x => x)[0]; if (m && (d.rm || d.hotplug) && m.startsWith("/run/media")) out.push({ mount: m, label: d.label || m.split("/").pop(), avail: d.fsavail }); } };
-                try { walk(JSON.parse(text).blockdevices); } catch (e) {}
-                page.drives = out;
-                if (!out.some(x => x.mount === page.target)) page.target = out.length ? out[0].mount : "";
-            }
-        }
-    }
-    Process {
-        id: rsync
-        command: ["rsync", "-a", "--delete", "--info=progress2", "--no-inc-recursive",
-                  "--exclude", ".cache", "--exclude", ".local/share/Trash", "--exclude", "node_modules", "--exclude", ".npm",
-                  Quickshell.env("HOME") + "/", page.target + "/Islet Backup/" + (Quickshell.env("USER") || "home") + "/"]
-        stdout: SplitParser { splitMarker: "\r"; onRead: l => { const m = l.match(/(\d+)%/); if (m) page.progress = m[1] + "%"; } }
-        onExited: code => { page.backing = false; page.msg = code === 0 ? "Backup finished · " + Time.time : "Backup stopped (code " + code + ")"; }
-    }
+    // ================= Time Machine =================
+    SectionLabel { text: "Time Machine" }
     Card {
         width: parent.width
-        height: bCol.implicitHeight + 32
+        height: tmCol.implicitHeight + 36
         Column {
-            id: bCol
-            x: 18; y: 16; width: parent.width - 36; spacing: 10
-            Text { text: page.drives.length ? "Copy your Home folder to an external drive (caches and Trash are skipped)." : "Plug in a USB drive or external disk to back up your Home folder."; width: parent.width; wrapMode: Text.Wrap; color: "#D1D1D6"; font.family: Theme.font; font.pixelSize: 12 }
+            id: tmCol
+            x: 20; y: 18; width: parent.width - 40; spacing: 14
+            Row {
+                width: parent.width; spacing: 14
+                Rectangle {
+                    width: 48; height: 48; radius: 14
+                    color: Backup.running ? Theme.tint(0.3) : Backup.connected ? Qt.rgba(0.2, 0.78, 0.48, 0.2) : Qt.rgba(1, 1, 1, 0.07)
+                    Icon { anchors.centerIn: parent; name: "backup"; size: 22; color: Backup.connected && !Backup.running ? "#34C77B" : "#FFFFFF" }
+                }
+                Column {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - 62 - tmBtns.width - 14
+                    spacing: 3
+                    Text {
+                        width: parent.width; elide: Text.ElideRight
+                        text: !Prefs.backupDrive ? "Back up your files automatically"
+                            : Backup.running ? "Backing up to " + Prefs.backupLabel + "… " + Backup.pct + "%"
+                            : Prefs.backupLabel + (Backup.connected ? " · connected" : " · not connected")
+                        color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold
+                    }
+                    Text {
+                        width: parent.width; wrapMode: Text.Wrap
+                        text: !Prefs.backupDrive ? "Pick an external drive below. Every time you plug it in, Islet copies your Home folder and keeps a version for each day, so you can get back any file as it was."
+                            : Backup.error ? Backup.error
+                            : "Last backup: " + Backup.when(Prefs.backupLast)
+                              + (Backup.connected ? (Prefs.backupAuto ? " · next in about an hour" : "") : " · plug the drive in to back up")
+                              + (Backup.list.length > 1 ? " · " + Backup.list.length + " versions kept" : "")
+                        color: Backup.error ? "#FF8A8A" : "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                    }
+                }
+                Row {
+                    id: tmBtns
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 8
+                    Pill { visible: Backup.connected && !Backup.running; label: "Back up now"; primary: true; onClicked: Backup.backup() }
+                    Pill { visible: Backup.running; label: "Stop"; onClicked: Backup.stop() }
+                    Pill { visible: Backup.connected && Backup.list.length > 0; label: "Browse"; onClicked: Ui.openBackups() }
+                }
+            }
+            Rectangle {
+                visible: Backup.running
+                width: parent.width; height: 6; radius: 3; color: Qt.rgba(1, 1, 1, 0.12)
+                Rectangle { height: parent.height; radius: 3; width: Math.max(6, parent.width * Backup.pct / 100); color: Theme.accent; Behavior on width { NumberAnimation { duration: 300 } } }
+            }
+
+            // chọn ổ
+            Text {
+                text: Backup.drives.length ? (Prefs.backupDrive ? "Backup drive" : "Choose a drive") : "Plug in a USB drive or external disk to use it for backups."
+                color: "#D1D1D6"; font.family: Theme.font; font.pixelSize: 12
+            }
             Flow {
                 width: parent.width; spacing: 8
-                Repeater { model: page.drives; Chip { required property var modelData; label: modelData.label; on: page.target === modelData.mount; onClicked: page.target = modelData.mount } }
+                visible: Backup.drives.length > 0
+                Repeater {
+                    model: Backup.drives
+                    Chip {
+                        required property var modelData
+                        label: Backup.label(modelData) + (modelData.size ? " · " + Math.round(modelData.size / 1e9) + " GB" : "")
+                        on: Prefs.backupDrive === modelData.uuid
+                        onClicked: Backup.choose(modelData)
+                    }
+                }
+                Chip { visible: Prefs.backupDrive !== "" && !Backup.connected; label: Prefs.backupLabel + " (not connected)"; on: true }
+            }
+            Text {
+                visible: Backup.drive !== null && !Backup.drive.history
+                width: parent.width; wrapMode: Text.Wrap
+                text: "This drive uses " + (Backup.drive?.fstype ?? "") + ", which can only hold the latest copy. Format it as ext4, Btrfs or NTFS (in Disks) to keep a version for every day."
+                color: "#FFB547"; font.family: Theme.font; font.pixelSize: 12
             }
             Row {
-                spacing: 10
-                visible: page.drives.length > 0
-                Pill { label: page.backing ? "Backing up… " + page.progress : "Back up now"; primary: !page.backing; onClicked: if (!page.backing && page.target) { page.backing = true; page.progress = "0%"; rsync.running = true; } }
-                Pill { visible: page.backing; label: "Stop"; onClicked: rsync.signal(15) }
-                Pill { label: "Refresh drives"; onClicked: targets.running = true }
+                spacing: 18
+                visible: Prefs.backupDrive !== ""
+                Row {
+                    spacing: 10
+                    Toggle { anchors.verticalCenter: parent.verticalCenter; checked: Prefs.backupAuto; onToggled: Prefs.set("backupAuto", !Prefs.backupAuto) }
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: "Back up automatically when plugged in"; color: "#D1D1D6"; font.family: Theme.font; font.pixelSize: 12 }
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "<a href=\"x\">Stop using this drive</a>"; textFormat: Text.StyledText; linkColor: "#8E8E93"
+                    font.family: Theme.font; font.pixelSize: 12
+                    onLinkActivated: Backup.forget()
+                }
             }
         }
     }
+    Hint { text: "Backups skip caches, Trash and build folders. Old versions are thinned out over time (every backup from today, one per day for a month, then one per week) and the oldest go first when the drive is full." }
     Text { visible: page.msg !== ""; width: parent.width; wrapMode: Text.Wrap; text: page.msg; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
 }

@@ -17,6 +17,7 @@ import "lock"
 import "notifications"
 import "settings"
 import "trash"
+import "backups"
 import "snap"
 import "search"
 import "overview"
@@ -71,6 +72,7 @@ ShellRoot {
     LazyLoader { activeAsync: true; Store {} }
     LazyLoader { activeAsync: true; Settings {} }
     LazyLoader { activeAsync: true; TrashWindow {} }
+    LazyLoader { activeAsync: true; BackupsWindow {} }
     LazyLoader { activeAsync: true; NotifCenter {} }
     LazyLoader { activeAsync: true; Snap {} }
     LazyLoader { activeAsync: true; Search {} }
@@ -86,6 +88,8 @@ ShellRoot {
     readonly property var desktopSync: DesktopSync
     readonly property var busyCursor: BusyCursor
     readonly property var ime: Ime
+    // Time Machine: theo dõi ổ sao lưu, tự sao lưu khi cắm vào
+    readonly property var backup: Backup
 
     // Điều khiển từ terminal hoặc phím tắt:
     //   qs -p shell ipc call island toggle
@@ -125,6 +129,11 @@ ShellRoot {
         target: "trash"
         function open(): void { Ui.openTrash(); }
         function empty(): void { Trash.empty(); }
+    }
+    IpcHandler {
+        target: "backup"
+        function open(): void { Ui.openBackups(); }
+        function now(): void { Backup.backup(); }
     }
     IpcHandler {
         target: "installer"

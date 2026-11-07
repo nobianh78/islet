@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+"""Islet Time Machine — sao lưu thư mục nhà ra ổ ngoài, giữ lại từng bản theo ngày (không cần root).
+
+  islet-backup drives                      JSON: ổ ngoài đang cắm [{uuid, label, mount, fstype, size, avail, history}]
+  islet-backup mount <uuid>                gắn ổ (udisksctl) nếu chưa gắn, in điểm gắn
+  islet-backup run <mount>                 sao lưu ngay; in "PROGRESS <0-100>" … rồi "DONE <id>" hoặc "ERROR <lý do>"
+  islet-backup list <mount>                JSON: [{id, time, partial}] mới nhất trước
+  islet-backup ls <mount> <id> [đường dẫn] JSON: {root, path, items: [{name, dir, size, mtime}]} một thư mục trong bản sao lưu
+  islet-backup restore <mount> <id> <đường dẫn>
+                                           chép về chỗ cũ trong thư mục nhà; trùng tên thì thêm " (restored <ngày>)"
+
+Bố cục trên ổ:  <ổ>/Islet Backups/<người dùng>@<máy>/<YYYY-MM-DD-HHMMSS>/…
+Mỗi bản là một cây thư mục đầy đủ; file không đổi là hard link tới bản trước (rsync --link-dest), nên
+chỉ tốn chỗ cho phần thay đổi. Ổ FAT/exFAT không có hard link → chỉ giữ một bản "Latest".
+Giữ: mọi bản trong 24 giờ · một bản mỗi ngày trong 30 ngày · một bản mỗi tuần sau đó; ổ đầy (<10% trống)
+thì xoá bản cũ nhất (luôn giữ ít nhất một bản).
+"""
+import datetime
+import json
+import os
+import re
+import shutil
+import socket
+import subprocess
+import sys
+
+HOME = os.path.expanduser("~")
+USER = os.environ.get("USER") or os.path.basename(HOME)
+ROOT_NAME = "Islet Backups"
+EXCLUDES = [".cache", ".local/share/Trash", "node_modules", ".npm", ".cargo/registry", ".rustup", ".var/app/*/cache",
+            ".local/share/Steam", ".mozilla/firefox/*/cache2", ".config/*/Cache", ".config/*/GPUCache",
+            "Downloads/*.part", ".islet-backup-tmp"]
+NO_LINKS = {"vfat", "exfat", "msdos"}
+ID_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}$")
+
+
+def out(obj):
+    print(json.dumps(obj, ensure_ascii=False))
+
+
+def base(mount):
+    return os.path.join(mount, ROOT_NAME, f"{USER}@{socket.gethostname()}")
+
+
+def fstype(path):
+    try:
+        return subprocess.run(["findmnt", "-no", "FSTYPE", "-T", path], capture_output=True, text=True).stdout.strip()
+    except OSError:
+        return ""
+
+
+def backups(mount):
+    b = base(mount)
+    try:
+        names = os.listdir(b)
+    except OSError:
+        return []
+    res = []
+    for n in names:
+        full = os.path.join(b, n)
+        if not os.path.isdir(full):
+            continue
+        if ID_RE.match(n):
+            t = datetime.datetime.strptime(n, "%Y-%m-%d-%H%M%S")
+            res.append({"id": n, "time": int(t.timestamp()), "partial": False})
+        elif n == "Latest" and not os.path.islink(full):
+            res.append({"id": n, "time": int(os.path.getmtime(full)), "partial": False})
+    return sorted(res, key=lambda x: -x["time"])
+
+
+def drives():
+    try:
+        d = json.loads(subprocess.run(["lsblk", "-J", "-b", "-o", "NAME,UUID,LABEL,MOUNTPOINTS,RM,HOTPLUG,FSTYPE,SIZE,FSAVAIL,TYPE"],
+                                      capture_output=True, text=True).stdout)
+    except (OSError, ValueError):
+        return []
+    res = []
+
+    def walk(devs, ext):
+        for x in devs or []:
+            e = ext or bool(x.get("rm")) or bool(x.get("hotplug"))
+            walk(x.get("children"), e)
+            if not e or not x.get("uuid") or x.get("type") not in ("part", "disk", "crypt") or not x.get("fstype"):
+                continue
+            if x["fstype"] in ("swap", "crypto_LUKS", "iso9660", "squashfs"):
+                continue
+            m = next((p for p in (x.get("mountpoints") or []) if p), "")
+            res.append({"uuid": x["uuid"], "label": x.get("label") or "", "dev": "/dev/" + x["name"], "mount": m,
+                        "fstype": x["fstype"], "size": int(x.get("size") or 0), "avail": int(x.get("fsavail") or 0),
+                        "history": x["fstype"] not in NO_LINKS, "backups": len(backups(m)) if m else 0})
+    walk(d.get("blockdevices"), False)
+    return res
+
+
+def mount(uuid):
+    for d in drives():
+        if d["uuid"] == uuid:
+            if d["mount"]:
+                print(d["mount"])
+                return 0
+            r = subprocess.run(["udisksctl", "mount", "--no-user-interaction", "-b", d["dev"]], capture_output=True, text=True)
+            m = re.search(r" at (.+?)\.?$", r.stdout.strip())
+            if r.returncode == 0 and m:
+                print(m.group(1))
+                return 0
+            print("ERROR " + (r.stderr.strip() or "Couldn't open the drive"), file=sys.stderr)
+            return 1
+    print("ERROR Drive not connected", file=sys.stderr)
+    return 1
+
+
+def prune(mount):
+    b = base(mount)
+    items = [x for x in backups(mount) if x["id"] != "Latest"]
+    now = datetime.datetime.now().timestamp()
+    keep, seen_day, seen_week = set(), set(), set()
+    for x in items:                                   # mới → cũ
+        age = now - x["time"]
+        t = datetime.datetime.fromtimestamp(x["time"])
+        if age < 86400:
+            keep.add(x["id"])
+        elif age < 30 * 86400:
+            if t.date() not in seen_day:
+                seen_day.add(t.date())
+                keep.add(x["id"])
+        else:
+            w = t.isocalendar()[:2]
+            if w not in seen_week:
+                seen_week.add(w)
+                keep.add(x["id"])
+    for x in items:
+        if x["id"] not in keep:
+            shutil.rmtree(os.path.join(b, x["id"]), ignore_errors=True)
+    # ổ gần đầy → bỏ bớt bản cũ nhất
+    left = [x for x in backups(mount) if x["id"] != "Latest"]
+    while len(left) > 1:
+        st = os.statvfs(mount)
+        if st.f_bavail / max(1, st.f_blocks) >= 0.10:
+            break
+        shutil.rmtree(os.path.join(b, left[-1]["id"]), ignore_errors=True)
+        left = left[:-1]
+
+
+def run(mount):
+    if not os.path.isdir(mount) or not os.access(mount, os.W_OK):
+        print("ERROR Can't write to the drive", flush=True)
+        return 1
+    b = base(mount)
+    os.makedirs(b, exist_ok=True)
+    links = fstype(mount) not in NO_LINKS
+    for n in os.listdir(b):                           # bản dở dang của lần trước (rút ổ giữa chừng…)
+        if n.endswith(".inprogress"):
+            shutil.rmtree(os.path.join(b, n), ignore_errors=True)
+    if links:
+        new = datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S")
+        dest = os.path.join(b, new + ".inprogress")
+        prev = next((x["id"] for x in backups(mount) if x["id"] != "Latest"), None)
+    else:
+        new, dest, prev = "Latest", os.path.join(b, "Latest"), None
+    cmd = ["rsync", "-a", "--delete", "--info=progress2", "--no-inc-recursive", "--partial"]
+    if not links:
+        cmd = ["rsync", "-rt", "--delete", "--modify-window=2", "--info=progress2", "--no-inc-recursive"]
+    for e in EXCLUDES:
+        cmd += ["--exclude", e]
+    if prev:
+        cmd += ["--link-dest", os.path.join(b, prev)]
+    cmd += [HOME + "/", dest + "/"]
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
+    last = -1
+    buf = ""
+    while True:
+        ch = p.stdout.read(1)
+        if not ch:
+            break
+        if ch in "\r\n":
+            m = re.search(r"(\d+)%", buf)
+            if m and int(m.group(1)) != last:
+                last = int(m.group(1))
+                print(f"PROGRESS {last}", flush=True)
+            buf = ""
+        else:
+            buf += ch
+    p.wait()
+    err = p.stderr.read()
+    # 24 = có file biến mất trong lúc chép (bình thường khi máy đang dùng)
+    if p.returncode not in (0, 24):
+        if links:
+            shutil.rmtree(dest, ignore_errors=True)
+        msg = "The drive is full" if "No space left" in err else "Backup stopped" if p.returncode in (20, -15) else "Backup failed"
+        print(f"ERROR {msg}", flush=True)
+        return 1
+    if links:
+        os.rename(dest, os.path.join(b, new))
+    prune(mount)
+    print(f"DONE {new}", flush=True)
+    return 0
+
+
+def safe(mount, bid, rel):
+    if not (ID_RE.match(bid) or bid == "Latest"):
+        raise ValueError("bad backup")
+    root = os.path.realpath(os.path.join(base(mount), bid))
+    p = os.path.realpath(os.path.join(root, rel.lstrip("/")))
+    if p != root and not p.startswith(root + os.sep):
+        raise ValueError("bad path")
+    return root, p
+
+
+def ls(mount, bid, rel=""):
+    root, p = safe(mount, bid, rel)
+    res = []
+    try:
+        with os.scandir(p) as it:
+            for e in it:
+                try:
+                    st = e.stat(follow_symlinks=False)
+                except OSError:
+                    continue
+                res.append({"name": e.name, "dir": e.is_dir(follow_symlinks=False), "size": st.st_size, "mtime": int(st.st_mtime)})
+    except OSError:
+        pass
+    res.sort(key=lambda x: (not x["dir"], x["name"].startswith("."), x["name"].lower()))
+    out({"root": root, "path": os.path.relpath(p, root) if p != root else "", "items": res})
+
+
+def restore(mount, bid, rel):
+    root, p = safe(mount, bid, rel)
+    if p == root or not os.path.lexists(p):
+        print("ERROR Nothing to restore", file=sys.stderr)
+        return 1
+    target = os.path.join(HOME, os.path.relpath(p, root))
+    if os.path.lexists(target):
+        stem, ext = os.path.splitext(target) if not os.path.isdir(p) else (target, "")
+        day = bid[:10] if bid != "Latest" else "backup"
+        target = f"{stem} (restored {day}){ext}"
+        i = 2
+        while os.path.lexists(target):
+            target = f"{stem} (restored {day} {i}){ext}"
+            i += 1
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    if os.path.isdir(p) and not os.path.islink(p):
+        shutil.copytree(p, target, symlinks=True)
+    else:
+        shutil.copy2(p, target, follow_symlinks=False)
+    print(target)
+    return 0
+
+
+def main(a):
+    if not a:
+        print(__doc__)
+        return 2
+    c = a[0]
+    try:
+        if c == "drives":
+            out(drives())
+        elif c == "mount" and len(a) == 2:
+            return mount(a[1])
+        elif c == "run" and len(a) == 2:
+            return run(a[1])
+        elif c == "list" and len(a) == 2:
+            out(backups(a[1]))
+        elif c == "ls" and len(a) in (3, 4):
+            ls(a[1], a[2], a[3] if len(a) == 4 else "")
+        elif c == "restore" and len(a) == 4:
+            return restore(a[1], a[2], a[3])
+        else:
+            print(__doc__)
+            return 2
+    except ValueError as e:
+        print(f"ERROR {e}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
