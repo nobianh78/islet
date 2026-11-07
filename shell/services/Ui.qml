@@ -63,6 +63,7 @@ Singleton {
         if (id === "islet-store") { openStore(); return; }
         if (id === "islet-installer") { installerOpen = true; launcherOpen = false; return; }
         if (id === "islet-settings") { openSettings(""); return; }
+        if (e) appStarting();
         e?.execute();
     }
     function toggleControlCenter() { controlCenterOpen = !controlCenterOpen; if (controlCenterOpen) notifOpen = false; }
@@ -76,6 +77,7 @@ Singleton {
     property color launchTile: "#8B7CFF"
     property string launchIconUrl: ""   // icon app bất kỳ (đường dẫn), dùng thay launchIcon
     signal launching()
+    signal appStarting()      // một app ngoài vừa được mở → con trỏ "đang mở" (BusyCursor)
 
     function announceLaunch(label, icon, tile) {
         launchLabel = label;
@@ -83,6 +85,7 @@ Singleton {
         launchTile = tile;
         launchIconUrl = "";
         launching();
+        appStarting();
     }
 
     // key: icon Islet riêng nếu app có (Theme.appKey), không thì dùng url icon thật
@@ -91,5 +94,6 @@ Singleton {
         launchIcon = key || "";
         launchIconUrl = key ? "" : url;
         launching();
+        appStarting();
     }
 }

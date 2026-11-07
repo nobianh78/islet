@@ -17,12 +17,12 @@ printf '%s\n' "$ISLET_SUDO_PASS" | ssh "${O[@]}" "$U@localhost" 'sudo -S -p "" s
     mkdir -p /usr/share/islet/hypr && cp \$U/hypr/hyprland.lua /usr/share/islet/hypr/
     rm -rf /usr/share/icons/Islet && cp -a \$U/theme/icons/Islet /usr/share/icons/Islet
     rm -rf /usr/share/islet/wallpapers && cp -a \$U/theme/wallpapers /usr/share/islet/wallpapers
-    rm -rf /usr/share/icons/Islet-Cursors && cp -a \$U/theme/cursors/Islet-Cursors /usr/share/icons/Islet-Cursors
+    rm -rf /usr/share/icons/Islet-Cursors /usr/share/icons/Islet-Cursors-Busy && cp -a \$U/theme/cursors/Islet-Cursors \$U/theme/cursors/Islet-Cursors-Busy /usr/share/icons/
     mkdir -p /usr/share/icons/default && cp \$A/usr/share/icons/default/index.theme /usr/share/icons/default/
     install -m755 \$A/usr/local/bin/* /usr/local/bin/
     install -m644 \$A/usr/share/applications/*.desktop /usr/share/applications/
     mkdir -p /usr/local/share/applications && install -m644 \$A/usr/local/share/applications/*.desktop /usr/local/share/applications/
-    chown -R root:root /usr/share/islet /usr/share/icons/Islet /usr/share/icons/Islet-Cursors
+    chown -R root:root /usr/share/islet /usr/share/icons/Islet /usr/share/icons/Islet-Cursors /usr/share/icons/Islet-Cursors-Busy
 "'
 ssh "${O[@]}" "$U@localhost" 'cp /tmp/up/hypr/hyprland.lua ~/.config/hypr/hyprland.lua; rm -rf /tmp/up ~/.config/islet/shell
     export XDG_RUNTIME_DIR=/run/user/$(id -u) WAYLAND_DISPLAY=wayland-1 HYPRLAND_INSTANCE_SIGNATURE=$(ls /run/user/$(id -u)/hypr | head -1)

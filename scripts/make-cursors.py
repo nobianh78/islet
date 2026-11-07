@@ -435,6 +435,18 @@ def main():
         fh.write(f"[Icon Theme]\nName={THEME}\nComment=Islet cursors: dark with a white outline and a violet accent\n")
     with open(os.path.join(OUT, "cursor.theme"), "w") as fh:
         fh.write(f"[Icon Theme]\nName={THEME}\nInherits={THEME}\n")
+    # Theme "đang mở app": giống hệt, chỉ có mũi tên và bàn tay thành mũi tên + vòng quay.
+    # Shell đổi sang theme này khi bấm mở app (services/BusyCursor.qml) rồi đổi lại khi cửa sổ hiện ra.
+    busy = os.path.join(os.path.dirname(OUT), THEME + "-Busy")
+    bdir = os.path.join(busy, "cursors")
+    os.makedirs(bdir, exist_ok=True)
+    for f in os.listdir(bdir):
+        os.remove(os.path.join(bdir, f))
+    swap = set(["default", "pointer"] + CURSORS["default"][2] + CURSORS["pointer"][2])
+    for f in sorted(os.listdir(cdir)):
+        os.symlink(f"../../{THEME}/cursors/" + ("progress" if f in swap else f), os.path.join(bdir, f))
+    with open(os.path.join(busy, "index.theme"), "w") as fh:
+        fh.write(f"[Icon Theme]\nName={THEME}-Busy\nComment=Islet cursors while an app is opening\n")
     print(f"wrote {len(CURSORS)} cursors ({sum(len(a) for _, _, a in CURSORS.values())} aliases) → {OUT}")
 
     if "--preview" in sys.argv:

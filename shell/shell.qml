@@ -64,6 +64,7 @@ ShellRoot {
     readonly property var idle: Idle
     readonly property var nightLight: NightLight
     readonly property var desktopSync: DesktopSync
+    readonly property var busyCursor: BusyCursor
     readonly property var ime: Ime
 
     // Điều khiển từ terminal hoặc phím tắt:
