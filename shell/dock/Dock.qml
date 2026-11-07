@@ -87,6 +87,7 @@ PanelWindow {
     function launch(app) {
         if (app.system) { Ui.openSettings(""); return; }      // mở, hoặc đưa cửa sổ Cài đặt lên / lấy lại khi đang thu nhỏ
         if (app.launcher) { Ui.toggleLauncher(); return; }
+        if (app.key === "islet-store") { Ui.openStore(); return; }      // cửa sổ Cửa hàng của Islet: mở / đưa lên / lấy lại
         const hidden = Windows.minimizedOf(app.ids);
         if (hidden.length > 0) { Windows.restore(hidden[0]); return; }
         const open = windowsOf(app.ids);
@@ -94,7 +95,7 @@ PanelWindow {
         newWindow(app);
     }
     function newWindow(app) {
-        if (app.key === "islet-store") { Ui.storeOpen = true; return; }
+        if (app.key === "islet-store") { Ui.openStore(); return; }
         if (app.icon) Ui.announceLaunch(app.label, app.icon, app.tile);
         else Ui.announceLaunchUrl(app.label, app.iconUrl);
         // tra lại lúc bấm (phòng khi lúc dựng dock danh sách app chưa quét xong)
@@ -332,11 +333,15 @@ PanelWindow {
                     id: item
                     running: slot.modelData.system ? Ui.settingsOpen
                         : slot.modelData.launcher ? Ui.launcherOpen
+                        : slot.modelData.key === "islet-store" ? Ui.storeOpen
                         : win.windowsOf(slot.modelData.ids).length > 0
-                    minimized: slot.modelData.system ? Windows.settingsMinimized : !slot.modelData.launcher && running
+                    minimized: slot.modelData.system ? Windows.settingsMinimized
+                        : slot.modelData.key === "islet-store" ? Windows.storeMinimized
+                        : !slot.modelData.launcher && running
                         && Windows.minimizedOf(slot.modelData.ids).length === win.windowsOf(slot.modelData.ids).length
                     focused: slot.modelData.system ? Windows.settingsActive
                         : slot.modelData.launcher ? Ui.launcherOpen
+                        : slot.modelData.key === "islet-store" ? Windows.storeActive
                         : slot.modelData.ids.indexOf(win.activeId) >= 0
                     pointer: win.px < -999 ? -1000 : win.px - win.centerOf(slot.index)
                     onActivated: win.launch(slot.modelData)

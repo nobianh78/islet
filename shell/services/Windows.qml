@@ -17,10 +17,28 @@ Singleton {
 
     signal minimizedApp(string appId)
 
-    // cửa sổ Cài đặt của Islet (Quickshell FloatingWindow, title "Settings")
-    function isSettings(t) { return appIdOf(t) === "org.quickshell" && ((t?.title || t?.lastIpcObject?.title) ?? "") === "Settings"; }
-    readonly property bool settingsActive: hasActive && isSettings(active)
-    readonly property bool settingsMinimized: Hyprland.toplevels.values.some(t => isSettings(t) && isMinimized(t))
+    // cửa sổ riêng của Islet (Quickshell FloatingWindow: Settings, Store) — tìm theo tiêu đề
+    function isShell(t, title) { return appIdOf(t) === "org.quickshell" && ((t?.title || t?.lastIpcObject?.title) ?? "") === title; }
+    function shellWin(title) { return Hyprland.toplevels.values.find(t => isShell(t, title)) ?? null; }
+    function shellActive(title) { return hasActive && isShell(active, title); }
+    function shellMinimized(title) { return Hyprland.toplevels.values.some(t => isShell(t, title) && isMinimized(t)); }
+    // đưa cửa sổ lên (lấy lại nếu đang thu nhỏ) · thu nhỏ
+    function raiseShell(title) {
+        Hyprland.refreshToplevels();
+        const t = shellWin(title);
+        if (!t) return;
+        if (isMinimized(t)) restore(t); else focusWin(t);
+    }
+    function minimizeShell(title) {
+        Hyprland.refreshToplevels();
+        const t = shellWin(title);
+        if (t) minimizeWin(t);
+        return t !== null;
+    }
+    readonly property bool settingsActive: shellActive("Settings")
+    readonly property bool settingsMinimized: shellMinimized("Settings")
+    readonly property bool storeActive: shellActive("Store")
+    readonly property bool storeMinimized: shellMinimized("Store")
 
     readonly property int openCount: Hyprland.toplevels.values.length
 

@@ -100,7 +100,7 @@ PanelWindow {
         { k: "clipboard history copy", t: "Clipboard history", s: "Dynamic Island", icon: "clipboard", run: () => Ui.openIsland("clipboard") },
         { k: "lock khoá", t: "Lock screen", s: "Power", icon: "lock", run: () => Ui.lock() },
         { k: "task manager process cpu ram", t: "Task Manager", s: "System", icon: "activity", run: () => Ui.toggleTask() },
-        { k: "store apps install cửa hàng", t: "Store", s: "Find and install apps", icon: "store", run: () => { Ui.storeOpen = true; } },
+        { k: "store apps install cửa hàng", t: "Store", s: "Find and install apps", icon: "store", run: () => { Ui.openStore(); } },
         { k: "restart reboot khởi động lại", t: "Restart", s: "Power", icon: "restart", run: () => Ui.togglePower() },
         { k: "shutdown power off tắt máy", t: "Shut down", s: "Power", icon: "power", run: () => Ui.togglePower() }
     ]

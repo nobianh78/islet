@@ -88,8 +88,8 @@ ShellRoot {
     }
     IpcHandler {
         target: "store"
-        function open(): void { Ui.storeOpen = true; }
-        function toggle(): void { Ui.storeOpen = !Ui.storeOpen; }
+        function open(): void { Ui.openStore(); }
+        function toggle(): void { if (Ui.storeOpen && Windows.storeActive) Ui.storeOpen = false; else Ui.openStore(); }
     }
     IpcHandler {
         target: "installer"

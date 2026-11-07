@@ -38,6 +38,9 @@ Singleton {
     function lock() { closeAll(); locked = true; }
     // Cài đặt là cửa sổ thật: mở lại khi đang mở = đưa nó lên (kể cả đang thu nhỏ)
     signal settingsRaiseRequested()
+    // Cửa hàng cũng là cửa sổ thật
+    signal storeRaiseRequested()
+    function openStore() { launcherOpen = false; if (storeOpen) storeRaiseRequested(); storeOpen = true; }
     function openSettings(page) { closeAll(); if (page) settingsPage = page; if (settingsOpen) settingsRaiseRequested(); settingsOpen = true; }
     function toggleNotifs() { const o = !notifOpen; closeAll(); notifOpen = o; }
     function closeAll() { controlCenterOpen = false; launcherOpen = false; powerOpen = false; notifOpen = false; }
@@ -57,7 +60,7 @@ Singleton {
     // App nội bộ của Islet: mở thẳng trong shell, không qua lệnh ngoài
     function launchEntry(e) {
         const id = e?.id ?? "";
-        if (id === "islet-store") { storeOpen = true; launcherOpen = false; return; }
+        if (id === "islet-store") { openStore(); return; }
         if (id === "islet-installer") { installerOpen = true; launcherOpen = false; return; }
         if (id === "islet-settings") { openSettings(""); return; }
         e?.execute();

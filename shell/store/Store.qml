@@ -1,7 +1,5 @@
 import QtQuick
 import Quickshell
-import Quickshell.Wayland
-import Quickshell.Hyprland
 import "../theme"
 import "../services"
 import "../common"
@@ -9,36 +7,39 @@ import "Catalog.js" as Catalog
 
 // Cửa hàng ứng dụng Islet: Khám phá · nhóm app · Đã cài · tìm trong toàn bộ kho Arch.
 // Mở: "Cửa hàng" trên dock / trong lưới Ứng dụng, hoặc `qs ipc call store open`.
-PanelWindow {
+// Là một cửa sổ thật (như Cài đặt): đóng · thu nhỏ · phóng to, kéo để di chuyển, xếp cạnh màn hình.
+FloatingWindow {
     id: win
 
-    implicitWidth: 980
-    implicitHeight: 640
-    exclusionMode: ExclusionMode.Ignore
-    color: "transparent"
+    title: "Store"
+    implicitWidth: 1000
+    implicitHeight: 680
+    minimumSize: Qt.size(820, 540)
+    color: "#0D0D15"
+    visible: false
 
-    WlrLayershell.namespace: "islet-store"
-    WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
-
-    readonly property bool open: Ui.storeOpen
-    visible: open || panel.opacity > 0.01
-    mask: Region { item: panel }
+    readonly property bool open: Ui.storeOpen && visible
+    Connections {
+        target: Ui
+        function onStoreOpenChanged() {
+            if (Ui.storeOpen) { win.visible = true; intro.restart(); win.opened(); }
+            else win.visible = false;
+        }
+        function onStoreRaiseRequested() { Windows.raiseShell("Store"); }
+    }
+    onVisibleChanged: if (!visible && Ui.storeOpen) Ui.storeOpen = false     // đóng bằng Super+Q
+    function close() { Ui.storeOpen = false; }
+    function minimize() { if (!Windows.minimizeShell("Store")) win.minimized = true; }
+    function toggleMaximize() { win.maximized = !win.maximized; }
 
     property string section: "discover"      // discover | <category id> | installed
     property string query: ""
 
-    onOpenChanged: if (open) {
+    function opened() {
         Packages.watch = Catalog.apps.filter(a => !a.pkgs).map(a => a.pkg);
         Packages.refresh();
         Packages.fetchSizes(Catalog.apps.filter(a => !a.pkgs).map(a => a.pkg));
         searchInput.forceActiveFocus();
-    }
-
-    HyprlandFocusGrab {
-        windows: [win]
-        active: win.open
-        onCleared: if (!Packages.askPassword) Ui.storeOpen = false
     }
 
     // ---------------- tiện ích ----------------
@@ -70,7 +71,6 @@ PanelWindow {
     function openApp(app) {
         if (app.cli) Quickshell.execDetached(["kitty", "sh", "-c", app.cli]);
         else { const e = entryOf(app.pkg); if (e) e.execute(); }
-        Ui.storeOpen = false;
     }
     // Kết quả tìm: chỉ app có icon thật (app trong danh sách chọn sẵn, app đã cài, app có trong appstream);
     // còn lại là công cụ dòng lệnh / thư viện → không hiện, chỉ đếm.
@@ -86,35 +86,39 @@ PanelWindow {
     }
 
     // ================= khung =================
-    Glass {
+    Item {
         id: panel
         anchors.fill: parent
-        radius: 28
-        color: Qt.rgba(0.05, 0.05, 0.09, 0.9)
+        focus: true
+        transformOrigin: Item.Top
+        ParallelAnimation {
+            id: intro
+            NumberAnimation { target: panel; property: "opacity"; from: 0; to: 1; duration: 180; easing.type: Easing.OutCubic }
+            NumberAnimation { target: panel; property: "scale"; from: 0.98; to: 1; duration: 300; easing.type: Easing.OutCubic }
+        }
 
-        opacity: win.open ? 1 : 0
-        scale: win.open ? 1 : 0.94
-        Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-        Behavior on scale { SpringAnimation { spring: 4; damping: 0.32; epsilon: 0.002 } }
-
-        Keys.onEscapePressed: Ui.storeOpen = false
+        Keys.onEscapePressed: { if (Packages.askPassword) Packages.cancelPassword(); else win.close(); }
 
         // ---------------- cột trái ----------------
         Rectangle {
             id: side
             width: 214
             height: parent.height
-            radius: 28
-            color: Qt.rgba(1, 1, 1, 0.03)
+            color: Qt.rgba(1, 1, 1, 0.035)
+            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Qt.rgba(1, 1, 1, 0.06) }
+
+            // thanh tiêu đề: kéo để di chuyển, bấm đúp để phóng to · ba nút cửa sổ
+            TitleDrag { width: parent.width; height: 92 }
+            WindowLights { x: 20; y: 19; onClose: win.close(); onMinimize: win.minimize(); onMaximize: win.toggleMaximize() }
 
             Row {
-                x: 20; y: 22; spacing: 10
+                x: 20; y: 48; spacing: 10
                 Image { width: 32; height: 32; sourceSize: Qt.size(64, 64); source: Theme.appIcon("store") }
                 Text { anchors.verticalCenter: parent.verticalCenter; text: "Store"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Bold }
             }
 
             Column {
-                x: 12; y: 74
+                x: 12; y: 98
                 width: parent.width - 24
                 spacing: 2
                 NavItem { key: "discover"; icon: "sparkle"; label: "Discover" }
@@ -170,11 +174,12 @@ PanelWindow {
             y: 20
             width: parent.width - x - 22
             height: parent.height - 40
+            TitleDrag { y: -20; width: parent.width; height: 20 }
 
             // tìm + đóng
             Rectangle {
                 id: searchBox
-                width: main.width - 44
+                width: main.width
                 height: 40
                 radius: 20
                 color: Qt.rgba(1, 1, 1, searchInput.activeFocus ? 0.12 : 0.07)
@@ -190,7 +195,7 @@ PanelWindow {
                     font.family: Theme.font; font.pixelSize: 13
                     clip: true
                     onTextChanged: { win.query = text; Packages.search(text); }
-                    Keys.onEscapePressed: { if (text) text = ""; else Ui.storeOpen = false; }
+                    Keys.onEscapePressed: { if (text) text = ""; else win.close(); }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: searchInput.text === ""
@@ -199,13 +204,6 @@ PanelWindow {
                     }
                 }
                 MouseArea { anchors.fill: parent; z: -1; cursorShape: Qt.IBeamCursor; onClicked: searchInput.forceActiveFocus() }
-            }
-            Rectangle {
-                anchors.right: parent.right
-                width: 32; height: 32; radius: 16; y: 4
-                color: xm.containsMouse ? "#FF5F57" : Qt.rgba(1, 1, 1, 0.08)
-                Icon { anchors.centerIn: parent; name: "close"; size: 14 }
-                MouseArea { id: xm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Ui.storeOpen = false }
             }
 
             // nội dung cuộn
@@ -350,7 +348,6 @@ PanelWindow {
         // ================= hộp nhập mật khẩu =================
         Rectangle {
             anchors.fill: parent
-            radius: 28
             visible: Packages.askPassword
             color: Qt.rgba(0, 0, 0, 0.55)
             MouseArea { anchors.fill: parent }

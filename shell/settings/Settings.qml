@@ -46,9 +46,7 @@ FloatingWindow {
     }
     function toggleMaximize() { win.maximized = !win.maximized; }
     // cửa sổ của mình trong Hyprland (để lấy lại khi đang thu nhỏ)
-    function hyprWin() {
-        return Hyprland.toplevels.values.find(t => Windows.appIdOf(t) === "org.quickshell" && (t.title || t.lastIpcObject?.title) === "Settings") ?? null;
-    }
+    function hyprWin() { return Windows.shellWin("Settings"); }
     function raise() {
         Hyprland.refreshToplevels();
         const t = hyprWin();
@@ -317,29 +315,7 @@ FloatingWindow {
             TitleDrag { width: parent.width; height: 50 }
 
             // ba nút cửa sổ (giống mọi app Islet: đóng · thu nhỏ · phóng to)
-            Row {
-                id: lights
-                x: 20; y: 19
-                spacing: 8
-                HoverHandler { id: lightsHover }
-                Repeater {
-                    model: [
-                        { c: "#FF5F57", icon: "close",  tip: "Close",    act: () => win.close() },
-                        { c: "#FEBC2E", icon: "minus",  tip: "Minimize", act: () => win.minimize() },
-                        { c: "#28C840", icon: "expand", tip: "Maximize", act: () => win.toggleMaximize() }
-                    ]
-                    Rectangle {
-                        required property var modelData
-                        width: 13; height: 13; radius: 6.5
-                        color: modelData.c
-                        border.width: 1; border.color: Qt.rgba(0, 0, 0, 0.25)
-                        scale: dm.pressed ? 0.85 : 1
-                        Behavior on scale { NumberAnimation { duration: 90 } }
-                        Icon { anchors.centerIn: parent; name: parent.modelData.icon; size: 9; color: "#3A1A10"; opacity: lightsHover.hovered ? 0.85 : 0 }
-                        MouseArea { id: dm; anchors.fill: parent; anchors.margins: -3; cursorShape: Qt.PointingHandCursor; onClicked: parent.modelData.act() }
-                    }
-                }
-            }
+            WindowLights { x: 20; y: 19; onClose: win.close(); onMinimize: win.minimize(); onMaximize: win.toggleMaximize() }
 
             // thẻ tài khoản — chỗ duy nhất để đổi ảnh, tên, mật khẩu
             Rectangle {

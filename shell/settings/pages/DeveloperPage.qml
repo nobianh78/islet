@@ -78,7 +78,7 @@ Column {
             label: "Save Git identity"; primary: true
             onClicked: { Quickshell.execDetached(["git", "config", "--global", "user.name", nameIn.text]); Quickshell.execDetached(["git", "config", "--global", "user.email", mailIn.text]); page.msg = "Saved — new commits use this name and email"; }
         }
-        Pill { label: "Install a dev stack…"; onClicked: { Ui.settingsOpen = false; Ui.storeOpen = true; } }
+        Pill { label: "Install a dev stack…"; onClicked: Ui.openStore() }
         Pill { label: "Open Projects"; onClicked: Quickshell.execDetached(["sh", "-c", 'mkdir -p "$HOME/Projects"; nautilus "$HOME/Projects"']) }
     }
     Text { visible: page.msg !== ""; text: page.msg; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
