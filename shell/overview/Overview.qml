@@ -155,9 +155,9 @@ PanelWindow {
                 readonly property bool here: win.viewWs === wsId
                 property bool dropHot: false
                 width: 132; height: 78; radius: 16
-                color: dropHot ? Theme.tint(0.4) : here ? Theme.tint(0.22) : wm.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07)
+                color: dropHot ? Theme.tint(0.4) : here ? Theme.tint(0.22) : wm.containsMouse ? Theme.fg(0.14) : Theme.fg(0.07)
                 border.width: here || dropHot ? 2 : 1
-                border.color: here || dropHot ? Theme.accent : Qt.rgba(1, 1, 1, 0.1)
+                border.color: here || dropHot ? Theme.accent : Theme.fg(0.1)
                 Behavior on color { ColorAnimation { duration: 140 } }
                 scale: dropHot ? 1.06 : 1
                 Behavior on scale { SpringAnimation { spring: 5; damping: 0.35 } }
@@ -168,14 +168,14 @@ PanelWindow {
                     spacing: 4
                     Repeater {
                         model: Math.min(wsPill.count, 6)
-                        Rectangle { width: 30; height: 18; radius: 4; color: Qt.rgba(1, 1, 1, 0.22) }
+                        Rectangle { width: 30; height: 18; radius: 4; color: Theme.fg(0.22) }
                     }
                 }
                 Text {
                     anchors.left: parent.left; anchors.leftMargin: 10
                     anchors.bottom: parent.bottom; anchors.bottomMargin: 6
                     text: wsPill.count === 0 ? "Desktop " + wsPill.wsId + " · empty" : "Desktop " + wsPill.wsId
-                    color: wsPill.here ? "#FFFFFF" : "#AEAEB2"
+                    color: wsPill.here ? Theme.label : Theme.subtle
                     font.family: Theme.font; font.pixelSize: 10; font.weight: Font.DemiBold
                 }
                 MouseArea { id: wm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: win.showWs(wsPill.wsId) }
@@ -197,7 +197,7 @@ PanelWindow {
         anchors.centerIn: parent
         opacity: anim.t * 0.8
         text: "No windows on this desktop"
-        color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 16
+        color: Theme.label; font.family: Theme.font; font.pixelSize: 16
     }
 
     // ---------------- cửa sổ ----------------
@@ -245,7 +245,7 @@ PanelWindow {
                 radius: shot.radius
                 color: "transparent"
                 border.width: hov.hovered ? 3 : 1
-                border.color: hov.hovered ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)
+                border.color: hov.hovered ? Theme.accent : Theme.fg(0.12)
                 scale: shot.scale
             }
             // tên cửa sổ
@@ -266,7 +266,7 @@ PanelWindow {
                     width: Math.min(implicitWidth, card.width - 30)
                     elide: Text.ElideRight
                     text: (card.mini ? "Minimized · " : "") + (card.modelData.title || card.o.class || "")
-                    color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Medium
+                    color: Theme.label; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Medium
                 }
             }
             // ×
@@ -275,8 +275,8 @@ PanelWindow {
                 x: -10; y: -10
                 width: 26; height: 26; radius: 13
                 color: xm.containsMouse ? "#FF5F57" : Qt.rgba(0.15, 0.15, 0.18, 0.95)
-                border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.2)
-                Icon { anchors.centerIn: parent; name: "close"; size: 12 }
+                border.width: 1; border.color: Theme.fg(0.2)
+                TIcon { anchors.centerIn: parent; name: "close"; size: 12 }
                 MouseArea { id: xm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { Windows.closeWin(card.modelData); refreshLater.restart(); } }
             }
 

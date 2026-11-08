@@ -42,7 +42,7 @@ PanelWindow {
         id: panel
         anchors.fill: parent
         radius: 28
-        color: Qt.rgba(0.05, 0.05, 0.09, 0.95 - 0.4 * Prefs.glass)
+        color: Theme.surface(0.85)
 
         opacity: win.open ? 1 : 0
         scale: win.open ? 1 : 0.94
@@ -90,14 +90,14 @@ PanelWindow {
                     anchors.verticalCenter: parent.verticalCenter
                     Text {
                         text: "Task Manager"
-                        color: "#FFFFFF"
+                        color: Theme.label
                         font.family: Theme.font
                         font.pixelSize: 16
                         font.weight: Font.Bold
                     }
                     Text {
                         text: "Islet · up " + SysMon.duration(SysMon.uptime) + " · " + SysMon.procs.length + " processes"
-                        color: "#8E8E93"
+                        color: Theme.muted
                         font.family: Theme.font
                         font.pixelSize: 11
                     }
@@ -115,7 +115,7 @@ PanelWindow {
                     width: cur ? cur.width : 0
                     height: parent.height
                     radius: height / 2
-                    color: "#FFFFFF"
+                    color: Theme.label
                     Behavior on x { NumberAnimation { duration: 380; easing.type: Easing.OutBack } }
                     Behavior on width { NumberAnimation { duration: 380; easing.type: Easing.OutBack } }
                 }
@@ -135,7 +135,7 @@ PanelWindow {
                                 id: tl
                                 anchors.centerIn: parent
                                 text: parent.modelData[1]
-                                color: parent.on ? "#000000" : tm.containsMouse ? "#FFFFFF" : "#8E8E93"
+                                color: parent.on ? (Theme.light ? "#FFFFFF" : "#000000") : tm.containsMouse ? Theme.label : Theme.muted
                                 font.family: Theme.font
                                 font.pixelSize: 12
                                 font.weight: Font.DemiBold
@@ -160,9 +160,9 @@ PanelWindow {
                 width: 30
                 height: 30
                 radius: 15
-                color: xm.containsMouse ? "#FF5F57" : Qt.rgba(1, 1, 1, 0.08)
+                color: xm.containsMouse ? "#FF5F57" : Theme.fg(0.08)
                 Behavior on color { ColorAnimation { duration: 140 } }
-                Icon { anchors.centerIn: parent; name: "close"; size: 14 }
+                TIcon { anchors.centerIn: parent; name: "close"; size: 14 }
                 MouseArea { id: xm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Ui.taskOpen = false }
             }
         }

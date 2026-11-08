@@ -20,22 +20,22 @@ Item {
         width: root.cardW
         height: root.cardH
         radius: 20
-        color: Qt.rgba(1, 1, 1, 0.05)
+        color: Theme.fg(0.05)
         border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.06)
+        border.color: Theme.fg(0.06)
 
         Row {
             x: 16
             y: 14
             spacing: 8
             Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 8; height: 8; radius: 4; color: card.tint }
-            Text { text: card.title; color: "#AEAEB2"; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold }
+            Text { text: card.title; color: Theme.subtle; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold }
         }
         Text {
             x: 16
             y: 34
             text: card.value
-            color: "#FFFFFF"
+            color: Theme.label
             font.family: Theme.font
             font.pixelSize: 26
             font.weight: Font.Bold
@@ -45,7 +45,7 @@ Item {
             x: 16
             y: 68
             text: card.sub
-            color: "#8E8E93"
+            color: Theme.muted
             font.family: Theme.font
             font.pixelSize: 11
         }
@@ -94,7 +94,7 @@ Item {
                 width: parent.width
                 height: 6
                 radius: 3
-                color: Qt.rgba(1, 1, 1, 0.1)
+                color: Theme.fg(0.1)
                 Rectangle {
                     height: parent.height
                     radius: 3
@@ -123,7 +123,7 @@ Item {
                 width: 5
                 height: 30
                 radius: 2.5
-                color: Qt.rgba(1, 1, 1, 0.08)
+                color: Theme.fg(0.08)
                 Rectangle {
                     anchors.bottom: parent.bottom
                     width: parent.width
@@ -152,13 +152,13 @@ Item {
                 height: 34
                 width: chip.implicitWidth + 26
                 radius: 17
-                color: Qt.rgba(1, 1, 1, 0.05)
+                color: Theme.fg(0.05)
                 Row {
                     id: chip
                     anchors.centerIn: parent
                     spacing: 8
-                    Text { text: modelData[0]; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
-                    Text { text: modelData[1]; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold }
+                    Text { text: modelData[0]; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
+                    Text { text: modelData[1]; color: Theme.label; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold }
                 }
             }
         }

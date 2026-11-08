@@ -137,7 +137,7 @@ PanelWindow {
         id: panel
         anchors.fill: parent
         radius: 28
-        color: Qt.rgba(0.05, 0.05, 0.09, 1 - 0.4 * Prefs.glass)
+        color: Theme.surface(0.85)
 
         opacity: win.open ? 1 : 0
         scale: win.open ? 1 : 0.94
@@ -161,33 +161,34 @@ PanelWindow {
                     Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         width: 22; height: 22; radius: 11
-                        color: index < win.step ? Theme.violet : index === win.step ? "#FFFFFF" : Qt.rgba(1, 1, 1, 0.1)
+                        color: index < win.step ? Theme.violet : index === win.step ? Theme.label : Theme.fg(0.1)
                         Behavior on color { ColorAnimation { duration: 200 } }
-                        Icon {
+                        TIcon {
                             anchors.centerIn: parent
                             visible: index < win.step
                             name: "check"
                             size: 13
+                            color: "#FFFFFF"
                         }
                         Text {
                             anchors.centerIn: parent
                             visible: index >= win.step
                             text: index + 1
-                            color: index === win.step ? "#000000" : "#FFFFFF"
+                            color: index === win.step ? (Theme.light ? "#FFFFFF" : "#000000") : Theme.label
                             font.family: Theme.font; font.pixelSize: 11; font.bold: true
                         }
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: modelData
-                        color: index === win.step ? "#FFFFFF" : "#8E8E93"
+                        color: index === win.step ? Theme.label : Theme.muted
                         font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold
                     }
                     Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: index < win.stepNames.length - 1
                         width: 18; height: 1.5; radius: 1
-                        color: Qt.rgba(1, 1, 1, 0.15)
+                        color: Theme.fg(0.15)
                     }
                 }
             }
@@ -198,8 +199,8 @@ PanelWindow {
             y: 20
             visible: win.step !== 5
             width: 30; height: 30; radius: 15
-            color: xm.containsMouse ? "#FF5F57" : Qt.rgba(1, 1, 1, 0.08)
-            Icon { anchors.centerIn: parent; name: "close"; size: 14 }
+            color: xm.containsMouse ? "#FF5F57" : Theme.fg(0.08)
+            TIcon { anchors.centerIn: parent; name: "close"; size: 14 }
             MouseArea { id: xm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Ui.installerOpen = false }
         }
 
@@ -225,7 +226,7 @@ PanelWindow {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "Install Islet on this computer"
-                    color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 26; font.weight: Font.Bold
+                    color: Theme.label; font.family: Theme.font; font.pixelSize: 26; font.weight: Font.Bold
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -234,7 +235,7 @@ PanelWindow {
                     wrapMode: Text.WordWrap
                     lineHeight: 1.35
                     text: "You're running the live session — everything is lost when you power off. Install Islet to keep your apps, files and settings."
-                    color: "#AEAEB2"; font.family: Theme.font; font.pixelSize: 13
+                    color: Theme.subtle; font.family: Theme.font; font.pixelSize: 13
                 }
             }
 
@@ -255,35 +256,35 @@ PanelWindow {
                         width: page.width
                         height: 64
                         radius: 18
-                        color: sel ? Theme.tint(0.22) : dm.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.04)
+                        color: sel ? Theme.tint(0.22) : dm.containsMouse ? Theme.fg(0.08) : Theme.fg(0.04)
                         border.width: sel ? 1.5 : 1
-                        border.color: sel ? Theme.violet : Qt.rgba(1, 1, 1, 0.06)
+                        border.color: sel ? Theme.violet : Theme.fg(0.06)
                         opacity: small ? 0.45 : 1
                         Behavior on color { ColorAnimation { duration: 150 } }
                         Rectangle {
                             x: 14; anchors.verticalCenter: parent.verticalCenter
                             width: 38; height: 38; radius: 11
                             gradient: Gradient { GradientStop { position: 0; color: "#7A8396" } GradientStop { position: 1; color: "#3B4253" } }
-                            Icon { anchors.centerIn: parent; name: "disk"; size: 20 }
+                            TIcon { anchors.centerIn: parent; name: "disk"; size: 20 }
                         }
                         Column {
                             x: 66; anchors.verticalCenter: parent.verticalCenter
                             Text {
                                 text: (dcard.modelData.model || "Disk") + "  ·  " + win.bytes(dcard.modelData.size)
-                                color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold
+                                color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold
                             }
                             Text {
                                 text: dcard.modelData.path + (dcard.modelData.tran ? "  ·  " + dcard.modelData.tran.toUpperCase() : "")
                                     + (dcard.small ? "  ·  too small" : "")
-                                color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                                color: Theme.muted; font.family: Theme.font; font.pixelSize: 11
                             }
                         }
                         Rectangle {
                             anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
                             width: 20; height: 20; radius: 10
                             color: dcard.sel ? Theme.violet : "transparent"
-                            border.width: dcard.sel ? 0 : 1.5; border.color: Qt.rgba(1, 1, 1, 0.3)
-                            Icon { anchors.centerIn: parent; visible: dcard.sel; name: "check"; size: 13 }
+                            border.width: dcard.sel ? 0 : 1.5; border.color: Theme.fg(0.3)
+                            TIcon { anchors.centerIn: parent; visible: dcard.sel; name: "check"; size: 13 }
                         }
                         MouseArea { id: dm; anchors.fill: parent; hoverEnabled: true; enabled: !dcard.small; cursorShape: Qt.PointingHandCursor; onClicked: win.disk = dcard.modelData.path }
                     }
@@ -296,7 +297,7 @@ PanelWindow {
                     Row {
                         anchors.centerIn: parent
                         spacing: 8
-                        Icon { anchors.verticalCenter: parent.verticalCenter; name: "warning"; size: 16; color: "#FF8A8A" }
+                        TIcon { anchors.verticalCenter: parent.verticalCenter; name: "warning"; size: 16; color: "#FF8A8A" }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: "All data on " + win.disk + " will be erased."
@@ -311,20 +312,20 @@ PanelWindow {
                     Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         width: 44; height: 26; radius: 13
-                        color: win.btrfs ? Theme.violet : Qt.rgba(1, 1, 1, 0.15)
+                        color: win.btrfs ? Theme.violet : Theme.fg(0.15)
                         Behavior on color { ColorAnimation { duration: 160 } }
                         Rectangle {
                             width: 20; height: 20; radius: 10; y: 3
                             x: win.btrfs ? 21 : 3
-                            color: "#FFFFFF"
+                            color: Theme.label
                             Behavior on x { SpringAnimation { spring: 5; damping: 0.35; epsilon: 0.1 } }
                         }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: win.btrfs = !win.btrfs }
                     }
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
-                        Text { text: "Btrfs with snapshots"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                        Text { text: "Saves a restore point before every update — roll back from Settings › Snapshots"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                        Text { text: "Btrfs with snapshots"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+                        Text { text: "Saves a restore point before every update — roll back from Settings › Snapshots"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                     }
                 }
             }
@@ -351,12 +352,12 @@ PanelWindow {
                     topPadding: 4
                     Rectangle {
                         width: 44; height: 26; radius: 13
-                        color: win.autologin ? Theme.violet : Qt.rgba(1, 1, 1, 0.15)
+                        color: win.autologin ? Theme.violet : Theme.fg(0.15)
                         Behavior on color { ColorAnimation { duration: 160 } }
                         Rectangle {
                             width: 20; height: 20; radius: 10; y: 3
                             x: win.autologin ? 21 : 3
-                            color: "#FFFFFF"
+                            color: Theme.label
                             Behavior on x { SpringAnimation { spring: 5; damping: 0.35; epsilon: 0.1 } }
                         }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: win.autologin = !win.autologin }
@@ -364,7 +365,7 @@ PanelWindow {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Log in automatically"
-                        color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13
+                        color: Theme.label; font.family: Theme.font; font.pixelSize: 13
                     }
                 }
                 Text {
@@ -395,13 +396,13 @@ PanelWindow {
                             width: (page.width - 16) / 3
                             height: 48
                             radius: 14
-                            color: sel ? Theme.tint(0.22) : tzm.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.04)
+                            color: sel ? Theme.tint(0.22) : tzm.containsMouse ? Theme.fg(0.08) : Theme.fg(0.04)
                             border.width: sel ? 1.5 : 0
                             border.color: Theme.violet
                             Column {
                                 x: 14; anchors.verticalCenter: parent.verticalCenter
-                                Text { text: modelData[1]; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
-                                Text { text: modelData[0]; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 10 }
+                                Text { text: modelData[1]; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                Text { text: modelData[0]; color: Theme.muted; font.family: Theme.font; font.pixelSize: 10 }
                             }
                             MouseArea { id: tzm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: win.tz = parent.modelData[0] }
                         }
@@ -426,9 +427,9 @@ PanelWindow {
                     Rectangle {
                         required property var modelData
                         width: page.width; height: 46; radius: 14
-                        color: Qt.rgba(1, 1, 1, 0.05)
-                        Text { x: 16; anchors.verticalCenter: parent.verticalCenter; text: modelData[0]; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
-                        Text { x: 130; anchors.verticalCenter: parent.verticalCenter; text: modelData[1]; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                        color: Theme.fg(0.05)
+                        Text { x: 16; anchors.verticalCenter: parent.verticalCenter; text: modelData[0]; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
+                        Text { x: 130; anchors.verticalCenter: parent.verticalCenter; text: modelData[1]; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
                     }
                 }
                 Rectangle {
@@ -437,7 +438,7 @@ PanelWindow {
                     Row {
                         anchors.centerIn: parent
                         spacing: 8
-                        Icon { anchors.verticalCenter: parent.verticalCenter; name: "warning"; size: 16; color: "#FF8A8A" }
+                        TIcon { anchors.verticalCenter: parent.verticalCenter; name: "warning"; size: 16; color: "#FF8A8A" }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: "Click Install and " + win.disk + " will be erased. This cannot be undone."
@@ -468,7 +469,7 @@ PanelWindow {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: win.step === 5 ? "Installing Islet…" : win.step === 6 ? "All done!" : "Installation failed"
-                    color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 22; font.weight: Font.Bold
+                    color: Theme.label; font.family: Theme.font; font.pixelSize: 22; font.weight: Font.Bold
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -485,7 +486,7 @@ PanelWindow {
                     visible: win.step !== 7
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: 460; height: 10; radius: 5
-                    color: Qt.rgba(1, 1, 1, 0.1)
+                    color: Theme.fg(0.1)
                     Rectangle {
                         height: parent.height; radius: 5
                         width: parent.width * win.progress / 100
@@ -502,7 +503,7 @@ PanelWindow {
                     visible: win.step === 5
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: win.progress + "%"
-                    color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12; font.features: ({ "tnum": 1 })
+                    color: Theme.muted; font.family: Theme.font; font.pixelSize: 12; font.features: ({ "tnum": 1 })
                 }
                 // nhật ký (khi lỗi)
                 Rectangle {
@@ -513,7 +514,7 @@ PanelWindow {
                     Text {
                         x: 12; y: 10; width: parent.width - 24
                         text: win.logLines.slice(-7).join("\n")
-                        color: "#AEAEB2"; font.family: Theme.mono; font.pixelSize: 10
+                        color: Theme.subtle; font.family: Theme.mono; font.pixelSize: 10
                         elide: Text.ElideRight
                     }
                 }
@@ -557,8 +558,8 @@ PanelWindow {
     }
 
     // ---------------- thành phần ----------------
-    component Title: Text { color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 20; font.weight: Font.Bold; bottomPadding: 2 }
-    component Sub: Text { color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12; bottomPadding: 4 }
+    component Title: Text { color: Theme.label; font.family: Theme.font; font.pixelSize: 20; font.weight: Font.Bold; bottomPadding: 2 }
+    component Sub: Text { color: Theme.muted; font.family: Theme.font; font.pixelSize: 12; bottomPadding: 4 }
 
     component Field: Column {
         id: f
@@ -569,19 +570,19 @@ PanelWindow {
         signal edited(string t)
         spacing: 5
         onVisibleChanged: if (visible && focusOnShow) inp.forceActiveFocus()
-        Text { text: f.label; color: "#AEAEB2"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
+        Text { text: f.label; color: Theme.subtle; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
         Rectangle {
             width: f.width; height: 40; radius: 12
-            color: Qt.rgba(1, 1, 1, inp.activeFocus ? 0.12 : 0.06)
+            color: Theme.fg(inp.activeFocus ? 0.12 : 0.06)
             border.width: 1
-            border.color: inp.activeFocus ? Theme.violet : Qt.rgba(1, 1, 1, 0.08)
+            border.color: inp.activeFocus ? Theme.violet : Theme.fg(0.08)
             TextInput {
                 id: inp
                 x: 12; width: parent.width - 24
                 anchors.verticalCenter: parent.verticalCenter
                 text: f.text
                 echoMode: f.secret ? TextInput.Password : TextInput.Normal
-                color: "#FFFFFF"; selectionColor: Theme.violet
+                color: Theme.label; selectionColor: Theme.violet
                 font.family: Theme.font; font.pixelSize: 13
                 clip: true
                 onTextEdited: f.edited(text)
@@ -603,13 +604,13 @@ PanelWindow {
         height: 40
         radius: 20
         opacity: enabled_ ? 1 : 0.4
-        color: !primary ? (bm.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.08))
+        color: !primary ? (bm.containsMouse ? Theme.fg(0.16) : Theme.fg(0.08))
             : danger ? (win.armed ? "#FF5F57" : bm.containsMouse ? "#FF7A72" : "#FF5F57")
             : bm.containsMouse ? "#A99CFF" : Theme.violet
         Behavior on color { ColorAnimation { duration: 140 } }
         scale: bm.pressed ? 0.95 : 1
         Behavior on scale { SpringAnimation { spring: 6; damping: 0.35; epsilon: 0.003 } }
-        Text { id: bl; anchors.centerIn: parent; text: b.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Bold }
+        Text { id: bl; anchors.centerIn: parent; text: b.label; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Bold }
         MouseArea { id: bm; anchors.fill: parent; hoverEnabled: true; enabled: b.enabled_; cursorShape: Qt.PointingHandCursor; onClicked: b.clicked() }
     }
 }

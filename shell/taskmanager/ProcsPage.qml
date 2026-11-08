@@ -30,14 +30,14 @@ Item {
             width: 280
             height: 34
             radius: 17
-            color: Qt.rgba(1, 1, 1, search.activeFocus ? 0.12 : 0.07)
-            Icon { id: si; x: 13; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 15; opacity: 0.7 }
+            color: Theme.fg(search.activeFocus ? 0.12 : 0.07)
+            TIcon { id: si; x: 13; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 15; opacity: 0.7 }
             TextInput {
                 id: search
                 x: si.x + si.width + 9
                 width: parent.width - x - 14
                 anchors.verticalCenter: parent.verticalCenter
-                color: "#FFFFFF"
+                color: Theme.label
                 selectionColor: Theme.violet
                 font.family: Theme.font
                 font.pixelSize: 12
@@ -47,7 +47,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: search.text === ""
                     text: "Search processes or PID"
-                    color: Qt.rgba(1, 1, 1, 0.4)
+                    color: Theme.fg(0.4)
                     font: search.font
                 }
             }
@@ -57,7 +57,7 @@ Item {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             text: "Showing " + root.rows.length + " / " + SysMon.procs.length
-            color: "#8E8E93"
+            color: Theme.muted
             font.family: Theme.font
             font.pixelSize: 11
         }
@@ -70,9 +70,9 @@ Item {
         x: 14
         y: bar.height + 10
         height: 22
-        Text { width: root.colName - 14; text: "Name"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
-        Text { width: 60; horizontalAlignment: Text.AlignRight; text: "PID"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
-        Text { width: 80; horizontalAlignment: Text.AlignRight; text: "User"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
+        Text { width: root.colName - 14; text: "Name"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
+        Text { width: 60; horizontalAlignment: Text.AlignRight; text: "PID"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
+        Text { width: 80; horizontalAlignment: Text.AlignRight; text: "User"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
         SortHead { width: 64; label: "CPU"; key: "cpu" }
         SortHead { width: 80; label: "Memory"; key: "mem" }
     }
@@ -82,7 +82,7 @@ Item {
         property string key: ""
         horizontalAlignment: Text.AlignRight
         text: label + (root.sortBy === key ? " ▾" : "")
-        color: root.sortBy === key ? "#FFFFFF" : sh.containsMouse ? "#D1D1D6" : "#8E8E93"
+        color: root.sortBy === key ? Theme.label : sh.containsMouse ? Theme.labelSoft : Theme.muted
         font.family: Theme.font
         font.pixelSize: 11
         font.weight: Font.Bold
@@ -108,7 +108,7 @@ Item {
             width: ListView.view.width
             height: 34
             radius: 10
-            color: rm.hovered ? Qt.rgba(1, 1, 1, 0.08) : index % 2 ? Qt.rgba(1, 1, 1, 0.02) : "transparent"
+            color: rm.hovered ? Theme.fg(0.08) : index % 2 ? Theme.fg(0.02) : "transparent"
             HoverHandler { id: rm }
 
             Row {
@@ -118,31 +118,31 @@ Item {
                     width: root.colName - 14
                     text: row.modelData[2]
                     elide: Text.ElideRight
-                    color: "#F2F2F7"
+                    color: Theme.label
                     font.family: Theme.font
                     font.pixelSize: 12
                 }
                 Text {
                     width: 60; horizontalAlignment: Text.AlignRight
                     text: row.pid
-                    color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12; font.features: ({ "tnum": 1 })
+                    color: Theme.muted; font.family: Theme.font; font.pixelSize: 12; font.features: ({ "tnum": 1 })
                 }
                 Text {
                     width: 80; horizontalAlignment: Text.AlignRight
                     text: row.modelData[5]
                     elide: Text.ElideRight
-                    color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                    color: Theme.muted; font.family: Theme.font; font.pixelSize: 12
                 }
                 Text {
                     width: 64; horizontalAlignment: Text.AlignRight
                     text: row.modelData[3].toFixed(1) + "%"
-                    color: row.modelData[3] > 50 ? "#FF6B97" : row.modelData[3] > 10 ? "#FFB547" : "#FFFFFF"
+                    color: row.modelData[3] > 50 ? "#FF6B97" : row.modelData[3] > 10 ? "#FFB547" : Theme.label
                     font.family: Theme.font; font.pixelSize: 12; font.features: ({ "tnum": 1 })
                 }
                 Text {
                     width: 80; horizontalAlignment: Text.AlignRight
                     text: SysMon.bytes(row.modelData[4])
-                    color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12; font.features: ({ "tnum": 1 })
+                    color: Theme.label; font.family: Theme.font; font.pixelSize: 12; font.features: ({ "tnum": 1 })
                 }
             }
 

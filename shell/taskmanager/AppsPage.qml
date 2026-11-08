@@ -38,9 +38,9 @@ Item {
         id: header
         width: parent.width
         height: 22
-        Text { x: 14; text: "Apps"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
-        Text { x: root.colCpu; width: 70; horizontalAlignment: Text.AlignRight; text: "CPU"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
-        Text { x: root.colMem; width: 90; horizontalAlignment: Text.AlignRight; text: "Memory"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
+        Text { x: 14; text: "Apps"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
+        Text { x: root.colCpu; width: 70; horizontalAlignment: Text.AlignRight; text: "CPU"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
+        Text { x: root.colMem; width: 90; horizontalAlignment: Text.AlignRight; text: "Memory"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
     }
 
     ListView {
@@ -58,7 +58,7 @@ Item {
             width: ListView.view.width
             height: 56
             radius: 16
-            color: rm.hovered ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(1, 1, 1, 0.04)
+            color: rm.hovered ? Theme.fg(0.09) : Theme.fg(0.04)
             Behavior on color { ColorAnimation { duration: 120 } }
             HoverHandler { id: rm }
 
@@ -79,7 +79,7 @@ Item {
                     spacing: 8
                     Text {
                         text: Windows.nameOf(row.modelData.t)
-                        color: "#FFFFFF"
+                        color: Theme.label
                         font.family: Theme.font
                         font.pixelSize: 13
                         font.weight: Font.DemiBold
@@ -97,7 +97,7 @@ Item {
                 Text {
                     width: parent.width
                     text: row.modelData.title + "  ·  " + row.modelData.n + " processes"
-                    color: "#8E8E93"
+                    color: Theme.muted
                     elide: Text.ElideRight
                     font.family: Theme.font
                     font.pixelSize: 11
@@ -110,7 +110,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 horizontalAlignment: Text.AlignRight
                 text: row.modelData.cpu.toFixed(1) + "%"
-                color: row.modelData.cpu > 50 ? "#FF6B97" : "#FFFFFF"
+                color: row.modelData.cpu > 50 ? "#FF6B97" : Theme.label
                 font.family: Theme.font
                 font.pixelSize: 13
                 font.features: ({ "tnum": 1 })
@@ -121,7 +121,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 horizontalAlignment: Text.AlignRight
                 text: SysMon.bytes(row.modelData.rss)
-                color: "#FFFFFF"
+                color: Theme.label
                 font.family: Theme.font
                 font.pixelSize: 13
                 font.features: ({ "tnum": 1 })
@@ -148,7 +148,7 @@ Item {
             anchors.centerIn: parent
             visible: root.wins.length === 0
             text: "No apps are open"
-            color: "#8E8E93"
+            color: Theme.muted
             font.family: Theme.font
             font.pixelSize: 13
         }

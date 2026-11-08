@@ -101,7 +101,7 @@ PanelWindow {
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: win.app?.label ?? ""
-                    color: "#FFFFFF"
+                    color: Theme.label
                     font.family: Theme.font
                     font.pixelSize: 14
                     font.weight: Font.Bold
@@ -190,7 +190,7 @@ PanelWindow {
         width: col.width
         height: 9
         color: "transparent"
-        Rectangle { anchors.centerIn: parent; width: parent.width - 16; height: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+        Rectangle { anchors.centerIn: parent; width: parent.width - 16; height: 1; color: Theme.fg(0.08) }
     }
 
     component MenuRow: Rectangle {
@@ -204,7 +204,7 @@ PanelWindow {
         width: col.width
         height: visible ? 34 : 0
         radius: 11
-        color: m.containsMouse ? (danger ? Qt.rgba(1, 0.37, 0.34, 0.9) : Qt.rgba(1, 1, 1, 0.10)) : "transparent"
+        color: m.containsMouse ? (danger ? Qt.rgba(1, 0.37, 0.34, 0.9) : Theme.fg(0.10)) : "transparent"
         Behavior on color { ColorAnimation { duration: 110 } }
 
         // chấm trạng thái cửa sổ / icon
@@ -221,14 +221,14 @@ PanelWindow {
                 radius: width / 2
                 color: r.dot === "active" ? Theme.violet : "transparent"
                 border.width: r.dot === "active" ? 0 : 1.5
-                border.color: r.dot === "min" ? "#FFB547" : Qt.rgba(1, 1, 1, 0.6)
+                border.color: r.dot === "min" ? "#FFB547" : Theme.fg(0.6)
             }
-            Icon {
+            TIcon {
                 visible: r.dot === "" && r.icon !== ""
                 anchors.centerIn: parent
                 name: r.icon
                 size: r.icon === "dot" ? 12 : 15
-                color: r.danger && m.containsMouse ? "#FFFFFF" : r.danger ? "#FF8A8A" : "#D1D1D6"
+                color: r.danger && m.containsMouse ? "#FFFFFF" : r.danger ? "#FF8A8A" : Theme.labelSoft
             }
         }
         Text {
@@ -239,7 +239,7 @@ PanelWindow {
             anchors.verticalCenter: parent.verticalCenter
             text: r.label
             elide: Text.ElideRight
-            color: r.danger && !m.containsMouse ? "#FF8A8A" : "#FFFFFF"
+            color: r.danger && !m.containsMouse ? "#FF8A8A" : Theme.label
             font.family: Theme.font
             font.pixelSize: 13
             font.weight: r.dot !== "" ? Font.Normal : Font.Medium

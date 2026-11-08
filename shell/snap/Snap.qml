@@ -70,7 +70,7 @@ Scope {
                 anchors.fill: parent
                 anchors.margins: 2
                 radius: 16
-                color: Qt.rgba(1, 1, 1, 0.06)
+                color: Theme.fg(0.06)
             }
         }
     }
@@ -122,7 +122,7 @@ Scope {
             Text {
                 x: 18; y: 14
                 text: "Snap layouts"
-                color: "#FFFFFF"
+                color: Theme.label
                 font.family: Theme.font
                 font.pixelSize: 13
                 font.weight: Font.DemiBold
@@ -130,7 +130,7 @@ Scope {
             Text {
                 anchors.right: parent.right; anchors.rightMargin: 18; y: 15
                 text: "Super + ← → ↑ ↓ · drag to an edge"
-                color: "#8E8E93"
+                color: Theme.muted
                 font.family: Theme.font
                 font.pixelSize: 11
             }
@@ -150,9 +150,9 @@ Scope {
                             anchors.centerIn: parent
                             width: 76; height: 50
                             radius: 9
-                            color: Qt.rgba(1, 1, 1, 0.05)
+                            color: Theme.fg(0.05)
                             border.width: 1
-                            border.color: Qt.rgba(1, 1, 1, 0.12)
+                            border.color: Theme.fg(0.12)
                             Repeater {
                                 model: lay.modelData
                                 Rectangle {
@@ -163,7 +163,7 @@ Scope {
                                     width: modelData[3] * (screenBox.width - 6) - g
                                     height: modelData[4] * (screenBox.height - 6) - g
                                     radius: 5
-                                    color: zm.containsMouse ? Theme.accent : Qt.rgba(1, 1, 1, 0.16)
+                                    color: zm.containsMouse ? Theme.accent : Theme.fg(0.16)
                                     Behavior on color { ColorAnimation { duration: 110 } }
                                     scale: zm.pressed ? 0.92 : 1
                                     MouseArea {
