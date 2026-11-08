@@ -22,7 +22,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: 26
-        color: Qt.rgba(0.07, 0.07, 0.11, 0.42)
+        color: Qt.rgba(0.07, 0.07, 0.11, Theme.light ? 0.74 : 0.42)   // chữ widget luôn trắng nên nền sáng cần kính đặc hơn
         border.width: 1; border.color: Qt.rgba(1, 1, 1, root.dragging ? 0.3 : 0.12)
         scale: root.dragging ? 1.03 : 1
         Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }

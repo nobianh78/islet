@@ -30,8 +30,8 @@ Row {
             height: 7
             radius: 3.5
             color: active ? Theme.violet
-                : root.occupied(wsId) ? Qt.rgba(1, 1, 1, 0.75)
-                : Qt.rgba(1, 1, 1, 0.28)
+                : root.occupied(wsId) ? Theme.fg(0.75)
+                : Theme.fg(0.28)
 
             Behavior on width { SpringAnimation { spring: 4.5; damping: 0.3 } }
             Behavior on color { ColorAnimation { duration: 200 } }

@@ -10,7 +10,7 @@ Item {
     implicitHeight: 14
 
     readonly property real level: Math.max(0, Math.min(1, Power.percent / 100))
-    readonly property color fill: Power.charging ? Theme.green : level < 0.15 ? Theme.red : Theme.text
+    readonly property color fill: Power.charging ? Theme.green : level < 0.15 ? Theme.red : Theme.label
 
     Rectangle {
         width: 22
@@ -18,7 +18,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         radius: 3.5
         color: "transparent"
-        border.color: Theme.text
+        border.color: Theme.label
         border.width: 1.4
 
         Rectangle {
@@ -37,6 +37,6 @@ Item {
         width: 2.2
         height: 4
         radius: 1
-        color: Theme.text
+        color: Theme.label
     }
 }

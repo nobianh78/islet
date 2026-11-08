@@ -221,8 +221,8 @@ PanelWindow {
         width: row.width + win.pad * 2
         height: win.base + win.pad * 2
         radius: win.base * 0.3 + win.pad
-        color: Ui.dockDropHover ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.09)
-        border.color: Ui.dockDropHover ? Theme.accent : Qt.rgba(1, 1, 1, 0.16)
+        color: Ui.dockDropHover ? Qt.rgba(1, 1, 1, 0.16) : Theme.light ? Qt.rgba(1, 1, 1, 0.4) : Qt.rgba(1, 1, 1, 0.09)
+        border.color: Ui.dockDropHover ? Theme.accent : Theme.light ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(1, 1, 1, 0.16)
         border.width: Ui.dockDropHover ? 2 : 1
         scale: Ui.dockDropHover ? 1.05 : 1
         Behavior on scale { SpringAnimation { spring: 5; damping: 0.35; epsilon: 0.005 } }

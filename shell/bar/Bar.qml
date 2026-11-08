@@ -51,8 +51,8 @@ PanelWindow {
     Rectangle {
         transform: Translate { y: -48 * (1 - reveal.v) }
         anchors.fill: parent
-        color: Qt.rgba(0.07, 0.07, 0.11, 0.2 + 0.4 * Prefs.glass)     // kính (Hyprland nhoè phần nền phía sau)
-        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.05 + 0.2 * Prefs.glass) }
+        color: Theme.light ? Qt.rgba(1, 1, 1, 0.3 + 0.3 * Prefs.glass) : Qt.rgba(0.07, 0.07, 0.11, 0.2 + 0.4 * Prefs.glass)     // kính (Hyprland nhoè phần nền phía sau)
+        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.fg(0.05 + 0.2 * Prefs.glass) }
     }
 
     // ---------------- Trái ----------------
@@ -96,7 +96,7 @@ PanelWindow {
             id: title
             anchors.verticalCenter: parent.verticalCenter
             text: bar.appName
-            color: Theme.text
+            color: Theme.label
             font.family: Theme.font
             font.pixelSize: 13
             font.weight: Font.DemiBold
@@ -146,7 +146,7 @@ PanelWindow {
             height: 32
             width: statusRow.implicitWidth + 22
             radius: 16
-            color: statusMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : "transparent"
+            color: statusMouse.containsMouse ? Theme.fg(0.10) : "transparent"
             Behavior on color { ColorAnimation { duration: 160 } }
 
             MouseArea {
@@ -169,7 +169,7 @@ PanelWindow {
                     width: imeText.implicitWidth + 12
                     height: 18
                     radius: 6
-                    color: Ime.vietnamese ? Theme.accent : Qt.rgba(1, 1, 1, 0.16)
+                    color: Ime.vietnamese ? Theme.accent : Theme.fg(0.16)
                     Behavior on color { ColorAnimation { duration: 150 } }
                     Text {
                         id: imeText
@@ -184,7 +184,7 @@ PanelWindow {
                 }
 
                 // mạng: Wi-Fi theo độ mạnh sóng / dây / mất mạng
-                Icon {
+                TIcon {
                     anchors.verticalCenter: parent.verticalCenter
                     size: 17
                     name: Net.kind === "wifi" ? (Net.strength > 0.66 ? "wifi" : Net.strength > 0.33 ? "wifi-2" : "wifi-1")
@@ -193,7 +193,7 @@ PanelWindow {
                 }
 
                 // âm lượng: lăn chuột để chỉnh, bấm để tắt / bật tiếng
-                Icon {
+                TIcon {
                     id: vol
                     anchors.verticalCenter: parent.verticalCenter
                     size: 17
@@ -209,7 +209,7 @@ PanelWindow {
                 }
 
                 // Bluetooth: chỉ hiện khi máy có
-                Icon {
+                TIcon {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: Bluetooth.defaultAdapter !== null
                     size: 16
@@ -226,7 +226,7 @@ PanelWindow {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: Math.round(Power.percent) + "%"
-                        color: Theme.text
+                        color: Theme.label
                         font.family: Theme.font
                         font.pixelSize: 12
                         font.weight: Font.DemiBold
@@ -243,18 +243,18 @@ PanelWindow {
             width: 32
             height: 32
             radius: 16
-            color: Ui.notifOpen ? Qt.rgba(1, 1, 1, 0.92)
-                : bellMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.08)
+            color: Ui.notifOpen ? Theme.fg(0.92)
+                : bellMouse.containsMouse ? Theme.fg(0.16) : Theme.fg(0.08)
             Behavior on color { ColorAnimation { duration: 160 } }
             scale: bellMouse.pressed ? 0.88 : 1
             Behavior on scale { SpringAnimation { spring: 6; damping: 0.35; epsilon: 0.005 } }
 
-            Icon {
+            TIcon {
                 id: bellIcon
                 anchors.centerIn: parent
                 name: Prefs.dnd ? "moon" : "bell"
                 size: 16
-                color: Ui.notifOpen ? "#07070F" : "#FFFFFF"
+                color: Ui.notifOpen ? (Theme.light ? "#FFFFFF" : "#07070F") : Theme.label
                 // lắc nhẹ khi có thông báo mới
                 SequentialAnimation on rotation {
                     id: ring
@@ -294,17 +294,17 @@ PanelWindow {
             width: 32
             height: 32
             radius: 16
-            color: Ui.controlCenterOpen ? Qt.rgba(1, 1, 1, 0.92)
-                : ccMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.08)
+            color: Ui.controlCenterOpen ? Theme.fg(0.92)
+                : ccMouse.containsMouse ? Theme.fg(0.16) : Theme.fg(0.08)
             Behavior on color { ColorAnimation { duration: 160 } }
             scale: ccMouse.pressed ? 0.88 : 1
             Behavior on scale { SpringAnimation { spring: 6; damping: 0.35; epsilon: 0.005 } }
 
-            Icon {
+            TIcon {
                 anchors.centerIn: parent
                 name: "sliders"
                 size: 16
-                color: Ui.controlCenterOpen ? "#07070F" : "#FFFFFF"
+                color: Ui.controlCenterOpen ? (Theme.light ? "#FFFFFF" : "#07070F") : Theme.label
                 rotation: Ui.controlCenterOpen ? 90 : 0
                 Behavior on rotation { SpringAnimation { spring: 4; damping: 0.3; epsilon: 0.1 } }
             }

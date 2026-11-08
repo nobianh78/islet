@@ -28,7 +28,7 @@ Column {
         }
         Text {
             x: 18; y: 54; width: parent.width - 36; wrapMode: Text.Wrap
-            text: Prefs.themeMode === "auto" ? "Light from 6:30 to 18:30, dark at night." : "Windows, panels and Settings change. The island, Dock and top bar stay dark for now."
+            text: Prefs.themeMode === "auto" ? "Light from 6:30 to 18:30, dark at night." : "Windows, panels, Settings and the top bar change. The island stays black, like the notch it imitates."
             color: Theme.muted; font.family: Theme.font; font.pixelSize: 11
         }
     }
@@ -78,5 +78,4 @@ Column {
             }
         }
     }
-    Hint { text: "Islet is designed for dark mode, so a light theme is not available yet." }
 }

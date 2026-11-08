@@ -271,8 +271,8 @@ FloatingWindow {
     Timer { id: remon; interval: 900; onTriggered: mons.running = true }
 
     // hình nền riêng của Islet (theme/wallpapers → /usr/share/islet/wallpapers)
-    readonly property var wallNames: ({ islet: "Islet", lagoon: "Lagoon", dusk: "Dusk Isles", aurora: "Aurora", prism: "Prism", midnight: "Midnight" })
-    readonly property var wallOrder: ["islet", "dusk", "lagoon", "aurora", "prism", "midnight"]
+    readonly property var wallNames: ({ islet: "Islet", lagoon: "Lagoon", dusk: "Dusk Isles", aurora: "Aurora", prism: "Prism", midnight: "Midnight", daybreak: "Daybreak", cloud: "Cloud" })
+    readonly property var wallOrder: ["islet", "dusk", "lagoon", "aurora", "prism", "midnight", "daybreak", "cloud"]
     property var isletWalls: []
     Process {
         id: islWalls

@@ -42,7 +42,7 @@ PanelWindow {
         id: panel
         anchors.fill: parent
         radius: 28
-        color: Qt.rgba(0.05, 0.05, 0.09, 0.82)
+        color: Qt.rgba(0.05, 0.05, 0.09, 0.95 - 0.4 * Prefs.glass)
 
         opacity: win.open ? 1 : 0
         scale: win.open ? 1 : 0.94

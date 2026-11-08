@@ -419,7 +419,38 @@ def midnight(cr):
     vignette(cr, 0.3)
 
 
-WALLS = {"islet": islet, "lagoon": lagoon, "dusk": dusk, "aurora": aurora, "prism": prism, "midnight": midnight}
+def daybreak(cr):
+    """Sáng: trời bình minh pha tím nhạt – hồng đào, vài ô vuông bo kính, mèo nhỏ ở giữa."""
+    vgrad(cr, [(0, "#C9C3F2"), (0.55, "#F1D9EC"), (1, "#FCE9D8")])
+    glow(cr, W * 0.28, H * 0.2, H * 0.55, "#FFFFFF", 0.7)
+    glow(cr, W * 0.8, H * 0.75, H * 0.6, "#FFB9A0", 0.55)
+    glow(cr, W * 0.62, H * 0.12, H * 0.4, "#8B7CFF", 0.25)
+    for fx, fy, s, rot, col, a in [(0.18, 0.66, 0.20, -0.2, "#FFFFFF", 0.45), (0.82, 0.3, 0.17, 0.25, "#FFFFFF", 0.4), (0.7, 0.7, 0.13, -0.1, "#8B7CFF", 0.22), (0.3, 0.25, 0.1, 0.3, "#FF9DB8", 0.3)]:
+        cr.save()
+        cr.translate(W * fx, H * fy)
+        cr.rotate(rot)
+        r = H * s
+        cr.rectangle(-r / 2, -r / 2, r, r)
+        cr.set_source_rgba(*hexc(col, a))
+        cr.fill_preserve()
+        cr.set_source_rgba(1, 1, 1, 0.5)
+        cr.set_line_width(max(1, H * 0.002))
+        cr.stroke()
+        cr.restore()
+    cat(cr, W * 0.5, H * 0.5, H * 0.16)
+
+
+def cloud(cr):
+    """Sáng: nền trắng ngà, những dải sóng mềm xanh – tím rất nhạt."""
+    vgrad(cr, [(0, "#EEF1FB"), (1, "#DCE3F5")])
+    glow(cr, W * 0.2, H * 0.15, H * 0.7, "#FFFFFF", 0.9)
+    glow(cr, W * 0.85, H * 0.9, H * 0.7, "#B9C6F2", 0.6)
+    for i, (y, amp, c1, c2) in enumerate([(0.62, 0.05, "#B8C7F5", "#D9C8F5"), (0.72, 0.06, "#C9D3F7", "#E6D3F3"), (0.84, 0.05, "#DBE2F9", "#F0E1F6")]):
+        ribbon(cr, wave_pts(H * y, H * amp, i * 1.3), H * 0.14, c1, c2, 0.7, 0.55, 0, W)
+    cat(cr, W * 0.5, H * 0.38, H * 0.13, body="#7C6CF0")
+
+
+WALLS = {"daybreak": daybreak, "cloud": cloud, "islet": islet, "lagoon": lagoon, "dusk": dusk, "aurora": aurora, "prism": prism, "midnight": midnight}
 # tên hiện trong Cài đặt (đọc từ theme/wallpapers/names.txt nếu cần)
 NAMES = {"islet": "Islet", "lagoon": "Lagoon", "dusk": "Dusk Isles", "aurora": "Aurora", "prism": "Prism", "midnight": "Midnight"}
 
