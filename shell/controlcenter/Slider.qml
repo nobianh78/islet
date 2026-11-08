@@ -15,22 +15,24 @@ Rectangle {
 
     signal moved(real v)
 
-    implicitHeight: 64
-    radius: 26
-    color: Theme.fg(0.12)
+    implicitHeight: 52
+    radius: 22
+    color: "transparent"
     opacity: available ? 1 : 0.45
 
     property real dragValue: value
     readonly property real shown: drag.pressed ? dragValue : value
 
+    Glass { anchors.fill: parent; radius: parent.radius; color: Theme.glassFill }
+
     Text {
-        x: 18; y: 10
+        x: 16; y: 8
         text: root.title
         color: Theme.label
-        font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold
+        font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold
     }
     Text {
-        anchors.right: parent.right; anchors.rightMargin: 18; y: 10
+        anchors.right: parent.right; anchors.rightMargin: 16; y: 8
         text: root.label ? root.label(root.shown) : Math.round(root.shown * 100) + "%"
         color: Theme.fg(0.6)
         font.family: Theme.font; font.pixelSize: 11
@@ -40,9 +42,9 @@ Rectangle {
     // thanh mảnh + núm tròn dài như macOS
     Rectangle {
         id: track
-        x: 16
-        width: parent.width - 32
-        y: parent.height - 24
+        x: 14
+        width: parent.width - 28
+        y: parent.height - 18
         height: 6; radius: 3
         color: Theme.fg(0.2)
         Rectangle {
@@ -53,7 +55,7 @@ Rectangle {
         }
         Rectangle {
             id: thumb
-            width: 34; height: 24; radius: 12
+            width: 30; height: 20; radius: 10
             anchors.verticalCenter: parent.verticalCenter
             x: (track.width - width) * Math.max(0, Math.min(1, root.shown))
             color: "#FFFFFF"

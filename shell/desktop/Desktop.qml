@@ -32,12 +32,12 @@ PanelWindow {
             const k = DesktopItems.kind(w.kind);
             if (!k) continue;
             if (w.x >= 0 && w.uid !== uid) continue;
-            if (y > top && y + k.h > bottomLimit) { x -= colW + gap; y = top; colW = 0; }
-            if (w.uid === uid) return Qt.point(x - k.w, y);
-            y += k.h + gap;
-            colW = Math.max(colW, k.w);
+            if (y > top && y + k.h * DesktopItems.widgetScale > bottomLimit) { x -= colW + gap; y = top; colW = 0; }
+            if (w.uid === uid) return Qt.point(x - k.w * DesktopItems.widgetScale, y);
+            y += k.h * DesktopItems.widgetScale + gap;
+            colW = Math.max(colW, k.w * DesktopItems.widgetScale);
         }
-        return Qt.point(win.width - 328, top);
+        return Qt.point(win.width - 28 - 300 * DesktopItems.widgetScale, top);
     }
 
     // ---------- bấm vào nền ----------

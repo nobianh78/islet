@@ -16,9 +16,10 @@ PanelWindow {
 
     anchors { top: true; right: true }
     margins { top: 50; right: 12 }
-    readonly property real unit: 64        // ô tròn 64 px; viên thuốc = 2 ô; thanh trượt = 4 ô
-    readonly property real gap: 12
-    implicitWidth: 320 + (editing ? picker.width + 12 : 0)
+    readonly property real unit: 52        // ô tròn 52 px; viên thuốc = 2 ô; thanh trượt = 4 ô
+    readonly property real gap: 10
+    readonly property real pad: 12          // lề trong suốt quanh các ô (để dấu − ở góc vẫn bấm được)
+    implicitWidth: panel.width + (editing ? picker.width + 12 : 0)
     implicitHeight: panel.height + 16
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
@@ -87,13 +88,12 @@ PanelWindow {
     function afterClose(fn) { Ui.controlCenterOpen = false; later.fn = fn; later.restart(); }
     Timer { id: later; property var fn; interval: 450; onTriggered: fn() }
 
-    Glass {
+    // Không có nền: mỗi ô tự là một viên kính (giống Control Center của macOS mới)
+    Item {
         id: panel
         anchors.right: parent.right
-        width: 320
-        height: content.implicitHeight + 28
-        radius: 28
-        color: Theme.surface(0.55)
+        width: 4 * win.unit + 3 * win.gap + 2 * win.pad
+        height: content.implicitHeight + 2 * win.pad
 
         transformOrigin: Item.TopRight
         opacity: win.open ? 1 : 0
@@ -106,9 +106,9 @@ PanelWindow {
 
         Column {
             id: content
-            x: 14
-            y: 14
-            width: parent.width - 28
+            x: win.pad
+            y: win.pad
+            width: parent.width - 2 * win.pad
             spacing: 12
 
             // Các mục do người dùng sắp xếp (Prefs.ccLayout). Khi sửa: kéo để đổi chỗ, bấm dấu − để bỏ.
@@ -180,54 +180,25 @@ PanelWindow {
                 }
             }
 
-            // Chân: logo + tên máy
+            // Chân: Edit + Cài đặt, mỗi nút là một viên kính
             Item {
                 width: parent.width
-                height: 28
-                Row {
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 8
-                    Image {
-                        width: 20; height: 20
-                        sourceSize: Qt.size(40, 40)
-                        source: Qt.resolvedUrl("../assets/icons/islet.svg")
-                    }
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Islet"
-                        color: Theme.fg(0.68)
-                        font.family: Theme.font
-                        font.pixelSize: 12
-                        font.weight: Font.Medium
-                    }
-                }
-                Rectangle {
-                    anchors.right: dateText.left; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter
-                    width: editLabel.implicitWidth + 20; height: 24; radius: 12
-                    color: win.editing ? Theme.accent : em.containsMouse ? Theme.fg(0.2) : Theme.fg(0.1)
+                height: 30
+                Glass {
+                    anchors.right: gear.left; anchors.rightMargin: 8; anchors.verticalCenter: parent.verticalCenter
+                    width: editLabel.implicitWidth + 24; height: 28; radius: 14
+                    color: win.editing ? Theme.accent : em.containsMouse ? Theme.glassHover : Theme.glassFill
                     Text { id: editLabel; anchors.centerIn: parent; text: win.editing ? "Done" : "Edit"; color: win.editing ? "#FFFFFF" : Theme.label; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
                     MouseArea { id: em; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: win.editing = !win.editing }
                 }
-                Text {
-                    id: dateText
-                    anchors.right: gear.left
-                    anchors.rightMargin: 10
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: Time.dateLong
-                    color: Theme.fg(0.42)
-                    font.family: Theme.font
-                    font.pixelSize: 12
-                }
-                // mở app Cài đặt
-                Rectangle {
+                Glass {
                     id: gear
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     width: 28; height: 28; radius: 14
-                    color: gm.containsMouse ? Theme.fg(0.2) : Theme.fg(0.1)
-                    Behavior on color { ColorAnimation { duration: 140 } }
+                    color: gm.containsMouse ? Theme.glassHover : Theme.glassFill
                     TIcon {
-                        anchors.centerIn: parent; name: "settings"; size: 15
+                        anchors.centerIn: parent; name: "settings"; size: 14
                         rotation: gm.containsMouse ? 60 : 0
                         Behavior on rotation { SpringAnimation { spring: 3; damping: 0.3 } }
                     }
@@ -338,7 +309,7 @@ PanelWindow {
             onToggled: Recorder.recording ? Recorder.stop() : win.afterClose(() => Recorder.start(true))
         } }
         Component { id: cVol; Item {
-            implicitHeight: 64 + (Audio.sinks.length > 1 ? 22 : 0)
+            implicitHeight: 52 + (Audio.sinks.length > 1 ? 20 : 0)
             Slider {
                 width: parent.width
                 title: "Volume"
@@ -349,7 +320,7 @@ PanelWindow {
             // bấm để đổi loa / tai nghe kế tiếp
             Text {
                 visible: Audio.sinks.length > 1
-                x: 6; y: 70; width: parent.width - 12
+                x: 6; y: 56; width: parent.width - 12
                 text: "Output: " + (Audio.sink?.description || Audio.sink?.name || "—") + "  \u203A"
                 elide: Text.ElideRight
                 color: om.containsMouse ? Theme.label : Theme.fg(0.68)

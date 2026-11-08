@@ -13,21 +13,12 @@ Item {
     readonly property var meta: DesktopItems.kind(st?.kind ?? "")
     signal moved(real x, real y)
 
-    width: meta?.w ?? 300
-    height: meta?.h ?? 150
+    readonly property real k: DesktopItems.widgetScale
+    width: (meta?.w ?? 300) * k
+    height: (meta?.h ?? 150) * k
 
     HoverHandler { id: hov }
     readonly property bool dragging: dragArea.drag.active
-
-    Rectangle {
-        anchors.fill: parent
-        radius: 26
-        color: Theme.light ? Qt.rgba(1, 1, 1, 0.5) : Qt.rgba(0.07, 0.07, 0.11, 0.42)
-        border.width: 1; border.color: Theme.fg(root.dragging ? 0.3 : 0.12)
-        scale: root.dragging ? 1.03 : 1
-        Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
-        Behavior on border.color { ColorAnimation { duration: 150 } }
-    }
 
     MouseArea {
         id: dragArea
@@ -62,11 +53,26 @@ Item {
         drag.maximumY: (root.parent?.height ?? 2000) - root.height
     }
 
-    WidgetContent {
-        anchors.fill: parent
-        anchors.margins: 20
-        kind: root.st?.kind ?? ""
-        conf: root.st?.conf ?? ({})
+    // vẽ ở cỡ gốc (meta.w × meta.h) rồi thu theo k
+    Item {
+        id: holder
+        width: meta?.w ?? 300
+        height: meta?.h ?? 150
+        scale: root.k * (root.dragging ? 1.05 : 1)
+        transformOrigin: Item.TopLeft
+        Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutBack } }
+
+        Glass {
+            anchors.fill: parent
+            radius: 30
+            color: Theme.light ? Qt.rgba(1, 1, 1, 0.36) : Qt.rgba(0.1, 0.1, 0.16, 0.34)
+        }
+        WidgetContent {
+            anchors.fill: parent
+            anchors.margins: 20
+            kind: root.st?.kind ?? ""
+            conf: root.st?.conf ?? ({})
+        }
     }
 
     // nút gỡ (rê chuột vào mới hiện)

@@ -31,6 +31,8 @@ Singleton {
         { id: "battery",  label: "Battery",      group: "Computer", w: 230, h: 132, d: "Charge left and time remaining" },
         { id: "sysinfo",  label: "This computer", group: "Computer", w: 300, h: 150, d: "Islet version, uptime, hostname" }
     ]
+    // widget vẽ ở cỡ gốc rồi thu nhỏ lại: nhỏ gọn như macOS, chữ và lề vẫn đúng tỉ lệ
+    readonly property real widgetScale: 0.68
     readonly property var widgetGroups: ["Time", "Life", "Computer"]
     function kind(id) { return kinds.find(k => k.id === id) ?? null; }
 
