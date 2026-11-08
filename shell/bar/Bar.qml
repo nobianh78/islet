@@ -51,10 +51,8 @@ PanelWindow {
     Rectangle {
         transform: Translate { y: -48 * (1 - reveal.v) }
         anchors.fill: parent
-        gradient: Gradient {
-            GradientStop { position: 0; color: Qt.rgba(0, 0, 0, 0.28) }
-            GradientStop { position: 1; color: Qt.rgba(0, 0, 0, 0) }
-        }
+        color: Qt.rgba(0.07, 0.07, 0.11, 0.2 + 0.4 * Prefs.glass)     // kính (Hyprland nhoè phần nền phía sau)
+        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.05 + 0.2 * Prefs.glass) }
     }
 
     // ---------------- Trái ----------------

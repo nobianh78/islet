@@ -175,7 +175,7 @@ hl.layer_rule({ name = "islet-ql-noanim", match = { namespace = "^islet-quickloo
 -- Kính mờ thật: nhoè phần phía sau dock, trung tâm điều khiển và widget đồng hồ.
 hl.layer_rule({
     name  = "islet-glass",
-    match = { namespace = "^islet-(dock|dockmenu|cc|tabs|launcher|power|taskmgr|installer|store|settings|notifs|snappicker|search|desktop|welcome)$" },
+    match = { namespace = "^islet-(dock|dockmenu|cc|tabs|launcher|power|taskmgr|installer|store|settings|notifs|snappicker|search|desktop|welcome|bar)$" },
     blur  = true,
     ignore_alpha = 0.05,
 })

@@ -53,7 +53,7 @@ Singleton {
     readonly property color subtle: light ? "#505054" : "#AEAEB2"
     readonly property color muted: light ? "#6C6C70" : "#8E8E93"       // chữ phụ
     readonly property color faint: light ? "#8E8E93" : "#636366"
-    readonly property color window: light ? "#F2F2F7" : "#0D0D15"      // nền cửa sổ
+    readonly property color window: light ? Qt.rgba(0.95, 0.95, 0.97, 1 - 0.4 * Prefs.glass) : Qt.rgba(0.05, 0.05, 0.08, 1 - 0.45 * Prefs.glass)      // nền cửa sổ
     function fg(a) { return light ? Qt.rgba(0, 0, 0, a) : Qt.rgba(1, 1, 1, a); }          // lớp phủ nhẹ (hover, thẻ, đường kẻ)
     function surface(a) { return light ? Qt.rgba(1, 1, 1, Math.min(0.97, a + 0.4)) : Qt.rgba(0.07, 0.07, 0.11, a < 0.9 ? a * (1 - 0.6 * Prefs.glass) : a); }   // kính / bảng nổi
 
