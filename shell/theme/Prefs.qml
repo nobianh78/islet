@@ -34,7 +34,7 @@ Singleton {
 
     // ---- giá trị ----
     property string accentId: "violet"
-    property string wallpaper: "/usr/share/islet/wallpapers/islet.jpg"   // hình nền mặc định của Islet
+    property string wallpaper: "/usr/share/islet/wallpapers/silk.jpg"   // hình nền mặc định (sáng) của Islet
     property bool dnd: false
     property string iconStyle: "minimal"   // "minimal" (Tối giản) | "color" (Sắc màu)
     property bool lockOnBoot: true         // bật máy xong vào màn hình khoá (nối tiếp màn hình khởi động)
@@ -106,7 +106,7 @@ Singleton {
     property bool backupAuto: true           // cắm ổ là tự sao lưu (rồi mỗi giờ một lần khi còn cắm)
     property real backupLast: 0              // lần sao lưu xong gần nhất (ms)
     // ---- màn hình nền ----
-    property string themeMode: "dark"        // dark | light | auto (sáng ban ngày 6:30–18:30)
+    property string themeMode: "light"       // dark | light | auto (sáng ban ngày 6:30–18:30)
     property bool welcomeDone: false         // đã qua màn hình Chào mừng lần đầu
     property bool desktopWidgets: true       // hiện widget & ghi chú trên màn hình nền
     property string weatherCity: ""          // "" = theo múi giờ của máy

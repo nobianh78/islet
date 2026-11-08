@@ -450,9 +450,91 @@ def cloud(cr):
     cat(cr, W * 0.5, H * 0.38, H * 0.13, body="#7C6CF0")
 
 
-WALLS = {"daybreak": daybreak, "cloud": cloud, "islet": islet, "lagoon": lagoon, "dusk": dusk, "aurora": aurora, "prism": prism, "midnight": midnight}
+def _edge(cr, pts, a=0.7, w=0.0016):
+    """Vạch sáng mảnh chạy dọc mép trên của một dải lụa."""
+    cr.move_to(*pts[0])
+    for i in range(1, len(pts) - 2, 3):
+        cr.curve_to(*pts[i], *pts[i + 1], *pts[i + 2])
+    cr.set_source_rgba(1, 1, 1, a)
+    cr.set_line_width(max(1, H * w))
+    cr.stroke()
+
+
+def silk(cr):
+    """Sáng: những dải lụa xanh – tím chồng lên nhau, có vạch sáng ở mép như kính."""
+    vgrad(cr, [(0, "#EEF5FF"), (0.5, "#D5E6FF"), (1, "#F2ECFF")])
+    glow(cr, W * 0.15, H * 0.1, H * 0.8, "#FFFFFF", 0.9)
+    glow(cr, W * 0.9, H * 0.85, H * 0.8, "#9FD0FF", 0.6)
+    layers = [(0.30, 0.10, "#3C7BFF", "#7CC8FF", 0.0, 0.55), (0.42, 0.12, "#6B8CFF", "#B79CFF", 1.4, 0.55),
+              (0.55, 0.11, "#2FB6FF", "#7BE0FF", 2.6, 0.5), (0.68, 0.10, "#8B7CFF", "#D3B6FF", 3.7, 0.55), (0.80, 0.08, "#5AA0FF", "#CFE3FF", 5.0, 0.6)]
+    for y, amp, c1, c2, ph, al in layers:
+        pts = wave_pts(H * y, H * amp, ph)
+        ribbon(cr, pts, H * 0.20, c1, c2, al, al * 0.8, 0, W)
+        _edge(cr, pts, 0.75)
+    glow(cr, W * 0.7, H * 0.2, H * 0.45, "#FFFFFF", 0.5)
+    cat(cr, W * 0.5, H * 0.34, H * 0.12, body="#7C6CF0")
+
+
+def blossom(cr):
+    """Sáng: bong bóng kính pastel hồng – đào – tím trôi trên nền kem."""
+    vgrad(cr, [(0, "#FFF6F1"), (0.5, "#FBE8EE"), (1, "#EDE6FF")])
+    for x, y, r, c, a in [(0.15, 0.2, 0.55, "#FFC2D6", 0.7), (0.85, 0.15, 0.5, "#BFD7FF", 0.65), (0.7, 0.85, 0.6, "#FFD3B0", 0.65),
+                          (0.25, 0.9, 0.5, "#D9C2FF", 0.6), (0.5, 0.5, 0.5, "#FFFFFF", 0.7)]:
+        glow(cr, W * x, H * y, H * r, c, a)
+    rnd = random.Random(21)
+    for i in range(14):
+        x, y, r = rnd.random() * W, rnd.random() * H, H * (0.03 + rnd.random() * 0.11)
+        g = cairo.RadialGradient(x - r * 0.3, y - r * 0.35, r * 0.1, x, y, r)
+        g.add_color_stop_rgba(0, 1, 1, 1, 0.55)
+        g.add_color_stop_rgba(1, 1, 1, 1, 0.08)
+        cr.set_source(g)
+        cr.arc(x, y, r, 0, 2 * math.pi)
+        cr.fill_preserve()
+        cr.set_source_rgba(1, 1, 1, 0.65)
+        cr.set_line_width(max(1, H * 0.0018))
+        cr.stroke()
+    cat(cr, W * 0.5, H * 0.5, H * 0.15, body="#8B7CFF")
+
+
+def sierra(cr):
+    """Sáng: bình minh trên những dãy núi pastel xếp lớp trong sương."""
+    vgrad(cr, [(0, "#FFF0DE"), (0.35, "#FFD9C9"), (0.6, "#F7BFD0"), (1, "#C9B8F0")])
+    sx, sy = W * 0.68, H * 0.42
+    glow(cr, sx, sy, H * 0.9, "#FFF3C4", 0.95)
+    cr.set_source_rgba(1, 0.97, 0.86, 0.95)
+    cr.arc(sx, sy, H * 0.075, 0, 2 * math.pi)
+    cr.fill()
+    cols = ["#F2CFE6", "#DDB9E8", "#C4A5E2", "#A692D8", "#8878C8", "#6E63B4"]
+    for i, col in enumerate(cols):
+        base = H * (0.52 + i * 0.1)
+        ph = i * 1.7 + 0.6
+        cr.move_to(-10, H + 10)
+        x = -10
+        while x < W + 10:
+            t = x / W
+            y = base - H * (0.07 + 0.015 * i) * (0.55 * math.sin(t * 6.2 + ph) + 0.3 * math.sin(t * 13.1 + ph * 2) + 0.15 * math.sin(t * 27 + ph))
+            cr.line_to(x, y)
+            x += W / 240
+        cr.line_to(W + 10, H + 10)
+        cr.close_path()
+        g = cairo.LinearGradient(0, base - H * 0.12, 0, base + H * 0.25)
+        g.add_color_stop_rgba(0, *hexc(col))
+        g.add_color_stop_rgba(1, *mix(hexc(col), hexc("#FFFFFF"), 0.55))
+        cr.set_source(g)
+        cr.fill()
+        # sương mỏng giữa các lớp
+        hz = cairo.LinearGradient(0, base - H * 0.02, 0, base + H * 0.14)
+        hz.add_color_stop_rgba(0, 1, 1, 1, 0.0)
+        hz.add_color_stop_rgba(1, 1, 0.97, 0.95, 0.35)
+        cr.set_source(hz)
+        cr.rectangle(0, base - H * 0.02, W, H * 0.16)
+        cr.fill()
+    cat(cr, W * 0.32, H * 0.5, H * 0.1, body="#7C6CF0")
+
+
+WALLS = {"silk": silk, "blossom": blossom, "sierra": sierra, "daybreak": daybreak, "cloud": cloud, "islet": islet, "lagoon": lagoon, "dusk": dusk, "aurora": aurora, "prism": prism, "midnight": midnight}
 # tên hiện trong Cài đặt (đọc từ theme/wallpapers/names.txt nếu cần)
-NAMES = {"islet": "Islet", "lagoon": "Lagoon", "dusk": "Dusk Isles", "aurora": "Aurora", "prism": "Prism", "midnight": "Midnight"}
+NAMES = {"silk": "Silk", "blossom": "Blossom", "sierra": "Sierra Dawn", "islet": "Islet", "lagoon": "Lagoon", "dusk": "Dusk Isles", "aurora": "Aurora", "prism": "Prism", "midnight": "Midnight"}
 
 
 def render(name):

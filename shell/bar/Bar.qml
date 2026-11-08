@@ -48,12 +48,7 @@ PanelWindow {
         }
     }
 
-    Rectangle {
-        transform: Translate { y: -48 * (1 - reveal.v) }
-        anchors.fill: parent
-        color: Theme.light ? Qt.rgba(1, 1, 1, 0.3 + 0.3 * Prefs.glass) : Qt.rgba(0.07, 0.07, 0.11, 0.2 + 0.4 * Prefs.glass)     // kính (Hyprland nhoè phần nền phía sau)
-        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.fg(0.05 + 0.2 * Prefs.glass) }
-    }
+    // Thanh trên trong suốt hoàn toàn (như macOS mới): chữ và icon đổi màu theo chủ đề
 
     // ---------------- Trái ----------------
     Row {

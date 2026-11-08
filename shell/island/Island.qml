@@ -104,6 +104,7 @@ PanelWindow {
     }
     function showBanner(b) {
         banner = b;
+        shineAnim.restart();
         if (b.kind === "notification") pulse();
         bannerTimer.interval = b.duration;
         bannerTimer.restart();
@@ -371,6 +372,10 @@ PanelWindow {
             origin.x: body.width / 2
             origin.y: 0
         }
+        // rê chuột vào thì island nở nhẹ như có lò xo
+        transformOrigin: Item.Top
+        scale: hover.hovered && win.view === "compact" ? 1.035 : 1
+        Behavior on scale { SpringAnimation { spring: 4.5; damping: 0.32; epsilon: 0.002 } }
 
         // bóng đổ khi thả xuống (thông báo / mở rộng)
         RectangularShadowFallback {
@@ -378,6 +383,20 @@ PanelWindow {
             radius: win.cornerR
             opacity: win.flush ? 0 : 0.9
             Behavior on opacity { NumberAnimation { duration: 220 } }
+        }
+
+        // vầng sáng chạy quanh island khi đang có việc (ghi hình, hẹn giờ, tải, agent, nhạc)
+        Item {
+            id: halo
+            readonly property bool on: !win.expanded && (win.liveActive || win.agentActive || (win.mode === "media" && Media.playing))
+            property real spin: 0
+            anchors.fill: parent
+            opacity: on ? 1 : 0
+            visible: opacity > 0.01
+            Behavior on opacity { NumberAnimation { duration: 600; easing.type: Easing.InOutQuad } }
+            NumberAnimation on spin { from: 0; to: 360; duration: 4200; loops: Animation.Infinite; running: halo.visible }
+            Halo { soft: true; x: -8; width: parent.width + 16; height: parent.height + 8; r: win.cornerR + 6; spin: halo.spin; opacity: 0.55 }
+            Halo { x: -2; width: parent.width + 4; height: parent.height + 2; r: win.cornerR + 2; spin: halo.spin }
         }
 
         Rectangle {
@@ -413,6 +432,29 @@ PanelWindow {
                     else if (Recorder.recording && !win.expanded) Recorder.stop();
                     else if (Chrono.active && !win.expanded) win.expand("timer");
                     else if (!win.expanded) win.expand("now");
+                }
+            }
+
+            // vệt sáng quét qua island mỗi khi có thông báo mới
+            Rectangle {
+                id: shine
+                y: 0
+                width: parent.width * 0.4
+                height: parent.height - win.cornerR * 0.6
+                x: -width
+                rotation: 0
+                opacity: 0
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0; color: "transparent" }
+                    GradientStop { position: 0.5; color: Qt.rgba(1, 1, 1, 0.22) }
+                    GradientStop { position: 1; color: "transparent" }
+                }
+                SequentialAnimation {
+                    id: shineAnim
+                    PropertyAction { target: shine; property: "opacity"; value: 1 }
+                    NumberAnimation { target: shine; property: "x"; from: -shine.width; to: shape.width; duration: 700; easing.type: Easing.InOutCubic }
+                    PropertyAction { target: shine; property: "opacity"; value: 0 }
                 }
             }
 
