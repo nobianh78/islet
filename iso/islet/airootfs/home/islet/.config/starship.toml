@@ -1,12 +1,26 @@
 # Islet – prompt Starship (tím · hồng · xanh ngọc)
 add_newline = true
-format = """$directory$git_branch$git_status$nodejs$python$rust$golang$java$php$docker_context$cmd_duration
+format = """$username$hostname$directory$git_branch$git_status$nodejs$python$rust$golang$java$php$docker_context$cmd_duration
 $character"""
+
+# tên máy chỉ hiện khi đang ở máy khác (SSH) — ở máy mình thì prompt gọn
+[username]
+style_user = "#8E8E93"
+format = "[$user]($style)[@](#4A4A66)"
+show_always = false
+[hostname]
+ssh_only = true
+style = "#5EEAD4"
+format = "[$hostname]($style) "
 
 [directory]
 style = "bold #8B7CFF"
+format = "[\uf07b $path]($style)[$read_only]($read_only_style) "
+read_only = " \uf023"
+read_only_style = "#FF6A6A"
 truncation_length = 3
 truncate_to_repo = true
+home_symbol = "~"
 
 [git_branch]
 symbol = " "
