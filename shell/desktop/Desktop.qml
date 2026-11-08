@@ -95,12 +95,51 @@ PanelWindow {
             y = Math.min(py, win.height - height - 8);
             visible = true;
         }
-        function close() { visible = false; }
+        function close() { visible = false; sub.visible = false; }
+        HoverHandler { id: menuHover }
         Column {
             id: mcol
             x: 6; y: 6; width: parent.width - 12
             MenuRow { icon: "note"; label: "New sticky note"; onClicked: { menu.close(); DesktopItems.focusNote(DesktopItems.addNote(menu.at.x, menu.at.y)); } }
             Rectangle { width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+            MenuRow {
+                id: widgetsRow
+                icon: "grid"; label: "Widgets"; submenu: true
+                onEntered: sub.openFor(widgetsRow)
+                onClicked: sub.openFor(widgetsRow)
+            }
+            Rectangle { width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+            MenuRow { icon: "image"; label: "Change wallpaper…"; onEntered: sub.visible = false; onClicked: { menu.close(); Ui.openSettings("wallpaper"); } }
+            MenuRow { icon: "settings"; label: "Desktop settings…"; onEntered: sub.visible = false; onClicked: { menu.close(); Ui.openSettings("island"); } }
+        }
+    }
+
+    // ---------- menu con: Widgets ----------
+    Rectangle {
+        id: sub
+        visible: false
+        z: 101
+        width: 210
+        height: scol.implicitHeight + 12
+        radius: 14
+        color: Qt.rgba(0.11, 0.11, 0.15, 0.96)
+        border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.1)
+        // mở cạnh mục "Widgets"; hết chỗ bên phải thì lật sang trái
+        function openFor(row) {
+            const p = row.mapToItem(sub.parent, 0, 0);
+            x = menu.x + menu.width + 4 + width > win.width ? menu.x - width - 4 : menu.x + menu.width + 4;
+            y = Math.max(0, Math.min(p.y - 6, win.height - height - 8));
+            visible = true;
+        }
+        // rời khỏi cả hai menu thì đóng menu con
+        HoverHandler { id: subHover }
+        Timer {
+            interval: 320; repeat: true; running: sub.visible
+            onTriggered: if (!subHover.hovered && !menuHover.hovered) sub.visible = false
+        }
+        Column {
+            id: scol
+            x: 6; y: 6; width: parent.width - 12
             Repeater {
                 model: DesktopItems.kinds
                 MenuRow {
@@ -111,9 +150,6 @@ PanelWindow {
                     onClicked: DesktopItems.toggle(modelData.id)
                 }
             }
-            Rectangle { width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.08) }
-            MenuRow { icon: "image"; label: "Change wallpaper…"; onClicked: { menu.close(); Ui.openSettings("wallpaper"); } }
-            MenuRow { icon: "settings"; label: "Desktop settings…"; onClicked: { menu.close(); Ui.openSettings("island"); } }
         }
     }
 
@@ -122,12 +158,19 @@ PanelWindow {
         property string icon: ""
         property string label: ""
         property bool dim: false
+        property bool submenu: false            // có mũi tên ▸ và mở menu con khi rê chuột
         signal clicked()
+        signal entered()
         width: parent ? parent.width : 200
         height: 34; radius: 9
-        color: mra.containsMouse ? Theme.tint(0.3) : "transparent"
+        color: mra.containsMouse || (mr.submenu && sub.visible) ? Theme.tint(0.3) : "transparent"
         Icon { x: 10; anchors.verticalCenter: parent.verticalCenter; name: mr.icon; size: 15; opacity: mr.dim ? 0.35 : 0.9 }
         Text { x: 36; anchors.verticalCenter: parent.verticalCenter; text: mr.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-        MouseArea { id: mra; anchors.fill: parent; hoverEnabled: true; onClicked: mr.clicked() }
+        Text {
+            visible: mr.submenu
+            anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
+            text: "›"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 15
+        }
+        MouseArea { id: mra; anchors.fill: parent; hoverEnabled: true; onEntered: mr.entered(); onClicked: mr.clicked() }
     }
 }
