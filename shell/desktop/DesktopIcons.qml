@@ -8,7 +8,8 @@ import "../common"
 //   · bấm đúp để mở · kéo để dời chỗ (nhớ vị trí)
 //   · kéo icon này thả lên icon kia = gom vào MỘT KHUNG ngay trên màn hình nền (như gom app trên
 //     điện thoại — file vẫn nằm nguyên trong ~/Desktop); thả lên thư mục thật = bỏ vào trong thư mục
-//   · chuột phải: mở · đổi tên · thư mục mới · bỏ vào thùng rác
+//   · bấm chọn rồi Space = xem nhanh (Quick Look), Enter = mở
+//   · chuột phải: mở · xem nhanh · đổi tên · thư mục mới · bỏ vào thùng rác
 //   · chế độ Stacks: gom theo loại thành từng chồng, bấm vào để xem bên trong
 Item {
     id: root
@@ -79,7 +80,26 @@ Item {
         }
         return n;
     }
-    function clearSelection() { selected = ""; renaming = ""; openGroup = ""; groupMenu.close(); }
+    property string groupSel: ""            // mục đang chọn bên trong khung đang mở
+    function clearSelection() { selected = ""; renaming = ""; groupSel = ""; openGroup = ""; groupMenu.close(); }
+
+    // ---- bàn phím: Space = xem nhanh · Enter = mở · Esc = đóng khung ----
+    function current() {
+        if (openGroup && groupSel) return all.find(i => i.name === groupSel) ?? null;
+        if (openGroup) { const g = DesktopItems.group(openGroup); return g ? (all.find(i => i.name === g.items[0]) ?? null) : null; }
+        return all.find(i => i.name === selected) ?? null;
+    }
+    function look() { const it = current(); if (it) QuickLook.show(it.path); }
+    function openCurrent() { const it = current(); if (it) DesktopFiles.open(it.path); }
+    function grabKeys() { keys.forceActiveFocus(); }
+    Item {
+        id: keys
+        Keys.onPressed: e => {
+            if (e.key === Qt.Key_Space) { root.look(); e.accepted = true; }
+            else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) { root.openCurrent(); e.accepted = true; }
+            else if (e.key === Qt.Key_Escape) { root.openGroup = ""; root.groupSel = ""; root.selected = ""; e.accepted = true; }
+        }
+    }
 
     // tên gợi ý cho khung mới: cùng loại thì lấy tên loại, khác loại thì "Group"
     function nameFor(a, b) {
@@ -121,7 +141,7 @@ Item {
             renaming: root.renaming === modelData.name
             dropHover: root.dropTarget === modelData.name
             home: root.posOf(modelData.name, root.autoIndexOf(modelData.name))
-            onPicked: { root.selected = modelData.name; root.renaming = ""; }
+            onPicked: { root.selected = modelData.name; root.renaming = ""; root.groupSel = ""; root.grabKeys(); }
             onOpenRequested: DesktopFiles.open(modelData.path)
             onRenamed: n => { root.renaming = ""; if (n && n !== modelData.name) DesktopFiles.rename(modelData.path, n); }
             onMenuRequested: (gx, gy) => { root.selected = modelData.name; iconMenu.openAt(gx, gy, modelData); }
@@ -146,8 +166,8 @@ Item {
             area: Qt.size(root.width, root.height)
             open: root.openGroup === modelData.gid
             dropHover: root.dropTarget === ("g:" + modelData.gid)
-            onPicked: { root.selected = ""; root.renaming = ""; }
-            onOpenRequested: root.openGroup = root.openGroup === modelData.gid ? "" : modelData.gid
+            onPicked: { root.selected = ""; root.renaming = ""; root.grabKeys(); }
+            onOpenRequested: { root.groupSel = ""; root.openGroup = root.openGroup === modelData.gid ? "" : modelData.gid; root.grabKeys(); }
             onMenuRequested: (gx, gy) => groupMenu.openAt(gx, gy, modelData)
             onDragStarted: { root.dragging = "g:" + modelData.gid; root.openGroup = ""; }
             onDragMoved: (gx, gy) => root.dropTarget = root.hitAt(gx, gy, "g:" + modelData.gid)
@@ -232,7 +252,7 @@ Item {
                     width: root.cellW; height: root.cellH
                     Rectangle {
                         anchors.fill: parent; anchors.margins: 4; radius: 12
-                        color: gim.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+                        color: root.groupSel === gi.modelData.name ? Theme.tint(0.32) : gim.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
                     }
                     Image {
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -272,6 +292,7 @@ Item {
                         id: gim
                         anchors.fill: parent
                         hoverEnabled: true
+                        onClicked: { root.groupSel = gi.modelData.name; root.grabKeys(); }
                         onDoubleClicked: { DesktopFiles.open(gi.modelData.path); root.openGroup = ""; }
                     }
                 }
@@ -409,6 +430,7 @@ Item {
                         id: sm
                         anchors.fill: parent
                         hoverEnabled: true
+                        onClicked: { root.selected = parent.modelData.name; root.grabKeys(); }
                         onDoubleClicked: { DesktopFiles.open(parent.modelData.path); root.openStack = null; }
                     }
                 }
@@ -438,6 +460,7 @@ Item {
             id: imcol
             x: 6; y: 6; width: parent.width - 12
             Row2 { icon: "folder"; label: iconMenu.it?.dir ? "Open folder" : "Open"; onClicked: { iconMenu.close(); DesktopFiles.open(iconMenu.it.path); } }
+            Row2 { icon: "search"; label: "Quick Look  ·  Space"; visible: !(iconMenu.it?.dir ?? false); onClicked: { iconMenu.close(); QuickLook.show(iconMenu.it.path); } }
             Row2 { icon: "edit"; label: "Rename"; onClicked: { root.renaming = iconMenu.it.name; iconMenu.close(); } }
             Row2 { icon: "grid"; label: "New folder here"; onClicked: { iconMenu.close(); DesktopFiles.newFolder(null); } }
             Rectangle { width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.08) }

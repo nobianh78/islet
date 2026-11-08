@@ -19,6 +19,7 @@ import "settings"
 import "trash"
 import "backups"
 import "desktop"
+import "quicklook"
 import "welcome"
 import "snap"
 import "search"
@@ -88,6 +89,7 @@ ShellRoot {
     LazyLoader { activeAsync: true; BackupsWindow {} }
     LazyLoader { activeAsync: true; Welcome {} }
     LazyLoader { activeAsync: true; WidgetGallery {} }
+    LazyLoader { activeAsync: true; QuickLookWindow {} }
     LazyLoader { activeAsync: true; NotifCenter {} }
     LazyLoader { activeAsync: true; Snap {} }
     LazyLoader { activeAsync: true; Search {} }

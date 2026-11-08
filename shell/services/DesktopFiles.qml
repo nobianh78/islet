@@ -52,7 +52,18 @@ Singleton {
         p.running = true;
     }
 
-    function open(path) { Quickshell.execDetached(["islet-desktop", "open", path]); }
+    // Mở file: app chạy trong cửa sổ thì mở bằng app đó; app chỉ chạy trong terminal (vim…) hoặc chưa
+    // có app nào thì mở ô Xem nhanh, để bấm đúp lúc nào cũng thấy được nội dung.
+    function open(path) {
+        const p = runner.createObject(root, { command: ["islet-desktop", "handler", path] });
+        p.done.connect((code, out) => {
+            if (out === "gui" || code !== 0) Quickshell.execDetached(["islet-desktop", "open", path]);
+            else QuickLook.show(path);
+            p.destroy();
+        });
+        p.running = true;
+    }
+    function openInApp(path) { Quickshell.execDetached(["islet-desktop", "open", path]); }
     function newFolder(done) { run(["folder"], done); }
     function group(name, paths, done) { if (paths.length) run(["group", name].concat(paths), done); }
     function drop(paths) { if (paths.length) run(["drop"].concat(paths)); }

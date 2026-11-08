@@ -3,6 +3,8 @@
 
   islet-desktop list                      JSON các mục trong ~/Desktop
   islet-desktop open <đường dẫn>          mở bằng app mặc định (.desktop thì chạy app đó)
+  islet-desktop info <đường dẫn>          JSON một mục bất kỳ (cho ô Xem nhanh)
+  islet-desktop handler <đường dẫn>       in "gui" | "terminal" | "none" — app mặc định thuộc loại nào
   islet-desktop folder [tên]              tạo thư mục mới, in đường dẫn
   islet-desktop group <tên> <đường dẫn…>  tạo thư mục rồi chuyển các mục vào, in đường dẫn
   islet-desktop drop <đường dẫn…>         đưa vào ~/Desktop (cùng ổ thì chuyển, khác ổ thì chép)
@@ -108,6 +110,45 @@ def unique(path):
     return f"{stem} {i}{ext}"
 
 
+def handler(p):
+    """App mặc định của file: chạy trong cửa sổ ("gui"), trong terminal ("terminal") hay chưa có ("none")."""
+    if os.path.isdir(p):
+        return "gui"
+    mime = subprocess.run(["xdg-mime", "query", "filetype", p], capture_output=True, text=True).stdout.strip()
+    if not mime:
+        return "none"
+    desk = subprocess.run(["xdg-mime", "query", "default", mime], capture_output=True, text=True).stdout.strip()
+    if not desk:
+        return "none"
+    for d in (os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share"),
+              "/usr/local/share", "/usr/share"):
+        f = os.path.join(d, "applications", desk)
+        if os.path.exists(f):
+            try:
+                if any(l.strip() == "Terminal=true" for l in open(f, encoding="utf-8", errors="replace")):
+                    return "terminal"
+            except OSError:
+                pass
+            return "gui"
+    return "none"
+
+
+def info(p):
+    try:
+        st = os.stat(p)
+    except OSError:
+        print(json.dumps({}))
+        return
+    name = os.path.basename(p.rstrip("/"))
+    isdir = os.path.isdir(p)
+    ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+    kind = "folder" if isdir else BY_EXT.get(ext, "other")
+    mime = subprocess.run(["xdg-mime", "query", "filetype", p], capture_output=True, text=True).stdout.strip()
+    print(json.dumps({"name": name, "path": p, "dir": isdir, "size": st.st_size, "mtime": int(st.st_mtime),
+                      "kind": kind, "icon": ICONS.get(kind, "text-x-generic"), "mime": mime,
+                      "handler": handler(p)}, ensure_ascii=False))
+
+
 def open_item(p):
     if p.endswith(".desktop") and os.path.isfile(p):
         subprocess.Popen(["gio", "launch", p], start_new_session=True)
@@ -165,6 +206,10 @@ def main(a):
         listing()
     elif c == "open" and len(rest) == 1:
         open_item(rest[0])
+    elif c == "info" and len(rest) == 1:
+        info(rest[0])
+    elif c == "handler" and len(rest) == 1:
+        print(handler(rest[0]))
     elif c == "folder":
         folder(rest[0] if rest else "New Folder")
     elif c == "group" and len(rest) >= 2:
