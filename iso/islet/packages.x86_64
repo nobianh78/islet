@@ -144,6 +144,9 @@ libnotify
 brightnessctl
 kitty
 nautilus
+gnome-text-editor
+loupe
+papers
 firefox
 mpv
 mpv-mpris

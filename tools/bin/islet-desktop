@@ -113,7 +113,7 @@ def unique(path):
 def handler(p):
     """App mặc định của file: chạy trong cửa sổ ("gui"), trong terminal ("terminal") hay chưa có ("none")."""
     if os.path.isdir(p):
-        return "gui"
+        return "gui"                                  # luôn mở được bằng Files
     mime = subprocess.run(["xdg-mime", "query", "filetype", p], capture_output=True, text=True).stdout.strip()
     if not mime:
         return "none"
@@ -149,11 +149,30 @@ def info(p):
                       "handler": handler(p)}, ensure_ascii=False))
 
 
+FILES_APP = "org.gnome.Nautilus.desktop"
+
+
+def files_app():
+    """File .desktop của app Files, nếu máy có."""
+    for d in (os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share"),
+              "/usr/local/share", "/usr/share"):
+        f = os.path.join(d, "applications", FILES_APP)
+        if os.path.exists(f):
+            return f
+    return None
+
+
 def open_item(p):
     if p.endswith(".desktop") and os.path.isfile(p):
         subprocess.Popen(["gio", "launch", p], start_new_session=True)
-    else:
-        subprocess.Popen(["xdg-open", p], start_new_session=True)
+        return
+    # Thư mục: luôn mở bằng Files. (Mặc định của hệ thống hay bị terminal giành — kitty-open…)
+    if os.path.isdir(p):
+        app = files_app()
+        if app:
+            subprocess.Popen(["gio", "launch", app, p], start_new_session=True)
+            return
+    subprocess.Popen(["xdg-open", p], start_new_session=True)
 
 
 def folder(name="New Folder"):

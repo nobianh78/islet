@@ -9,6 +9,24 @@ else
     [ -L "$ns/Send to Phone" ] && rm -f "$ns/Send to Phone"
 fi
 
+# App mặc định của Islet: thư mục mở bằng Files, ảnh bằng Loupe, PDF bằng Papers, văn bản bằng
+# Text Editor. Nhiều bản Arch để terminal (kitty-open.desktop) làm mặc định cho thư mục.
+# Chỉ đặt khi máy có app đó và người dùng chưa tự chọn app khác.
+ma="${XDG_CONFIG_HOME:-$HOME/.config}/mimeapps.list"
+set_default() {   # <mime> <id.desktop>
+    [ -f "/usr/share/applications/$2" ] || [ -f "$HOME/.local/share/applications/$2" ] || return 0
+    grep -q "^$1=" "$ma" 2>/dev/null && return 0
+    mkdir -p "$(dirname "$ma")"
+    grep -q '^\[Default Applications\]' "$ma" 2>/dev/null \
+        && sed -i "/^\[Default Applications\]/a $1=$2" "$ma" \
+        || printf '[Default Applications]\n%s=%s\n' "$1" "$2" >> "$ma"
+}
+set_default inode/directory org.gnome.Nautilus.desktop
+set_default text/plain      org.gnome.TextEditor.desktop
+set_default text/markdown   org.gnome.TextEditor.desktop
+set_default application/pdf org.gnome.Papers.desktop
+for m in image/png image/jpeg image/webp image/gif; do set_default "$m" org.gnome.Loupe.desktop; done
+
 dir="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
 [ -d "$dir" ] || exit 0
 for f in "$dir"/*.desktop; do
