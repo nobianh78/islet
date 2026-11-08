@@ -412,7 +412,7 @@ PanelWindow {
                     if (win.banner) win.bannerClicked();
                     else if (Recorder.recording && !win.expanded) Recorder.stop();
                     else if (Chrono.active && !win.expanded) win.expand("timer");
-                    else if (!win.expanded) win.expand("calendar");
+                    else if (!win.expanded) win.expand("now");
                 }
             }
 
