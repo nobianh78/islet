@@ -64,6 +64,8 @@ Singleton {
     property bool dockAutohide: false
     property bool islandMedia: true
     property bool islandLive: true
+    property real islandGlass: 0            // 0 đen đặc … 1 kính trong (liquid glass)
+    property int blurSize: 8                // độ nhoè nền phía sau kính — Hyprland dùng chung cho mọi bảng
     property bool islandAgents: true
     property bool islandLyrics: true        // lời bài hát trên island (LRCLIB + NetEase)
     property int wsCount: 5
@@ -133,7 +135,7 @@ Singleton {
 
     readonly property var simpleKeys: ["dimAfter", "lockAfter", "screenOffAfter", "sleepAfterBattery", "sleepAfterAC", "lidAction", "autoSaver",
         "nightMode", "nightFrom", "nightTo", "nightTemp", "naturalScroll", "tapToClick", "disableWhileTyping", "pointerSpeed", "scrollSpeed",
-        "dockSize", "dockAutohide", "islandMedia", "islandLive", "islandAgents", "islandLyrics", "wsCount", "wsAnim", "clock24", "clockSeconds",
+        "dockSize", "dockAutohide", "islandMedia", "islandLive", "islandGlass", "blurSize", "islandAgents", "islandLyrics", "wsCount", "wsAnim", "clock24", "clockSeconds",
         "notifPreview", "notifSounds", "notifMuted", "dndScheduled", "dndFrom", "dndTo", "systemSounds", "reduceMotion", "zoom",
         "cursorSize", "textScale", "highContrast", "kbLayout", "repeatDelay", "repeatRate", "imeEnabled", "imeMethod", "wallNight", "fontFamily",
         "backupDrive", "backupLabel", "backupAuto", "backupLast", "themeMode", "welcomeDone", "desktopWidgets", "weatherCity", "tempF"]

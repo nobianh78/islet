@@ -376,14 +376,14 @@ PanelWindow {
         RectangularShadowFallback {
             anchors.fill: shape
             radius: win.cornerR
-            opacity: win.flush ? 0 : 0.9
+            opacity: win.flush || Prefs.islandGlass > 0 ? 0 : 0.9
             Behavior on opacity { NumberAnimation { duration: 220 } }
         }
 
         Rectangle {
             id: shape
             anchors.fill: parent
-            color: "#000000"
+            color: Qt.rgba(0, 0, 0, 1 - 0.65 * Prefs.islandGlass)
             topLeftRadius: 0
             topRightRadius: 0
             bottomLeftRadius: win.cornerR
@@ -397,11 +397,26 @@ PanelWindow {
                 anchors.fill: parent
                 bottomLeftRadius: parent.bottomLeftRadius
                 bottomRightRadius: parent.bottomRightRadius
-                opacity: win.view === "expanded" && expandedView.tab === "now" && Media.accent ? 1 : 0
+                opacity: win.view === "expanded" && expandedView.tab === "now" && Media.accent ? 1 - 0.6 * Prefs.islandGlass : 0
                 Behavior on opacity { NumberAnimation { duration: 320 } }
                 gradient: Gradient {
                     GradientStop { position: 0; color: Media.accent ? Qt.rgba(Media.accent.r * 0.42, Media.accent.g * 0.42, Media.accent.b * 0.42, 1) : "#000000" }
                     GradientStop { position: 1; color: "#000000" }
+                }
+            }
+
+            // viền sáng + ánh sáng từ trên xuống của kính (chỉ hiện khi bật kính)
+            Rectangle {
+                anchors.fill: parent
+                visible: Prefs.islandGlass > 0
+                bottomLeftRadius: parent.bottomLeftRadius
+                bottomRightRadius: parent.bottomRightRadius
+                color: "transparent"
+                border.width: 1
+                border.color: Qt.rgba(1, 1, 1, 0.38 * Prefs.islandGlass)
+                gradient: Gradient {
+                    GradientStop { position: 0; color: Qt.rgba(1, 1, 1, 0.16 * Prefs.islandGlass) }
+                    GradientStop { position: 0.5; color: "transparent" }
                 }
             }
 

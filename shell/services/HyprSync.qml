@@ -26,6 +26,7 @@ Singleton {
         out.push(`hl.config({ input = { sensitivity = ${Prefs.pointerSpeed.toFixed(2)}, touchpad = { natural_scroll = ${Prefs.naturalScroll}, tap_to_click = ${Prefs.tapToClick}, disable_while_typing = ${Prefs.disableWhileTyping}, scroll_factor = ${Prefs.scrollSpeed.toFixed(2)} } } })`);
         out.push(`hl.config({ input = { kb_layout = "${Prefs.kbLayout}", repeat_delay = ${Prefs.repeatDelay}, repeat_rate = ${Prefs.repeatRate} } })`);
         out.push(`hl.config({ cursor = { zoom_factor = ${Math.max(1, Prefs.zoom).toFixed(2)} } })`);
+        out.push(`hl.config({ decoration = { blur = { size = ${Prefs.blurSize} } } })`);
         out.push(`hl.config({ animations = { enabled = ${!Prefs.reduceMotion} } })`);
         if (Prefs.wsAnim !== "none")
             out.push(`hl.animation({ leaf = "workspaces", enabled = true, speed = 5, bezier = "smooth", style = "${Prefs.wsAnim === "slidefade" ? "slidefade 18%" : Prefs.wsAnim}" })`);
