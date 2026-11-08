@@ -64,6 +64,9 @@ Singleton {
     property bool dockAutohide: false
     property bool islandMedia: true
     property bool islandLive: true
+    // Trung tâm điều khiển: thứ tự các mục (người dùng sắp xếp / thêm / bớt)
+    readonly property var defaultCcLayout: ["net", "bt", "airplane", "night", "saver", "focus", "shot", "rec", "dnd", "theme", "lock", "timer", "volume", "brightness", "mic", "media"]
+    property var ccLayout: defaultCcLayout
     property real glass: 0.5                // 0 kính đặc … 1 kính trong, viền sáng rõ (Dock, Control Center, bảng…)
     property int blurSize: 8                // độ nhoè nền phía sau kính — Hyprland dùng chung cho mọi bảng
     property bool islandAgents: true
@@ -135,7 +138,7 @@ Singleton {
 
     readonly property var simpleKeys: ["dimAfter", "lockAfter", "screenOffAfter", "sleepAfterBattery", "sleepAfterAC", "lidAction", "autoSaver",
         "nightMode", "nightFrom", "nightTo", "nightTemp", "naturalScroll", "tapToClick", "disableWhileTyping", "pointerSpeed", "scrollSpeed",
-        "dockSize", "dockAutohide", "islandMedia", "islandLive", "glass", "blurSize", "islandAgents", "islandLyrics", "wsCount", "wsAnim", "clock24", "clockSeconds",
+        "dockSize", "dockAutohide", "islandMedia", "islandLive", "ccLayout", "glass", "blurSize", "islandAgents", "islandLyrics", "wsCount", "wsAnim", "clock24", "clockSeconds",
         "notifPreview", "notifSounds", "notifMuted", "dndScheduled", "dndFrom", "dndTo", "systemSounds", "reduceMotion", "zoom",
         "cursorSize", "textScale", "highContrast", "kbLayout", "repeatDelay", "repeatRate", "imeEnabled", "imeMethod", "wallNight", "fontFamily",
         "backupDrive", "backupLabel", "backupAuto", "backupLast", "themeMode", "welcomeDone", "desktopWidgets", "weatherCity", "tempF"]

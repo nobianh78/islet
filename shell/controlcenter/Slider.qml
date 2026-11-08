@@ -16,50 +16,51 @@ Rectangle {
     signal moved(real v)
 
     implicitHeight: 64
-    radius: 18
-    color: Theme.fg(0.10)
+    radius: 26
+    color: Theme.fg(0.12)
     opacity: available ? 1 : 0.45
 
     property real dragValue: value
     readonly property real shown: drag.pressed ? dragValue : value
 
     Text {
-        x: 14
-        y: 10
+        x: 18; y: 10
         text: root.title
-        color: Theme.fg(0.68)
-        font.family: Theme.font
-        font.pixelSize: 12
+        color: Theme.label
+        font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold
     }
     Text {
-        anchors.right: parent.right
-        anchors.rightMargin: 14
-        y: 10
+        anchors.right: parent.right; anchors.rightMargin: 18; y: 10
         text: root.label ? root.label(root.shown) : Math.round(root.shown * 100) + "%"
-        color: Theme.fg(0.68)
-        font.family: Theme.font
-        font.pixelSize: 12
+        color: Theme.fg(0.6)
+        font.family: Theme.font; font.pixelSize: 11
         font.features: ({ "tnum": 1 })
     }
 
+    // thanh mảnh + núm tròn dài như macOS
     Rectangle {
         id: track
-        x: 14
-        width: parent.width - 28
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: drag.pressed ? 10 : 12
-        height: drag.pressed ? 12 : 8
-        radius: height / 2
+        x: 16
+        width: parent.width - 32
+        y: parent.height - 24
+        height: 6; radius: 3
         color: Theme.fg(0.2)
-        Behavior on height { SpringAnimation { spring: 5; damping: 0.4 } }
-        Behavior on anchors.bottomMargin { SpringAnimation { spring: 5; damping: 0.4 } }
-
         Rectangle {
-            height: parent.height
-            radius: parent.radius
-            width: Math.max(parent.height, parent.width * Math.max(0, Math.min(1, root.shown)))
+            height: parent.height; radius: parent.radius
+            width: thumb.x + thumb.width / 2
             color: root.fill
-            Behavior on width { enabled: !drag.pressed; SpringAnimation { spring: 5; damping: 0.42 } }
+            opacity: 0.55
+        }
+        Rectangle {
+            id: thumb
+            width: 34; height: 24; radius: 12
+            anchors.verticalCenter: parent.verticalCenter
+            x: (track.width - width) * Math.max(0, Math.min(1, root.shown))
+            color: "#FFFFFF"
+            border.width: 1; border.color: Qt.rgba(0, 0, 0, 0.12)
+            scale: drag.pressed ? 1.08 : 1
+            Behavior on scale { SpringAnimation { spring: 5; damping: 0.4 } }
+            Behavior on x { enabled: !drag.pressed; SpringAnimation { spring: 5; damping: 0.42 } }
         }
     }
 
@@ -69,7 +70,7 @@ Rectangle {
         enabled: root.available
         preventStealing: true
         cursorShape: Qt.PointingHandCursor
-        function at(mx) { return Math.max(0, Math.min(1, (mx - track.x) / track.width)); }
+        function at(mx) { return Math.max(0, Math.min(1, (mx - track.x - thumb.width / 2) / (track.width - thumb.width))); }
         onPressed: m => { root.dragValue = at(m.x); root.moved(root.dragValue); }
         onPositionChanged: m => { if (pressed) { root.dragValue = at(m.x); root.moved(root.dragValue); } }
         onWheel: w => root.moved(Math.max(0, Math.min(1, root.value + (w.angleDelta.y > 0 ? 0.05 : -0.05))))
