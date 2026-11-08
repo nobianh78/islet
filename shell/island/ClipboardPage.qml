@@ -4,12 +4,17 @@ import "../services"
 import "../common"
 
 // Tab Clipboard: lịch sử copy (chữ + ảnh). Bấm một mục → dán ngay vào cửa sổ đang dùng.
-// Rê chuột: ghim (giữ lại khi Clear) · xoá. Mục ghim luôn nằm trên cùng.
+// Rê chuột: ghim (giữ lại khi Clear) · xoá. Mục ghim luôn nằm trên cùng. Ô tìm lọc theo chữ (ảnh ẩn khi đang tìm).
 Item {
     id: root
     signal picked()                       // island thu lại để cửa sổ cũ nhận phím dán
 
-    readonly property var items: Clipboard.items
+    property string query: ""
+    readonly property var all: Clipboard.items
+    readonly property var items: {
+        const q = query.trim().toLowerCase();
+        return q ? all.filter(x => x.kind === "text" && x.text.toLowerCase().includes(q)) : all;
+    }
     implicitHeight: head.height + 8 + (items.length ? Math.min(clipList.contentHeight, 236) : empty.implicitHeight)
 
     property date now: new Date()
@@ -26,15 +31,37 @@ Item {
         id: head
         width: parent.width
         height: 24
-        Text {
+        // ô tìm: bấm vào là gõ được (island nhận bàn phím khi cần)
+        Rectangle {
             anchors.verticalCenter: parent.verticalCenter
-            text: root.items.length === 1 ? "1 item" : root.items.length + " items"
-            color: "#8E8E93"
-            font.family: Theme.font
-            font.pixelSize: 12
+            width: parent.width - 70; height: 24; radius: 12
+            color: Qt.rgba(1, 1, 1, find.activeFocus ? 0.14 : 0.07)
+            Icon { x: 9; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 12; opacity: 0.6 }
+            TextInput {
+                id: find
+                x: 28; width: parent.width - 52
+                anchors.verticalCenter: parent.verticalCenter
+                color: "#FFFFFF"; selectionColor: Theme.accent
+                font.family: Theme.font; font.pixelSize: 12
+                clip: true
+                onTextChanged: root.query = text
+                Keys.onEscapePressed: { text = ""; focus = false; }
+            }
+            Text {
+                visible: find.text === "" && !find.activeFocus
+                x: 28; anchors.verticalCenter: parent.verticalCenter
+                text: root.all.length === 1 ? "Search 1 item" : "Search " + root.all.length + " items"
+                color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+            }
+            Text {
+                visible: find.text !== ""
+                anchors.right: parent.right; anchors.rightMargin: 9; anchors.verticalCenter: parent.verticalCenter
+                text: "\u00d7"; color: "#AEAEB2"; font.pixelSize: 15
+                MouseArea { anchors.fill: parent; anchors.margins: -5; onClicked: { find.text = ""; find.focus = false; } }
+            }
         }
         Text {
-            visible: root.items.some(x => !x.pinned)
+            visible: root.all.some(x => !x.pinned)
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             text: "Clear"
@@ -55,7 +82,7 @@ Item {
         bottomPadding: 20
         horizontalAlignment: Text.AlignHCenter
         wrapMode: Text.WordWrap
-        text: "Copy something — your history shows up here"
+        text: root.query ? "Nothing matches “" + root.query + "”" : "Copy something — your history shows up here"
         color: "#8E8E93"
         font.family: Theme.font
         font.pixelSize: 12
@@ -155,7 +182,7 @@ Item {
                     model: [{ icon: "pin", act: "pin" }, { icon: "close", act: "del" }]
                     Rectangle {
                         required property var modelData
-                        visible: rm.containsMouse || (modelData.act === "pin" && row.modelData.pinned) || bm.containsMouse
+                        visible: rm.containsMouse || modelData.act === "pin" || bm.containsMouse
                         width: 24; height: 24; radius: 12
                         color: bm.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : "transparent"
                         Icon {
@@ -163,6 +190,7 @@ Item {
                             name: parent.modelData.icon
                             size: 13
                             color: parent.modelData.act === "pin" && row.modelData.pinned ? Theme.accent : "#FFFFFF"
+                            opacity: parent.modelData.act === "pin" && !row.modelData.pinned && !rm.containsMouse ? 0.3 : 1
                         }
                         MouseArea {
                             id: bm
