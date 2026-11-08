@@ -35,6 +35,10 @@ Item {
             Big { icon: "timer"; title: "Pomodoro"; sub: "25 min focus · 5 min break"; onClicked: Chrono.pomodoro() }
             Big { icon: "activity"; title: "Stopwatch"; sub: "Count up from zero"; onClicked: Chrono.stopwatch() }
         }
+        Row {
+            spacing: 10
+            Big { icon: "moon"; title: Ui.focusMode ? "Focus is on" : "Focus mode"; sub: Ui.focusMode ? "Tap to turn off" : "No banners, desktop hidden, rest dimmed"; onClicked: Ui.focusMode = !Ui.focusMode }
+        }
     }
 
     // ---------- đang chạy ----------

@@ -14,7 +14,7 @@ PanelWindow {
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
-    visible: Prefs.desktopWidgets && !Ui.locked
+    visible: Prefs.desktopWidgets && !Ui.locked && !Ui.focusMode
 
     WlrLayershell.namespace: "islet-desktop"
     WlrLayershell.layer: WlrLayer.Bottom

@@ -112,6 +112,16 @@ PanelWindow {
                 }
             }
 
+            Tile {
+                width: parent.width
+                icon: "moon"
+                title: "Focus"
+                subtitle: Ui.focusMode ? "On — no banners, desktop hidden" : "Silence banners, hide the desktop, dim the rest"
+                checked: Ui.focusMode
+                onColor: Theme.violet
+                onToggled: Ui.focusMode = !Ui.focusMode
+            }
+
             Slider {
                 width: parent.width
                 title: "Volume"

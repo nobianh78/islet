@@ -21,7 +21,12 @@ Singleton {
     // Không làm phiền theo giờ (Cài đặt › Notifications)
     property real clockNow: Date.now()
     Timer { interval: 30000; running: true; repeat: true; onTriggered: root.clockNow = Date.now() }
+    // Chế độ Tập trung: không banner, ẩn widget/file màn hình nền, tối hình nền và cửa sổ không đang dùng
+    property bool focusMode: false
+    onFocusModeChanged: Quickshell.execDetached(["hyprctl", "eval",
+        `hl.config({ decoration = { dim_inactive = ${focusMode}, dim_strength = 0.55 } })`])
     readonly property bool dndNow: {
+        if (focusMode) return true;
         if (!Prefs.dndScheduled) return false;
         const d = new Date(clockNow), m = d.getHours() * 60 + d.getMinutes();
         const t = x => { const p = x.split(":"); return +p[0] * 60 + +p[1]; };

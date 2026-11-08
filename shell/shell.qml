@@ -148,6 +148,12 @@ ShellRoot {
         function empty(): void { Trash.empty(); }
     }
     IpcHandler {
+        target: "focus"
+        function toggle(): void { Ui.focusMode = !Ui.focusMode; }
+        function on(): void { Ui.focusMode = true; }
+        function off(): void { Ui.focusMode = false; }
+    }
+    IpcHandler {
         target: "welcome"
         function open(): void { Ui.welcomeOpen = true; }
     }

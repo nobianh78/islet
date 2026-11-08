@@ -19,6 +19,12 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Background
 
     Backdrop { anchors.fill: parent }
+    Rectangle {      // Tập trung: hình nền tối đi để mắt chỉ còn cửa sổ đang làm
+        anchors.fill: parent
+        color: "#000000"
+        opacity: Ui.focusMode ? 0.6 : 0
+        Behavior on opacity { NumberAnimation { duration: 600; easing.type: Easing.InOutQuad } }
+    }
 
     // hình nền chỉ trôi khi màn hình nền trống (không cửa sổ, không panel) hoặc đang khoá
     Binding {
