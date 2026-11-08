@@ -1,7 +1,17 @@
 # Islet – prompt Starship (tím · hồng · xanh ngọc)
 add_newline = true
-format = """$directory$git_branch$git_status$nodejs$python$rust$golang$java$php$docker_context$cmd_duration
-$character"""
+format = """$username$hostname$directory$git_branch$git_status$nodejs$python$rust$golang$java$php$docker_context$cmd_duration$character"""
+
+# một dòng như các terminal khác: user@máy ~/thư-mục $
+[username]
+show_always = true
+style_user = "bold #5EEAD4"
+style_root = "bold #FF6A6A"
+format = "[$user]($style)"
+[hostname]
+ssh_only = false
+style = "bold #5EEAD4"
+format = "[@$hostname]($style) "
 
 [directory]
 style = "bold #8B7CFF"
@@ -18,8 +28,8 @@ style = "#FFB547"
 format = '([$all_status$ahead_behind]($style) )'
 
 [character]
-success_symbol = "[❯](bold #5EEAD4)"
-error_symbol = "[❯](bold #FF6A6A)"
+success_symbol = "[\\$](bold #5EEAD4) "
+error_symbol = "[\\$](bold #FF6A6A) "
 
 [cmd_duration]
 min_time = 2000
