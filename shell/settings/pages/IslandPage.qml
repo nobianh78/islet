@@ -57,7 +57,7 @@ Column {
             id: dCol
             y: 4; width: parent.width
             Row2 { title: "Widgets and sticky notes"; sub: "On the desktop, under your windows — right-click the desktop to add one"; checked: Prefs.desktopWidgets; onToggled: Prefs.set("desktopWidgets", !Prefs.desktopWidgets) }
-            Row2 { divider: true; visible: Prefs.desktopWidgets; title: "Group desktop files into stacks"; sub: "Pile up what's on the desktop by kind — images, documents, folders"; checked: DesktopItems.stacks; onToggled: DesktopItems.setStacks(!DesktopItems.stacks) }
+            Row2 { divider: true; visible: Prefs.desktopWidgets; title: "Pile desktop files up by kind"; sub: "Images, documents, folders… each in its own pile. Drag one icon onto another to make a group instead."; checked: DesktopItems.stacks; onToggled: DesktopItems.setStacks(!DesktopItems.stacks) }
         }
     }
     Row {

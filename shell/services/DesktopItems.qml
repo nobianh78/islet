@@ -6,7 +6,7 @@ import Quickshell.Io
 // Đồ trên màn hình nền: widget, ghi chú dán và chỗ đứng của các icon file.
 // Lưu ở ~/.config/islet/desktop.json:
 //   { widgets: [{ uid, kind, x, y, conf }], notes: [{ id, text, color, x, y, w, h }],
-//     files: { "<tên>": {x, y} }, stacks: bool }
+//     files: { "<tên>": {x, y} }, groups: [{ gid, name, items: [tên file], x, y }], stacks: bool }
 // Thêm được nhiều widget cùng loại (hai đồng hồ hai múi giờ…). x < 0 = chưa đặt → tự xếp.
 Singleton {
     id: root
@@ -31,7 +31,7 @@ Singleton {
         { id: "battery",  label: "Battery",      group: "Computer", w: 230, h: 132, d: "Charge left and time remaining" },
         { id: "sysinfo",  label: "This computer", group: "Computer", w: 300, h: 150, d: "Islet version, uptime, hostname" }
     ]
-    readonly property var groups: ["Time", "Life", "Computer"]
+    readonly property var widgetGroups: ["Time", "Life", "Computer"]
     function kind(id) { return kinds.find(k => k.id === id) ?? null; }
 
     readonly property var noteColors: ["#FFD966", "#FF9EB5", "#8FD3FF", "#9BE7A8", "#C7B3FF", "#FFB877"]
@@ -39,6 +39,7 @@ Singleton {
     property var widgets: []
     property var notes: []
     property var files: ({})          // tên file → { x, y }
+    property var groups: []           // khung gom file: [{ gid, name, items: [tên file], x, y }]
     property bool stacks: false       // gom icon theo loại (Stacks)
     property bool loaded: false
 
@@ -119,6 +120,67 @@ Singleton {
     }
     function clearFilePos(name) { const f = Object.assign({}, files); delete f[name]; files = f; save.restart(); }
     function tidyFiles() { files = ({}); save.restart(); }
+
+    // ---- khung gom file (như gom app trên điện thoại: file vẫn nằm nguyên trong ~/Desktop) ----
+    function group(gid) { return groups.find(g => g.gid === gid) ?? null; }
+    function groupOf(name) { return groups.find(g => g.items.indexOf(name) >= 0) ?? null; }
+    function inAnyGroup(name) { return groupOf(name) !== null; }
+    function makeGroup(names, x, y, label) {
+        const list = names.filter(n => n && !inAnyGroup(n));
+        if (list.length < 2) return "";
+        const gid = newId();
+        groups = groups.concat([{ gid: gid, name: label || "Group", items: list, x: Math.round(x), y: Math.round(y) }]);
+        for (const n of list) clearFilePos(n);
+        save.restart();
+        return gid;
+    }
+    function joinGroup(gid, name) {
+        if (!group(gid) || inAnyGroup(name)) return;
+        groups = groups.map(g => g.gid === gid ? Object.assign({}, g, { items: g.items.concat([name]) }) : g);
+        clearFilePos(name);
+        save.restart();
+    }
+    function setGroup(gid, patch) {
+        groups = groups.map(g => g.gid === gid ? Object.assign({}, g, patch) : g);
+        save.restart();
+    }
+    // bỏ một file ra khỏi khung; còn một mình thì khung tự tan (như điện thoại)
+    function leaveGroup(gid, name, x, y) {
+        const g = group(gid);
+        if (!g) return;
+        const left = g.items.filter(n => n !== name);
+        if (x !== undefined && !Object.keys(files).some(n2 => files[n2].x === Math.round(x) && files[n2].y === Math.round(y)))
+            setFilePos(name, x, y);          // chỗ trống thì đặt cạnh khung, không thì để tự xếp
+        if (left.length <= 1) {
+            if (left.length === 1) setFilePos(left[0], g.x, g.y);
+            groups = groups.filter(x2 => x2.gid !== gid);
+        } else {
+            groups = groups.map(x2 => x2.gid === gid ? Object.assign({}, x2, { items: left }) : x2);
+        }
+        save.restart();
+    }
+    // tách khung: cái đầu đứng đúng chỗ khung, các cái còn lại tự xếp vào ô trống
+    function breakGroup(gid) {
+        const g = group(gid);
+        if (!g) return;
+        const f = Object.assign({}, files);
+        g.items.forEach((n, i) => { if (i === 0) f[n] = { x: g.x, y: g.y }; else delete f[n]; });
+        files = f;
+        groups = groups.filter(x => x.gid !== gid);
+        save.restart();
+    }
+    // file đã bị xoá / đổi tên ở nơi khác → dọn khỏi khung
+    function pruneGroups(names) {
+        let changed = false;
+        const out = [];
+        for (const g of groups) {
+            const items = g.items.filter(n => names.indexOf(n) >= 0);
+            if (items.length !== g.items.length) changed = true;
+            if (items.length >= 2) out.push(Object.assign({}, g, { items: items }));
+            else if (items.length === 1) { changed = true; setFilePos(items[0], g.x, g.y); }
+        }
+        if (changed) { groups = out; save.restart(); }
+    }
     function setStacks(on) { stacks = on; save.restart(); }
 
     FileView {
@@ -142,6 +204,7 @@ Singleton {
                 }
                 if (Array.isArray(d.notes)) root.notes = d.notes.filter(n => n && n.id);
                 if (d.files && typeof d.files === "object") root.files = d.files;
+                if (Array.isArray(d.groups)) root.groups = d.groups.filter(g => g && g.gid && Array.isArray(g.items));
                 if (typeof d.stacks === "boolean") root.stacks = d.stacks;
             } catch (e) {}
             root.syncModel();
@@ -157,6 +220,6 @@ Singleton {
     Timer {
         id: save
         interval: 400
-        onTriggered: file.setText(JSON.stringify({ widgets: root.widgets, notes: root.notes, files: root.files, stacks: root.stacks }, null, 1))
+        onTriggered: file.setText(JSON.stringify({ widgets: root.widgets, notes: root.notes, files: root.files, groups: root.groups, stacks: root.stacks }, null, 1))
     }
 }

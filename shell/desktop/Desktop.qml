@@ -119,7 +119,7 @@ PanelWindow {
             MenuRow {
                 icon: DesktopItems.stacks ? "check" : "dot"
                 dim: !DesktopItems.stacks
-                label: "Group files into stacks"
+                label: "Pile files up by kind"
                 onClicked: { DesktopItems.setStacks(!DesktopItems.stacks); menu.close(); }
             }
             MenuRow { icon: "refresh"; label: "Tidy up"; onClicked: { menu.close(); DesktopItems.tidyFiles(); DesktopItems.resetPositions(); } }

@@ -95,7 +95,7 @@ FloatingWindow {
                 width: parent.width
                 spacing: 18
                 Repeater {
-                    model: DesktopItems.groups
+                    model: DesktopItems.widgetGroups
                     Column {
                         required property string modelData
                         width: col.width

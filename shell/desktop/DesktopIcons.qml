@@ -6,7 +6,8 @@ import "../common"
 
 // Icon của file, thư mục và lối tắt trong ~/Desktop.
 //   · bấm đúp để mở · kéo để dời chỗ (nhớ vị trí)
-//   · kéo icon này thả lên icon kia = gom thành một thư mục mới; thả lên thư mục = bỏ vào trong
+//   · kéo icon này thả lên icon kia = gom vào MỘT KHUNG ngay trên màn hình nền (như gom app trên
+//     điện thoại — file vẫn nằm nguyên trong ~/Desktop); thả lên thư mục thật = bỏ vào trong thư mục
 //   · chuột phải: mở · đổi tên · thư mục mới · bỏ vào thùng rác
 //   · chế độ Stacks: gom theo loại thành từng chồng, bấm vào để xem bên trong
 Item {
@@ -23,7 +24,15 @@ Item {
     property var openStack: null            // chồng đang mở (chế độ Stacks)
 
     readonly property bool stacks: DesktopItems.stacks
-    readonly property var items: DesktopFiles.items
+    readonly property var all: DesktopFiles.items
+    readonly property var groups: DesktopItems.groups
+    // file đã nằm trong một khung thì không hiện rời nữa
+    readonly property var items: all.filter(i => !DesktopItems.inAnyGroup(i.name))
+    function membersOf(g) { return (g.items ?? []).map(n => all.find(i => i.name === n)).filter(x => x); }
+    property string openGroup: ""
+
+    // file bị xoá / đổi tên ở nơi khác → dọn khỏi khung
+    onAllChanged: DesktopItems.pruneGroups(all.map(i => i.name))
 
     // ---- chồng theo loại (Stacks) ----
     readonly property var piles: {
@@ -33,9 +42,28 @@ Item {
         return DesktopFiles.kindOrder.filter(k => by[k]).map(k => ({ kind: k, label: DesktopFiles.kindLabels[k], items: by[k] }));
     }
 
+    readonly property int rows: Math.max(1, Math.floor((root.height - topY - 110) / cellH))
+    function rawCell(i) { return Qt.point(pad + Math.floor(i / rows) * cellW, topY + (i % rows) * cellH); }
+    function cellIndexAt(x, y) {
+        const c = Math.round((x - pad) / cellW), r = Math.round((y - topY) / cellH);
+        return (c < 0 || r < 0 || r >= rows) ? -1 : c * rows + r;
+    }
+    // ô đã có khung hoặc icon được đặt tay → icon tự xếp phải tránh ra
+    readonly property var taken: {
+        const t = {};
+        for (const g of root.groups) { const i = cellIndexAt(g.x, g.y); if (i >= 0) t[i] = true; }
+        const f = DesktopItems.files;
+        for (const n in f) { const i = cellIndexAt(f[n].x, f[n].y); if (i >= 0) t[i] = true; }
+        return t;
+    }
+    // ô trống thứ i
     function cellAt(i) {
-        const rows = Math.max(1, Math.floor((root.height - topY - 110) / cellH));
-        return Qt.point(pad + Math.floor(i / rows) * cellW, topY + (i % rows) * cellH);
+        let n = -1;
+        for (let c = 0; c < rows * 24; c++) {
+            if (taken[c]) continue;
+            if (++n === i) return rawCell(c);
+        }
+        return rawCell(i);
     }
     // vị trí của một mục: đã đặt tay thì theo đó, chưa thì xếp lưới theo thứ tự
     function posOf(name, autoIndex) {
@@ -51,23 +79,35 @@ Item {
         }
         return n;
     }
-    function clearSelection() { selected = ""; renaming = ""; }
+    function clearSelection() { selected = ""; renaming = ""; openGroup = ""; groupMenu.close(); }
 
-    // thả icon lên icon khác: gom nhóm / bỏ vào thư mục
+    // tên gợi ý cho khung mới: cùng loại thì lấy tên loại, khác loại thì "Group"
+    function nameFor(a, b) {
+        return a.kind === b.kind ? (DesktopFiles.kindLabels[a.kind] ?? "Group") : "Group";
+    }
+    // thả icon lên icon khác: gom vào một khung · thả lên thư mục thật: bỏ vào trong thư mục
     function dropOn(src, dstName) {
-        const dst = items.find(i => i.name === dstName);
-        const from = items.find(i => i.name === src);
-        if (!dst || !from || dst.name === from.name) return;
-        const at = root.posOf(dst.name, root.autoIndexOf(dst.name));        // thư mục mới đứng đúng chỗ cái bị thả lên
-        if (dst.dir) {
-            DesktopFiles.run(["group", dst.name, from.path], null);          // thư mục có sẵn: chuyển vào trong
-        } else {
-            DesktopFiles.group("New Folder", [dst.path, from.path], (ok, out) => {
-                if (ok && out) DesktopItems.setFilePos(out.split("/").pop(), at.x, at.y);
-            });
-            DesktopItems.clearFilePos(dst.name);
+        const from = all.find(i => i.name === src);
+        if (!from) return;
+        if (dstName.startsWith("g:")) { DesktopItems.joinGroup(dstName.slice(2), src); return; }
+        const dst = all.find(i => i.name === dstName);
+        if (!dst || dst.name === from.name) return;
+        if (dst.dir) { DesktopFiles.run(["group", dst.name, from.path], null); DesktopItems.clearFilePos(from.name); return; }
+        const at = root.posOf(dst.name, root.autoIndexOf(dst.name));        // khung đứng đúng chỗ icon bị thả lên
+        DesktopItems.makeGroup([dst.name, from.name], at.x, at.y, nameFor(dst, from));
+    }
+    // mục đang bị kéo đè lên (icon rời hoặc khung) — khung ghi là "g:<gid>"
+    function hitAt(gx, gy, selfName) {
+        for (const g of root.groups) {
+            if (("g:" + g.gid) === selfName) continue;
+            if (gx > g.x && gx < g.x + cellW && gy > g.y && gy < g.y + cellH) return "g:" + g.gid;
         }
-        DesktopItems.clearFilePos(from.name);
+        for (const it of root.items) {
+            if (it.name === selfName) continue;
+            const p = root.posOf(it.name, root.autoIndexOf(it.name));
+            if (gx > p.x && gx < p.x + cellW && gy > p.y && gy < p.y + cellH) return it.name;
+        }
+        return "";
     }
 
     // ================= icon rời =================
@@ -86,21 +126,184 @@ Item {
             onRenamed: n => { root.renaming = ""; if (n && n !== modelData.name) DesktopFiles.rename(modelData.path, n); }
             onMenuRequested: (gx, gy) => { root.selected = modelData.name; iconMenu.openAt(gx, gy, modelData); }
             onDragStarted: root.dragging = modelData.name
-            onDragMoved: (gx, gy) => {
-                let hit = "";
-                for (const it of root.items) {
-                    if (it.name === modelData.name) continue;
-                    const p = root.posOf(it.name, root.autoIndexOf(it.name));
-                    if (gx > p.x && gx < p.x + root.cellW && gy > p.y && gy < p.y + root.cellH) { hit = it.name; break; }
-                }
-                root.dropTarget = hit;
-            }
+            onDragMoved: (gx, gy) => root.dropTarget = root.hitAt(gx, gy, modelData.name)
             onDragEnded: (nx, ny) => {
                 const t = root.dropTarget;
                 root.dropTarget = ""; root.dragging = "";
                 if (t) root.dropOn(modelData.name, t);
                 else DesktopItems.setFilePos(modelData.name, nx, ny);
             }
+        }
+    }
+
+    // ================= khung gom (như gom app trên điện thoại) =================
+    Repeater {
+        model: root.groups
+        DesktopGroup {
+            required property var modelData
+            group: modelData
+            members: root.membersOf(modelData)
+            area: Qt.size(root.width, root.height)
+            open: root.openGroup === modelData.gid
+            dropHover: root.dropTarget === ("g:" + modelData.gid)
+            onPicked: { root.selected = ""; root.renaming = ""; }
+            onOpenRequested: root.openGroup = root.openGroup === modelData.gid ? "" : modelData.gid
+            onMenuRequested: (gx, gy) => groupMenu.openAt(gx, gy, modelData)
+            onDragStarted: { root.dragging = "g:" + modelData.gid; root.openGroup = ""; }
+            onDragMoved: (gx, gy) => root.dropTarget = root.hitAt(gx, gy, "g:" + modelData.gid)
+            onDragEnded: (nx, ny) => {
+                const t = root.dropTarget;
+                root.dropTarget = ""; root.dragging = "";
+                if (t && !t.startsWith("g:")) DesktopItems.joinGroup(modelData.gid, t);     // thả khung lên một file = hút file vào khung
+                else DesktopItems.setGroup(modelData.gid, { x: Math.round(nx), y: Math.round(ny) });
+            }
+        }
+    }
+
+    // ---- mở một khung ----
+    Rectangle {
+        id: groupPop
+        readonly property var g: root.groups.find(x => x.gid === root.openGroup) ?? null
+        readonly property var list: g ? root.membersOf(g) : []
+        visible: g !== null
+        z: 150
+        readonly property int cols: Math.min(4, Math.max(1, list.length))
+        width: cols * root.cellW + 24
+        height: Math.ceil(list.length / cols) * root.cellH + 56
+        x: Math.max(8, Math.min((g?.x ?? 0) + root.cellW / 2 - width / 2, root.width - width - 8))
+        y: Math.max(root.topY, Math.min((g?.y ?? 0) + root.cellH + 8, root.height - height - 20))
+        radius: 22
+        color: Qt.rgba(0.09, 0.09, 0.13, 0.99)
+        border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.12)
+        scale: visible ? 1 : 0.9
+        Behavior on scale { SpringAnimation { spring: 5; damping: 0.4 } }
+
+        // tên khung — bấm để sửa
+        Item {
+            x: 16; y: 12; width: parent.width - 60; height: 24
+            Text {
+                id: gname
+                visible: !gedit.activeFocus
+                anchors.verticalCenter: parent.verticalCenter
+                text: groupPop.g?.name ?? ""
+                color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold
+            }
+            MouseArea {
+                anchors.fill: parent
+                visible: !gedit.activeFocus
+                cursorShape: Qt.IBeamCursor
+                onClicked: { gedit.text = groupPop.g?.name ?? ""; gedit.forceActiveFocus(); gedit.selectAll(); }
+            }
+            Rectangle {
+                visible: gedit.activeFocus
+                anchors.fill: parent
+                radius: 7
+                color: Qt.rgba(1, 1, 1, 0.1)
+                border.width: 1; border.color: Theme.accent
+            }
+            TextInput {
+                id: gedit
+                anchors.fill: parent; anchors.margins: 5
+                visible: activeFocus
+                color: "#FFFFFF"; selectionColor: Theme.accent
+                font.family: Theme.font; font.pixelSize: 13
+                onAccepted: { if (groupPop.g && text.trim()) DesktopItems.setGroup(groupPop.g.gid, { name: text.trim() }); focus = false; }
+                Keys.onEscapePressed: focus = false
+            }
+        }
+        Text {
+            anchors.right: parent.right; anchors.rightMargin: 16; y: 16
+            text: "Break up"; color: gbm.containsMouse ? "#FFFFFF" : "#8E8E93"
+            font.family: Theme.font; font.pixelSize: 11
+            MouseArea {
+                id: gbm; anchors.fill: parent; anchors.margins: -6; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                onClicked: { const id = groupPop.g.gid; root.openGroup = ""; DesktopItems.breakGroup(id); }
+            }
+        }
+
+        Grid {
+            x: 12; y: 44
+            columns: groupPop.cols
+            Repeater {
+                model: groupPop.list
+                Item {
+                    id: gi
+                    required property var modelData
+                    width: root.cellW; height: root.cellH
+                    Rectangle {
+                        anchors.fill: parent; anchors.margins: 4; radius: 12
+                        color: gim.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+                    }
+                    Image {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        y: 10; width: 46; height: 46; sourceSize: Qt.size(92, 92)
+                        source: gi.modelData.image ? "file://" + gi.modelData.image : Quickshell.iconPath(gi.modelData.icon, true)
+                        fillMode: gi.modelData.image ? Image.PreserveAspectCrop : Image.PreserveAspectFit
+                        asynchronous: true
+                    }
+                    Text {
+                        y: 62; x: 4; width: parent.width - 8
+                        horizontalAlignment: Text.AlignHCenter
+                        text: gi.modelData.app || gi.modelData.name
+                        color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 10
+                        elide: Text.ElideRight; maximumLineCount: 2; wrapMode: Text.Wrap
+                    }
+                    // nhấc ra khỏi khung (nằm trên lớp bấm của cả ô)
+                    Rectangle {
+                        z: 2
+                        anchors.right: parent.right; anchors.top: parent.top
+                        anchors.margins: 6
+                        width: 20; height: 20; radius: 10
+                        visible: gim.containsMouse || outm.containsMouse
+                        color: outm.containsMouse ? "#FF5F57" : Qt.rgba(0.2, 0.2, 0.25, 0.95)
+                        border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.2)
+                        Icon { anchors.centerIn: parent; name: "expand"; size: 11 }
+                        MouseArea {
+                            id: outm
+                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                const g = groupPop.g;
+                                DesktopItems.leaveGroup(g.gid, gi.modelData.name, g.x + root.cellW, g.y);
+                                if (DesktopItems.group(g.gid) === null) root.openGroup = "";
+                            }
+                        }
+                    }
+                    MouseArea {
+                        id: gim
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onDoubleClicked: { DesktopFiles.open(gi.modelData.path); root.openGroup = ""; }
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- menu chuột phải trên khung ----
+    Rectangle {
+        id: groupMenu
+        visible: false
+        z: 200
+        width: 200
+        height: gmcol.implicitHeight + 12
+        radius: 14
+        color: Qt.rgba(0.11, 0.11, 0.15, 0.96)
+        border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.1)
+        property var g: null
+        function openAt(px, py, g_) {
+            g = g_;
+            x = Math.min(px, root.width - width - 8);
+            y = Math.min(py, root.height - height - 8);
+            visible = true;
+        }
+        function close() { visible = false; }
+        Column {
+            id: gmcol
+            x: 6; y: 6; width: parent.width - 12
+            Row2 { icon: "grid"; label: "Open"; onClicked: { root.openGroup = groupMenu.g.gid; groupMenu.close(); } }
+            Row2 { icon: "edit"; label: "Rename group"; onClicked: { root.openGroup = groupMenu.g.gid; groupMenu.close(); } }
+            Rectangle { width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+            Row2 { icon: "minus"; label: "Break up"; onClicked: { const id = groupMenu.g.gid; groupMenu.close(); root.openGroup = ""; DesktopItems.breakGroup(id); } }
         }
     }
 
@@ -243,9 +446,9 @@ Item {
     }
     MouseArea {
         anchors.fill: parent
-        z: iconMenu.visible ? 199 : -1
-        enabled: iconMenu.visible
-        onPressed: iconMenu.close()
+        z: (iconMenu.visible || groupMenu.visible) ? 199 : -1
+        enabled: iconMenu.visible || groupMenu.visible
+        onPressed: { iconMenu.close(); groupMenu.close(); }
     }
 
     component Row2: Rectangle {
