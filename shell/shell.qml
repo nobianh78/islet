@@ -19,6 +19,7 @@ import "settings"
 import "trash"
 import "backups"
 import "desktop"
+import "welcome"
 import "snap"
 import "search"
 import "overview"
@@ -44,6 +45,12 @@ ShellRoot {
         function onLockedChanged() { if (!Ui.locked && root.reloadPending) { root.reloadPending = false; reloadLater.restart(); } }
     }
     Timer { id: reloadLater; interval: 2000; onTriggered: Quickshell.reload(false) }
+    // máy mới cài: hiện màn hình Chào mừng một lần (đợi shell dựng xong và đã mở khoá)
+    Timer {
+        interval: 2500
+        running: Prefs.loaded && !Prefs.welcomeDone && !Ui.locked && !Ui.liveSession
+        onTriggered: if (!Prefs.welcomeDone) Ui.welcomeOpen = true
+    }
     IpcHandler {
         target: "shell"
         function reload(): void { root.reloadShell(); }
@@ -79,6 +86,7 @@ ShellRoot {
     LazyLoader { activeAsync: true; Settings {} }
     LazyLoader { activeAsync: true; TrashWindow {} }
     LazyLoader { activeAsync: true; BackupsWindow {} }
+    LazyLoader { activeAsync: true; Welcome {} }
     LazyLoader { activeAsync: true; NotifCenter {} }
     LazyLoader { activeAsync: true; Snap {} }
     LazyLoader { activeAsync: true; Search {} }
@@ -135,6 +143,10 @@ ShellRoot {
         target: "trash"
         function open(): void { Ui.openTrash(); }
         function empty(): void { Trash.empty(); }
+    }
+    IpcHandler {
+        target: "welcome"
+        function open(): void { Ui.welcomeOpen = true; }
     }
     IpcHandler {
         target: "desktop"

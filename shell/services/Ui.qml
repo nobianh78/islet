@@ -1,6 +1,7 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import "../theme"
 
 // Trạng thái giao diện dùng chung giữa các cửa sổ (thanh trên, dock, island, trung tâm điều khiển).
@@ -46,6 +47,10 @@ Singleton {
     function openTrash() { launcherOpen = false; if (trashOpen) trashRaiseRequested(); trashOpen = true; }
     signal trashEmptyAsked()           // menu dock › Empty Trash: mở cửa sổ và hỏi xác nhận
     function askEmptyTrash() { openTrash(); trashEmptyAsked(); }
+    // Chào mừng (chạy một lần sau khi cài; không hiện trên bản chạy thử từ USB/ISO)
+    property bool welcomeOpen: false
+    property bool liveSession: false
+    Process { running: true; command: ["test", "-d", "/run/archiso"]; onExited: code => root.liveSession = code === 0 }
     // Time Machine: xem lại / khôi phục file từ các bản sao lưu
     property bool backupsOpen: false
     signal backupsRaiseRequested()

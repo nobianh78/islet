@@ -121,6 +121,7 @@ GLYPH_SET = {
                      '<path d="M8 10.5v3M6.5 12h3"/><circle cx="15.5" cy="11" r=".8" fill="#fff" stroke="none"/><circle cx="17" cy="13" r=".8" fill="#fff" stroke="none"/>'),
     "toolbox": glyph('<rect x="3.5" y="8" width="17" height="11.5" rx="2.5"/><path d="M9 8V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v2M3.5 13h17M10 13v2h4v-2"/>'),
     "edit": glyph('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>'),
+    "store": glyph('<path d="M4.5 8.5h15l-1 10.2a2 2 0 0 1-2 1.8H7.5a2 2 0 0 1-2-1.8z"/><path d="M8.8 8.5V7a3.2 3.2 0 0 1 6.4 0v1.5"/>'),
     "history": glyph('<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4.5 9"/><path d="M4.5 4.5V9H9"/><path d="M12 8v4.2l2.8 1.8"/>'),
     "note": glyph('<path d="M5 4.5h14a.5.5 0 0 1 .5.5v9.5L14.5 19.5H5a.5.5 0 0 1-.5-.5V5a.5.5 0 0 1 .5-.5z"/><path d="M19.5 14.5h-4.5a.5.5 0 0 0-.5.5v4.5M8 9h8M8 12.5h5"/>'),
     "cloud": glyph('<path d="M7 18.5h10a4 4 0 0 0 .6-8A6 6 0 0 0 6.2 11 3.8 3.8 0 0 0 7 18.5z"/>'),

@@ -8,6 +8,19 @@ import "../common"
 Item {
     id: root
 
+    component LyrBtn: Rectangle {
+        id: lb
+        property string label: ""
+        property string tip: ""
+        signal clicked()
+        width: lbt.implicitWidth + 14
+        height: 20
+        radius: 10
+        color: lbm.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.1)
+        Text { id: lbt; anchors.centerIn: parent; text: lb.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 10; font.weight: Font.DemiBold }
+        MouseArea { id: lbm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: lb.clicked() }
+    }
+
     implicitHeight: Media.hasPlayer ? player.implicitHeight : idle.implicitHeight
     readonly property color accent: Media.accent ?? "#FFFFFF"
 
@@ -257,16 +270,4 @@ Item {
         }
     }
 
-    component LyrBtn: Rectangle {
-        id: lb
-        property string label: ""
-        property string tip: ""
-        signal clicked()
-        width: lbt.implicitWidth + 14
-        height: 20
-        radius: 10
-        color: lbm.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.1)
-        Text { id: lbt; anchors.centerIn: parent; text: lb.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 10; font.weight: Font.DemiBold }
-        MouseArea { id: lbm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: lb.clicked() }
-    }
 }

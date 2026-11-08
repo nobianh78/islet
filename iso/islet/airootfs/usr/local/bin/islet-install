@@ -173,6 +173,7 @@ p, v = sys.argv[1], sys.argv[2] == "true"
 try: d = json.load(open(p))
 except Exception: d = {}
 d["lockOnBoot"] = v
+d["welcomeDone"] = False          # máy mới: hiện màn hình Chào mừng một lần
 json.dump(d, open(p, "w"), indent=1)
 PY
 else
