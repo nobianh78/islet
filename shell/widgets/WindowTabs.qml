@@ -163,10 +163,9 @@ PanelWindow {
                 drag.pending = true;
             }
             function endDrag() {
-                if (dragging) {
-                    Windows.moveWin(t, dragX + (win.screen?.x ?? 0), dragY + (win.screen?.y ?? 0));
-                    settle.restart();
-                }
+                // Không gửi thêm lệnh dời lúc thả: vị trí đã được gửi liên tục khi kéo, và Hyprland còn
+                // phải xếp cửa sổ vào nửa màn hình khi thả ở mép — lệnh dời thêm sẽ đè lên việc xếp đó.
+                if (dragging) settle.restart();
                 drag.pending = false;
             }
             QtObject {
