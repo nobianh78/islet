@@ -873,7 +873,7 @@ FloatingWindow {
                                 Row {
                                     spacing: 8
                                     Repeater {
-                                        model: [1, 1.25, 1.5, 1.75, 2]
+                                        model: [1, 1.1, 1.15, 1.25, 1.5, 1.75, 2]
                                         Chip {
                                             required property var modelData
                                             label: Math.round(modelData * 100) + "%"
