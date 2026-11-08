@@ -82,7 +82,7 @@ PanelWindow {
         width: parent.width
         height: col.implicitHeight + 20
         radius: 24
-        color: Qt.rgba(0.06, 0.06, 0.1, 0.62)
+        color: Theme.surface(0.62)
 
         transformOrigin: Item.TopLeft
         opacity: win.open ? 1 : 0
@@ -116,21 +116,21 @@ PanelWindow {
                     anchors.verticalCenter: parent.verticalCenter
                     Text {
                         text: "Islet"
-                        color: "#FFFFFF"
+                        color: Theme.label
                         font.family: Theme.font
                         font.pixelSize: 15
                         font.weight: Font.Bold
                     }
                     Text {
                         text: (Quickshell.env("USER") || "islet") + " · " + win.uptimeText
-                        color: "#8E8E93"
+                        color: Theme.muted
                         font.family: Theme.font
                         font.pixelSize: 11
                     }
                 }
             }
 
-            Rectangle { width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+            Rectangle { width: parent.width; height: 1; color: Theme.fg(0.08) }
 
             Repeater {
                 model: win.actions
@@ -146,7 +146,7 @@ PanelWindow {
                     height: 44
                     radius: 14
                     color: armed ? Qt.rgba(danger.r, danger.g, danger.b, 0.9)
-                        : m.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : "transparent"
+                        : m.containsMouse ? Theme.fg(0.10) : "transparent"
                     Behavior on color { ColorAnimation { duration: 160 } }
                     scale: m.pressed ? 0.96 : 1
                     Behavior on scale { SpringAnimation { spring: 6; damping: 0.35; epsilon: 0.003 } }
@@ -168,7 +168,7 @@ PanelWindow {
                         anchors.bottomMargin: 5
                         height: 2
                         radius: 1
-                        color: Qt.rgba(1, 1, 1, 0.7)
+                        color: Theme.fg(0.7)
                         width: 0
                         visible: item.armed
                         NumberAnimation on width {
@@ -187,8 +187,8 @@ PanelWindow {
                         width: 30
                         height: 30
                         radius: 15
-                        color: item.armed ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.08)
-                        Icon {
+                        color: item.armed ? Theme.fg(0.22) : Theme.fg(0.08)
+                        TIcon {
                             anchors.centerIn: parent
                             name: item.modelData.icon
                             size: 17
@@ -204,7 +204,7 @@ PanelWindow {
                         anchors.rightMargin: 10
                         anchors.verticalCenter: parent.verticalCenter
                         text: item.armed ? item.modelData.confirm : item.modelData.label
-                        color: "#FFFFFF"
+                        color: Theme.label
                         elide: Text.ElideRight
                         font.family: Theme.font
                         font.pixelSize: 13

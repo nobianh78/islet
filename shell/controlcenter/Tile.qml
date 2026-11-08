@@ -17,14 +17,14 @@ Rectangle {
 
     implicitHeight: 64
     radius: 18
-    color: checked ? onColor : Qt.rgba(1, 1, 1, mouse.containsMouse ? 0.18 : 0.12)
+    color: checked ? onColor : Theme.fg(mouse.containsMouse ? 0.18 : 0.12)
     opacity: available ? 1 : 0.45
     Behavior on color { ColorAnimation { duration: 220 } }
 
     scale: mouse.pressed ? 0.94 : 1
     Behavior on scale { SpringAnimation { spring: 6; damping: 0.32 } }
 
-    readonly property color fg: checked ? "#04201C" : Theme.text
+    readonly property color fg: checked ? "#04201C" : Theme.label
 
     Column {
         anchors.left: parent.left
@@ -34,7 +34,7 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 4
 
-        Icon { name: root.icon; size: 18; color: root.fg }
+        TIcon { name: root.icon; size: 18; color: root.fg }
         Column {
             width: parent.width
             Text {
@@ -50,7 +50,7 @@ Rectangle {
                 width: parent.width
                 visible: text !== ""
                 text: root.subtitle
-                color: root.checked ? Qt.rgba(0.016, 0.125, 0.11, 0.7) : Theme.textDim
+                color: root.checked ? Qt.rgba(0.016, 0.125, 0.11, 0.7) : Theme.fg(0.68)
                 font.family: Theme.font
                 font.pixelSize: 11
                 elide: Text.ElideRight

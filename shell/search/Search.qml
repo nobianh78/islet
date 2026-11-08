@@ -182,7 +182,7 @@ PanelWindow {
         width: parent.width
         height: 64 + (win.results.length ? Math.min(list.contentHeight + 14, parent.height - 64) : 0)
         radius: 26
-        color: Qt.rgba(0.06, 0.06, 0.1, 0.78)
+        color: Theme.surface(0.78)
         clip: true
         opacity: win.open ? 1 : 0
         scale: win.open ? 1 : 0.94
@@ -191,14 +191,14 @@ PanelWindow {
         Behavior on scale { SpringAnimation { spring: 5; damping: 0.32; epsilon: 0.002 } }
         Behavior on height { SpringAnimation { spring: 5; damping: 0.4; epsilon: 0.3 } }
 
-        Icon { x: 22; y: 22; name: "search"; size: 20; opacity: 0.7 }
+        TIcon { x: 22; y: 22; name: "search"; size: 20; opacity: 0.7 }
         TextInput {
             id: input
             x: 56; y: 0
             width: parent.width - 76
             height: 64
             verticalAlignment: TextInput.AlignVCenter
-            color: "#FFFFFF"
+            color: Theme.label
             font.family: Theme.font
             font.pixelSize: 20
             selectionColor: Theme.tint(0.5)
@@ -215,11 +215,11 @@ PanelWindow {
             x: 56; height: 64
             verticalAlignment: Text.AlignVCenter
             text: "Search apps, files, settings — or type 2+2, 10 km to mi, > command"
-            color: "#636366"
+            color: Theme.faint
             font.family: Theme.font
             font.pixelSize: 16
         }
-        Rectangle { y: 63; width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.07); visible: win.results.length > 0 }
+        Rectangle { y: 63; width: parent.width; height: 1; color: Theme.fg(0.07); visible: win.results.length > 0 }
 
         ListView {
             id: list
@@ -258,8 +258,8 @@ PanelWindow {
                     visible: row.modelData.kind !== "app"
                     x: 12; anchors.verticalCenter: parent.verticalCenter
                     width: 32; height: 32; radius: 10
-                    color: row.modelData.kind === "copy" ? Theme.tint(0.3) : Qt.rgba(1, 1, 1, 0.08)
-                    Icon { anchors.centerIn: parent; name: row.modelData.icon || "search"; size: 16 }
+                    color: row.modelData.kind === "copy" ? Theme.tint(0.3) : Theme.fg(0.08)
+                    TIcon { anchors.centerIn: parent; name: row.modelData.icon || "search"; size: 16 }
                 }
                 Column {
                     x: 56; anchors.verticalCenter: parent.verticalCenter
@@ -267,11 +267,11 @@ PanelWindow {
                     Text {
                         width: parent.width; elide: Text.ElideRight
                         text: row.modelData.title
-                        color: "#FFFFFF"; font.family: row.modelData.kind === "cmd" ? Theme.mono : Theme.font
+                        color: Theme.label; font.family: row.modelData.kind === "cmd" ? Theme.mono : Theme.font
                         font.pixelSize: row.modelData.kind === "copy" ? 17 : 14
                         font.weight: row.modelData.kind === "copy" ? Font.Bold : Font.Medium
                     }
-                    Text { width: parent.width; elide: Text.ElideMiddle; text: row.modelData.sub || ""; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                    Text { width: parent.width; elide: Text.ElideMiddle; text: row.modelData.sub || ""; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                 }
                 Text {
                     id: hint
@@ -279,7 +279,7 @@ PanelWindow {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: row.index === win.sel
                     text: "↵"
-                    color: "#8E8E93"; font.pixelSize: 15
+                    color: Theme.muted; font.pixelSize: 15
                 }
             }
         }

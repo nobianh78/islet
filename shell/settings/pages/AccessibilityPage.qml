@@ -26,7 +26,7 @@ Column {
     }
     Card {
         width: parent.width; height: 70
-        Text { x: 18; y: 14; text: "Text size in apps"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+        Text { x: 18; y: 14; text: "Text size in apps"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
         Row {
             x: 18; y: 36; spacing: 6
             Repeater {
@@ -37,7 +37,7 @@ Column {
     }
     Card {
         width: parent.width; height: 70
-        Text { x: 18; y: 14; text: "Pointer size"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+        Text { x: 18; y: 14; text: "Pointer size"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
         Row {
             x: 18; y: 36; spacing: 6
             Repeater {

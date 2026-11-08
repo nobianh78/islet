@@ -25,8 +25,8 @@ Column {
         width: parent.width; height: 64
         Column {
             x: 18; anchors.verticalCenter: parent.verticalCenter
-            Text { text: "Download servers"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-            Text { text: page.ranking ? "Testing servers near you… (about a minute)" : "Pick the fastest mirrors for downloads and updates"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+            Text { text: "Download servers"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+            Text { text: page.ranking ? "Testing servers near you… (about a minute)" : "Pick the fastest mirrors for downloads and updates"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
         }
         Pill {
             anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
@@ -34,5 +34,5 @@ Column {
             onClicked: if (!page.ranking) { page.ranking = true; Admin.run(["mirrors"], (ok, out) => { page.ranking = false; page.msg = ok ? "Fastest servers:\n" + out.replace(/Server = /g, "").replace(/\/\$repo.*$/gm, "") : out; }); }
         }
     }
-    Text { visible: page.msg !== ""; width: parent.width; wrapMode: Text.Wrap; text: page.msg; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+    Text { visible: page.msg !== ""; width: parent.width; wrapMode: Text.Wrap; text: page.msg; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
 }

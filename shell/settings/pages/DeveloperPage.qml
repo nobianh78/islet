@@ -64,13 +64,13 @@ Column {
                     required property var modelData
                     required property int index
                     width: gCol.width; height: 36; radius: 12
-                    color: Qt.rgba(1, 1, 1, 0.07)
-                    Text { x: 12; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[0]; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                    color: Theme.fg(0.07)
+                    Text { x: 12; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[0]; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                 }
             }
         }
-        TextInput { id: nameIn; x: 90; y: 16; width: parent.width - 120; height: 36; verticalAlignment: TextInput.AlignVCenter; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-        TextInput { id: mailIn; x: 90; y: 62; width: parent.width - 120; height: 36; verticalAlignment: TextInput.AlignVCenter; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+        TextInput { id: nameIn; x: 90; y: 16; width: parent.width - 120; height: 36; verticalAlignment: TextInput.AlignVCenter; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+        TextInput { id: mailIn; x: 90; y: 62; width: parent.width - 120; height: 36; verticalAlignment: TextInput.AlignVCenter; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
     }
     Row {
         spacing: 10
@@ -81,5 +81,5 @@ Column {
         Pill { label: "Install a dev stack…"; onClicked: Ui.openStore() }
         Pill { label: "Open Projects"; onClicked: Quickshell.execDetached(["sh", "-c", 'mkdir -p "$HOME/Projects"; nautilus "$HOME/Projects"']) }
     }
-    Text { visible: page.msg !== ""; text: page.msg; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+    Text { visible: page.msg !== ""; text: page.msg; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
 }

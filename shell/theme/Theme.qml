@@ -39,6 +39,24 @@ Singleton {
     readonly property color hairline: Qt.rgba(1, 1, 1, 0.08)
     readonly property color track: Qt.rgba(1, 1, 1, 0.22)
 
+    // --- Chủ đề Tối / Sáng ---
+    // Giai đoạn 1: cửa sổ và bảng (Cài đặt, Cửa hàng, Thùng rác, trung tâm điều khiển…) theo chủ đề.
+    // Island, dock, thanh trên, màn hình khoá giữ nguyên tối. Chế độ tối trả về đúng các giá trị cũ.
+    property real tick: Date.now()
+    Timer { interval: 60000; running: Prefs.themeMode === "auto"; repeat: true; onTriggered: Theme.tick = Date.now() }
+    // shortcut: giờ sáng cố định 6:30–18:30, không theo giờ mặt trời; thêm khi cần = đọc từ Prefs
+    readonly property bool isDay: { const d = new Date(tick), m = d.getHours() * 60 + d.getMinutes(); return m >= 390 && m < 1110; }
+    readonly property bool light: Prefs.themeMode === "light" || (Prefs.themeMode === "auto" && isDay)
+
+    readonly property color label: light ? "#1C1C1E" : "#FFFFFF"        // chữ chính
+    readonly property color labelSoft: light ? "#3A3A3C" : "#D1D1D6"
+    readonly property color subtle: light ? "#505054" : "#AEAEB2"
+    readonly property color muted: light ? "#6C6C70" : "#8E8E93"       // chữ phụ
+    readonly property color faint: light ? "#8E8E93" : "#636366"
+    readonly property color window: light ? "#F2F2F7" : "#0D0D15"      // nền cửa sổ
+    function fg(a) { return light ? Qt.rgba(0, 0, 0, a) : Qt.rgba(1, 1, 1, a); }          // lớp phủ nhẹ (hover, thẻ, đường kẻ)
+    function surface(a) { return light ? Qt.rgba(1, 1, 1, Math.min(0.97, a + 0.4)) : Qt.rgba(0.07, 0.07, 0.11, a); }   // kính / bảng nổi
+
     // --- Font ---
     readonly property string font: "Be Vietnam Pro"
     readonly property string mono: "JetBrains Mono"

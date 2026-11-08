@@ -9,7 +9,7 @@ Rectangle {
     property string title: ""
     property string icon: ""
     property real value: 0.5
-    property color fill: Theme.text
+    property color fill: Theme.label
     property bool available: true
     property var label: null          // hàm v → chữ hiện bên phải (mặc định: phần trăm)
 
@@ -17,7 +17,7 @@ Rectangle {
 
     implicitHeight: 64
     radius: 18
-    color: Qt.rgba(1, 1, 1, 0.10)
+    color: Theme.fg(0.10)
     opacity: available ? 1 : 0.45
 
     property real dragValue: value
@@ -27,7 +27,7 @@ Rectangle {
         x: 14
         y: 10
         text: root.title
-        color: Theme.textDim
+        color: Theme.fg(0.68)
         font.family: Theme.font
         font.pixelSize: 12
     }
@@ -36,7 +36,7 @@ Rectangle {
         anchors.rightMargin: 14
         y: 10
         text: root.label ? root.label(root.shown) : Math.round(root.shown * 100) + "%"
-        color: Theme.textDim
+        color: Theme.fg(0.68)
         font.family: Theme.font
         font.pixelSize: 12
         font.features: ({ "tnum": 1 })
@@ -50,7 +50,7 @@ Rectangle {
         anchors.bottomMargin: drag.pressed ? 10 : 12
         height: drag.pressed ? 12 : 8
         radius: height / 2
-        color: Qt.rgba(1, 1, 1, 0.2)
+        color: Theme.fg(0.2)
         Behavior on height { SpringAnimation { spring: 5; damping: 0.4 } }
         Behavior on anchors.bottomMargin { SpringAnimation { spring: 5; damping: 0.4 } }
 

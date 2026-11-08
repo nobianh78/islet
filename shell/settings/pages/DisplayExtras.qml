@@ -38,7 +38,7 @@ Column {
                 width: lw * arr.box.k; height: lh * arr.box.k; radius: 8
                 color: dh.active ? Theme.tint(0.35) : Theme.tint(0.2)
                 border.width: 2; border.color: Theme.accent
-                Text { anchors.centerIn: parent; text: mb.modelData.name + "\n" + mb.modelData.width + "×" + mb.modelData.height; horizontalAlignment: Text.AlignHCenter; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 11 }
+                Text { anchors.centerIn: parent; text: mb.modelData.name + "\n" + mb.modelData.width + "×" + mb.modelData.height; horizontalAlignment: Text.AlignHCenter; color: Theme.label; font.family: Theme.font; font.pixelSize: 11 }
                 DragHandler {
                     id: dh
                     onActiveChanged: if (!active) {
@@ -57,7 +57,7 @@ Column {
                 }
             }
         }
-        Text { x: 14; y: 10; text: "Drag the screens to match how they sit on your desk"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+        Text { x: 14; y: 10; text: "Drag the screens to match how they sit on your desk"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
     }
 
     Repeater {
@@ -79,16 +79,16 @@ Column {
             Column {
                 id: mcCol
                 x: 18; y: 14; width: parent.width - 36; spacing: 10
-                Text { text: mc.modelData.name + " · " + mc.res + " @ " + Math.round(mc.modelData.refreshRate) + " Hz"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                Text { text: mc.modelData.name + " · " + mc.res + " @ " + Math.round(mc.modelData.refreshRate) + " Hz"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
                 Row {
                     spacing: 6
                     visible: mc.rates.length > 1
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: "Refresh rate"; width: 100; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: "Refresh rate"; width: 100; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                     Repeater { model: mc.rates; Chip { required property int modelData; label: modelData + " Hz"; on: Math.round(mc.modelData.refreshRate) === modelData; onClicked: page.apply(mc.modelData.name, { mode: mc.res + "@" + modelData }) } }
                 }
                 Row {
                     spacing: 6
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: "Rotation"; width: 100; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: "Rotation"; width: 100; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                     Repeater {
                         model: [[0, "Normal"], [1, "90°"], [2, "180°"], [3, "270°"]]
                         Chip { required property var modelData; label: modelData[1]; on: (mc.modelData.transform || 0) === modelData[0]; onClicked: page.apply(mc.modelData.name, { transform: modelData[0] }) }

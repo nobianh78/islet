@@ -58,15 +58,15 @@ Column {
                     width: dCol.width
                     Item {
                         width: parent.width; height: 54
-                        Rectangle { visible: kind.index > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
-                        Rectangle { x: 16; anchors.verticalCenter: parent.verticalCenter; width: 30; height: 30; radius: 9; color: Qt.rgba(1, 1, 1, 0.08); Icon { anchors.centerIn: parent; name: kind.modelData.icon; size: 15 } }
-                        Text { x: 58; anchors.verticalCenter: parent.verticalCenter; text: kind.modelData.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                        Rectangle { visible: kind.index > 0; x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
+                        Rectangle { x: 16; anchors.verticalCenter: parent.verticalCenter; width: 30; height: 30; radius: 9; color: Theme.fg(0.08); TIcon { anchors.centerIn: parent; name: kind.modelData.icon; size: 15 } }
+                        Text { x: 58; anchors.verticalCenter: parent.verticalCenter; text: kind.modelData.label; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
                         Rectangle {
                             anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
                             width: Math.min(260, cur.implicitWidth + 36); height: 30; radius: 10
-                            color: km.containsMouse || page.open === kind.modelData.k ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07)
-                            Text { id: cur; x: 12; width: parent.width - 32; anchors.verticalCenter: parent.verticalCenter; elide: Text.ElideRight; text: page.nameOf(kind.modelData.k, page.current[kind.modelData.k]); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12 }
-                            Text { anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter; text: page.open === kind.modelData.k ? "▴" : "▾"; color: "#8E8E93"; font.pixelSize: 11 }
+                            color: km.containsMouse || page.open === kind.modelData.k ? Theme.fg(0.14) : Theme.fg(0.07)
+                            Text { id: cur; x: 12; width: parent.width - 32; anchors.verticalCenter: parent.verticalCenter; elide: Text.ElideRight; text: page.nameOf(kind.modelData.k, page.current[kind.modelData.k]); color: Theme.label; font.family: Theme.font; font.pixelSize: 12 }
+                            Text { anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter; text: page.open === kind.modelData.k ? "▴" : "▾"; color: Theme.muted; font.pixelSize: 11 }
                             MouseArea { id: km; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: page.open = page.open === kind.modelData.k ? "" : kind.modelData.k }
                         }
                     }
@@ -76,7 +76,7 @@ Column {
                         x: 58; width: parent.width - 76
                         spacing: 6
                         bottomPadding: 12
-                        Text { visible: (page.options[kind.modelData.k] || []).length === 0; text: "No installed app can open this — get one in the Store"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                        Text { visible: (page.options[kind.modelData.k] || []).length === 0; text: "No installed app can open this — get one in the Store"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                         Repeater {
                             model: page.options[kind.modelData.k] || []
                             Chip {

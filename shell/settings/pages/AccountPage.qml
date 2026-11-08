@@ -91,7 +91,7 @@ Column {
             id: avatar
             x: 22; anchors.verticalCenter: parent.verticalCenter
             width: 84; height: 84
-            Rectangle { anchors.fill: parent; radius: 42; color: Qt.rgba(1, 1, 1, 0.07) }
+            Rectangle { anchors.fill: parent; radius: 42; color: Theme.fg(0.07) }
             Image { anchors.fill: parent; anchors.margins: 10; visible: faceImg.status !== Image.Ready; source: Qt.resolvedUrl("../../assets/brand/cat.svg"); sourceSize: Qt.size(128, 128) }
             Rounded {
                 anchors.fill: parent; radius: 42
@@ -99,10 +99,10 @@ Column {
             }
             Rectangle {
                 anchors.fill: parent; radius: 42
-                color: Qt.rgba(0, 0, 0, 0.5)
+                color: Theme.surface(0.5)
                 opacity: am.containsMouse ? 1 : 0
                 Behavior on opacity { NumberAnimation { duration: 140 } }
-                Text { anchors.centerIn: parent; text: "Edit"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold }
+                Text { anchors.centerIn: parent; text: "Edit"; color: Theme.label; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold }
             }
             MouseArea { id: am; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: page.pickingPicture = !page.pickingPicture }
         }
@@ -114,12 +114,12 @@ Column {
             Row {
                 visible: !page.editingName
                 spacing: 8
-                Text { text: page.fullName || page.userName; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 20; font.weight: Font.Bold }
+                Text { text: page.fullName || page.userName; color: Theme.label; font.family: Theme.font; font.pixelSize: 20; font.weight: Font.Bold }
                 Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     width: 26; height: 26; radius: 13
-                    color: em.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : "transparent"
-                    Icon { anchors.centerIn: parent; name: "edit"; size: 13; opacity: 0.8 }
+                    color: em.containsMouse ? Theme.fg(0.14) : "transparent"
+                    TIcon { anchors.centerIn: parent; name: "edit"; size: 13; opacity: 0.8 }
                     MouseArea { id: em; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { nameIn.text = page.fullName; page.editingName = true; } }
                 }
             }
@@ -140,7 +140,7 @@ Column {
                 }
                 Pill { label: "Cancel"; onClicked: page.editingName = false }
             }
-            Text { text: page.userName + "  ·  Administrator"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+            Text { text: page.userName + "  ·  Administrator"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
         }
     }
 
@@ -156,7 +156,7 @@ Column {
                 id: picRow
                 spacing: 10
                 Rectangle {
-                    width: 64; height: 64; radius: 32; color: Qt.rgba(1, 1, 1, 0.08)
+                    width: 64; height: 64; radius: 32; color: Theme.fg(0.08)
                     border.width: !page.hasFace ? 2 : 0; border.color: Theme.accent
                     Image { anchors.fill: parent; anchors.margins: 8; source: Qt.resolvedUrl("../../assets/brand/cat.svg"); sourceSize: Qt.size(96, 96) }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: page.pickFace("") }
@@ -187,11 +187,11 @@ Column {
             Row2 { title: "Ask for my password when the computer starts"; sub: "Off = go straight to the desktop after turning on"; checked: Prefs.lockOnBoot; onToggled: Prefs.set("lockOnBoot", !Prefs.lockOnBoot) }
             Item {
                 width: parent.width; height: 58
-                Rectangle { x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
+                Rectangle { x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
                 Column {
                     x: 18; anchors.verticalCenter: parent.verticalCenter
-                    Text { text: "Password"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                    Text { text: "Used to unlock the screen and change system settings"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                    Text { text: "Password"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+                    Text { text: "Used to unlock the screen and change system settings"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                 }
                 Pill { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; label: page.changingPw ? "Cancel" : "Change…"; onClicked: page.changingPw = !page.changingPw }
             }
@@ -222,26 +222,26 @@ Column {
                     required property var modelData
                     required property int index
                     width: peopleCol.width; height: 56
-                    Rectangle { visible: parent.index > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
+                    Rectangle { visible: parent.index > 0; x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
                     Rectangle {
                         x: 18; anchors.verticalCenter: parent.verticalCenter
-                        width: 34; height: 34; radius: 17; color: Qt.rgba(1, 1, 1, 0.08)
-                        Text { anchors.centerIn: parent; text: (parent.parent.modelData.name || "?").charAt(0).toUpperCase(); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                        width: 34; height: 34; radius: 17; color: Theme.fg(0.08)
+                        Text { anchors.centerIn: parent; text: (parent.parent.modelData.name || "?").charAt(0).toUpperCase(); color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
                     }
                     Column {
                         x: 64; anchors.verticalCenter: parent.verticalCenter
-                        Text { text: parent.parent.modelData.name; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                        Text { text: parent.parent.modelData.user; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                        Text { text: parent.parent.modelData.name; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+                        Text { text: parent.parent.modelData.user; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                     }
                 }
             }
             Item {
                 width: parent.width; height: 58
-                Rectangle { visible: page.people.length > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
+                Rectangle { visible: page.people.length > 0; x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
                 Text {
                     x: 18; anchors.verticalCenter: parent.verticalCenter
                     text: page.people.length ? "Add another person" : "Only you use this computer"
-                    color: page.people.length ? "#FFFFFF" : "#AEAEB2"; font.family: Theme.font; font.pixelSize: 13
+                    color: page.people.length ? Theme.label : Theme.subtle; font.family: Theme.font; font.pixelSize: 13
                 }
                 Pill { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; label: page.addingUser ? "Cancel" : "Add person…"; onClicked: page.addingUser = !page.addingUser }
             }

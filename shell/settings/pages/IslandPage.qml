@@ -28,7 +28,7 @@ Column {
     SectionLabel { text: "Dock" }
     Card {
         width: parent.width; height: 92
-        Text { x: 18; y: 14; text: "Icon size"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+        Text { x: 18; y: 14; text: "Icon size"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
         Row {
             x: 18; y: 40; spacing: 6
             Repeater {
@@ -71,15 +71,15 @@ Column {
         visible: Prefs.desktopWidgets
         text: DesktopItems.widgets.length + (DesktopItems.widgets.length === 1 ? " widget" : " widgets") + " on the desktop · "
             + DesktopItems.kinds.length + " to choose from"
-        color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+        color: Theme.muted; font.family: Theme.font; font.pixelSize: 12
     }
     Card {
         visible: Prefs.desktopWidgets && DesktopItems.countOf("weather") > 0
         width: parent.width; height: 64
         Column {
             x: 18; anchors.verticalCenter: parent.verticalCenter
-            Text { text: "Weather location"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-            Text { text: Weather.place ? "Showing " + Weather.place + (Prefs.weatherCity ? "" : " (from your time zone)") : "A city name, e.g. Hanoi"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+            Text { text: "Weather location"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+            Text { text: Weather.place ? "Showing " + Weather.place + (Prefs.weatherCity ? "" : " (from your time zone)") : "A city name, e.g. Hanoi"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
         }
         Row {
             anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter

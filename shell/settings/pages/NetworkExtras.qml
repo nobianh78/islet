@@ -61,14 +61,14 @@ Column {
         width: parent.width
         height: page.qr ? 250 : 64
         Behavior on height { SpringAnimation { spring: 4; damping: 0.4 } }
-        Text { x: 18; y: 22; text: "Let a phone join “" + page.ssid + "”"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+        Text { x: 18; y: 22; text: "Let a phone join “" + page.ssid + "”"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
         Pill { anchors.right: parent.right; anchors.rightMargin: 16; y: 16; label: page.qr ? "Hide" : "Show QR code"; primary: !page.qr; onClicked: page.qr ? page.qr = "" : page.share() }
         Rectangle {
             visible: page.qr !== ""
-            x: 18; y: 62; width: 172; height: 172; radius: 14; color: "#FFFFFF"
+            x: 18; y: 62; width: 172; height: 172; radius: 14; color: Theme.label
             Image { anchors.centerIn: parent; width: 160; height: 160; source: page.qr; smooth: false; cache: false }
         }
-        Text { visible: page.qr !== ""; x: 210; y: 80; width: parent.width - 230; wrapMode: Text.Wrap; text: "Open the camera on your phone and point it at the code to join without typing the password."; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+        Text { visible: page.qr !== ""; x: 210; y: 80; width: parent.width - 230; wrapMode: Text.Wrap; text: "Open the camera on your phone and point it at the code to join without typing the password."; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
     }
 
     SectionLabel { text: "VPN (WireGuard)" }
@@ -78,7 +78,7 @@ Column {
         Column {
             id: vCol
             y: 4; width: parent.width
-            Text { visible: page.vpns.length === 0; leftPadding: 18; topPadding: 14; bottomPadding: 14; width: vCol.width - 36; wrapMode: Text.Wrap; text: "No VPN yet. Download a WireGuard .conf file from your VPN provider, then import it below."; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+            Text { visible: page.vpns.length === 0; leftPadding: 18; topPadding: 14; bottomPadding: 14; width: vCol.width - 36; wrapMode: Text.Wrap; text: "No VPN yet. Download a WireGuard .conf file from your VPN provider, then import it below."; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
             Repeater {
                 model: page.vpns
                 Item {
@@ -87,11 +87,11 @@ Column {
                     required property int index
                     width: vCol.width; height: 56
                     HoverHandler { id: vh }
-                    Rectangle { visible: vr.index > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
+                    Rectangle { visible: vr.index > 0; x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
                     Column {
                         x: 18; anchors.verticalCenter: parent.verticalCenter
-                        Text { text: vr.modelData.name; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                        Text { text: vr.modelData.up ? "Connected" : "Not connected"; color: vr.modelData.up ? "#34C77B" : "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                        Text { text: vr.modelData.name; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+                        Text { text: vr.modelData.up ? "Connected" : "Not connected"; color: vr.modelData.up ? "#34C77B" : Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                     }
                     Row {
                         anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
@@ -106,7 +106,7 @@ Column {
     Flow {
         width: parent.width; spacing: 8
         visible: page.confs.length > 0
-        Text { text: "Import:"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12; height: 30; verticalAlignment: Text.AlignVCenter }
+        Text { text: "Import:"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12; height: 30; verticalAlignment: Text.AlignVCenter }
         Repeater {
             model: page.confs
             Chip { required property string modelData; label: modelData.split("/").pop(); onClicked: Admin.run(["wg", "import", modelData], (ok, out) => { page.msg = ok ? "Imported VPN “" + out + "”" : out; page.loadVpn(); }) }
@@ -141,7 +141,7 @@ Column {
     SectionLabel { text: "Proxy" }
     Card {
         width: parent.width; height: 104
-        Text { x: 18; y: 16; text: "HTTP / HTTPS proxy for apps"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+        Text { x: 18; y: 16; text: "HTTP / HTTPS proxy for apps"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
         Row {
             x: 18; y: 52; spacing: 8
             Field { id: proxyIn; width: 260; hint: "host:port — e.g. 10.0.0.2:3128" }
@@ -158,5 +158,5 @@ Column {
         }
     }
     Process { id: pxSet; onExited: { page.msg = "Proxy saved — apps you open from now on use it"; prx.running = true; } }
-    Text { visible: page.msg !== ""; width: parent.width; wrapMode: Text.Wrap; text: page.msg; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+    Text { visible: page.msg !== ""; width: parent.width; wrapMode: Text.Wrap; text: page.msg; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
 }

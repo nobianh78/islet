@@ -8,7 +8,7 @@ Rectangle {
     property bool checked: false
     signal toggled()
     width: 46; height: 28; radius: 14
-    color: checked ? Theme.accent : Qt.rgba(1, 1, 1, 0.16)
+    color: checked ? Theme.accent : Theme.fg(0.16)
     Behavior on color { ColorAnimation { duration: 160 } }
     Rectangle {
         y: 3; x: tg.checked ? tg.width - width - 3 : 3

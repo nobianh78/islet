@@ -23,7 +23,7 @@ FloatingWindow {
     implicitWidth: 1040
     implicitHeight: 720
     minimumSize: Qt.size(820, 560)
-    color: "#0D0D15"
+    color: Theme.window
     visible: false
     readonly property bool open: Ui.settingsOpen && visible
 
@@ -310,8 +310,8 @@ FloatingWindow {
             id: side
             width: 240
             height: parent.height
-            color: Qt.rgba(1, 1, 1, 0.035)
-            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Qt.rgba(1, 1, 1, 0.06) }
+            color: Theme.fg(0.035)
+            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Theme.fg(0.06) }
 
             // dải trên cùng = thanh tiêu đề: kéo để di chuyển, bấm đúp để phóng to
             TitleDrag { width: parent.width; height: 50 }
@@ -325,12 +325,12 @@ FloatingWindow {
                 readonly property bool on: win.page === "account"
                 x: 12; y: 52
                 width: parent.width - 24; height: 62; radius: 16
-                color: on ? Theme.tint(0.22) : acm.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : Qt.rgba(1, 1, 1, 0.04)
+                color: on ? Theme.tint(0.22) : acm.containsMouse ? Theme.fg(0.07) : Theme.fg(0.04)
                 Behavior on color { ColorAnimation { duration: 140 } }
                 Item {
                     x: 10; anchors.verticalCenter: parent.verticalCenter
                     width: 42; height: 42
-                    Rectangle { anchors.fill: parent; radius: 21; color: Qt.rgba(1, 1, 1, 0.08) }
+                    Rectangle { anchors.fill: parent; radius: 21; color: Theme.fg(0.08) }
                     Image { anchors.fill: parent; anchors.margins: 5; visible: sideFace.status !== Image.Ready; source: Qt.resolvedUrl("../assets/brand/cat.svg"); sourceSize: Qt.size(64, 64) }
                     Rounded {
                         anchors.fill: parent; radius: 21
@@ -340,8 +340,8 @@ FloatingWindow {
                 Column {
                     x: 62; anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - 72
-                    Text { width: parent.width; elide: Text.ElideRight; text: win.fullName || win.userName; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
-                    Text { text: "Account · picture, password"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                    Text { width: parent.width; elide: Text.ElideRight; text: win.fullName || win.userName; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                    Text { text: "Account · picture, password"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                 }
                 MouseArea { id: acm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Ui.settingsPage = "account" }
             }
@@ -350,20 +350,20 @@ FloatingWindow {
             Rectangle {
                 x: 12; y: 124
                 width: parent.width - 24; height: 34; radius: 12
-                color: Qt.rgba(1, 1, 1, 0.07)
+                color: Theme.fg(0.07)
                 border.width: 1
-                border.color: navIn.activeFocus ? Theme.tint(0.6) : Qt.rgba(1, 1, 1, 0.06)
-                Icon { x: 10; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 14; opacity: 0.6 }
+                border.color: navIn.activeFocus ? Theme.tint(0.6) : Theme.fg(0.06)
+                TIcon { x: 10; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 14; opacity: 0.6 }
                 TextInput {
                     id: navIn
                     x: 32; width: parent.width - 42; height: parent.height
                     verticalAlignment: TextInput.AlignVCenter
-                    color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12
+                    color: Theme.label; font.family: Theme.font; font.pixelSize: 12
                     onTextChanged: win.navQuery = text
                     Keys.onReturnPressed: { const f = win.pages.find(pg => win.navMatch(pg)); if (f) Ui.settingsPage = f.id; }
                     Keys.onEscapePressed: text = ""
                 }
-                Text { visible: navIn.text === ""; x: 32; anchors.verticalCenter: parent.verticalCenter; text: "Find a setting"; color: "#636366"; font.family: Theme.font; font.pixelSize: 12 }
+                Text { visible: navIn.text === ""; x: 32; anchors.verticalCenter: parent.verticalCenter; text: "Find a setting"; color: Theme.faint; font.family: Theme.font; font.pixelSize: 12 }
             }
 
             Flickable {
@@ -407,7 +407,7 @@ FloatingWindow {
                             Text {
                                 leftPadding: 10; topPadding: grp.index ? 12 : 2; bottomPadding: 4
                                 text: grp.modelData.toUpperCase()
-                                color: "#636366"; font.family: Theme.font; font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 0.6
+                                color: Theme.faint; font.family: Theme.font; font.pixelSize: 9; font.weight: Font.Bold; font.letterSpacing: 0.6
                             }
                             Repeater {
                                 model: grp.items
@@ -419,7 +419,7 @@ FloatingWindow {
                         visible: win.navQuery.trim() !== "" && !win.pages.some(pg => win.navMatch(pg))
                         leftPadding: 10; topPadding: 8
                         text: "No settings match"
-                        color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                        color: Theme.muted; font.family: Theme.font; font.pixelSize: 12
                     }
                 }
             }
@@ -430,7 +430,7 @@ FloatingWindow {
             id: adminSheet
             anchors.fill: parent
             z: 20
-            color: Qt.rgba(0, 0, 0, 0.45)
+            color: Theme.surface(0.45)
             visible: opacity > 0.01
             opacity: Admin.askPassword ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: 160 } }
@@ -439,8 +439,8 @@ FloatingWindow {
             Rectangle {
                 anchors.centerIn: parent
                 width: 380; height: 190; radius: 22
-                color: Qt.rgba(0.1, 0.1, 0.14, 0.98)
-                border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.1)
+                color: Theme.surface(0.98)
+                border.width: 1; border.color: Theme.fg(0.1)
                 scale: Admin.askPassword ? 1 : 0.92
                 Behavior on scale { SpringAnimation { spring: 5; damping: 0.32 } }
                 Column {
@@ -449,10 +449,10 @@ FloatingWindow {
                     spacing: 10
                     Row {
                         spacing: 10
-                        Icon { name: "lock"; size: 18; anchors.verticalCenter: parent.verticalCenter }
-                        Text { text: "Administrator password"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+                        TIcon { name: "lock"; size: 18; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: "Administrator password"; color: Theme.label; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
                     }
-                    Text { width: parent.width; wrapMode: Text.Wrap; text: "Enter your password to change this system setting."; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                    Text { width: parent.width; wrapMode: Text.Wrap; text: "Enter your password to change this system setting."; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                     PwField { id: adminPw; width: parent.width; hint: "Password"; onAccepted: Admin.submit(text) }
                     Row {
                         spacing: 8
@@ -504,8 +504,8 @@ FloatingWindow {
                     width: parent.width
                     spacing: 4
                     bottomPadding: 4
-                    Text { text: win.cur.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 24; font.weight: Font.Bold }
-                    Text { width: parent.width; wrapMode: Text.Wrap; text: win.cur.d; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 13 }
+                    Text { text: win.cur.label; color: Theme.label; font.family: Theme.font; font.pixelSize: 24; font.weight: Font.Bold }
+                    Text { width: parent.width; wrapMode: Text.Wrap; text: win.cur.d; color: Theme.muted; font.family: Theme.font; font.pixelSize: 13 }
                 }
 
                 // ================= TÀI KHOẢN =================
@@ -525,13 +525,13 @@ FloatingWindow {
                         Rectangle {
                             x: 18; anchors.verticalCenter: parent.verticalCenter
                             width: 44; height: 44; radius: 14
-                            color: Qt.rgba(1, 1, 1, 0.08)
-                            Icon { anchors.centerIn: parent; name: Net.kind === "ethernet" ? "ethernet" : "wifi-off"; size: 20 }
+                            color: Theme.fg(0.08)
+                            TIcon { anchors.centerIn: parent; name: Net.kind === "ethernet" ? "ethernet" : "wifi-off"; size: 20 }
                         }
                         Column {
                             x: 76; anchors.verticalCenter: parent.verticalCenter
-                            Text { text: Net.kind === "ethernet" ? "Using a wired connection" : "This computer has no Wi-Fi"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
-                            Text { text: Net.kind === "ethernet" ? "Connected to the internet over a cable" : "Plug in a network cable or a USB Wi-Fi adapter to get online"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                            Text { text: Net.kind === "ethernet" ? "Using a wired connection" : "This computer has no Wi-Fi"; color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                            Text { text: Net.kind === "ethernet" ? "Connected to the internet over a cable" : "Plug in a network cable or a USB Wi-Fi adapter to get online"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                         }
                     }
 
@@ -540,11 +540,11 @@ FloatingWindow {
                         visible: wifi.dev !== ""
                         width: parent.width
                         height: 64
-                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Wi-Fi"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Wi-Fi"; color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
                         Text {
                             anchors.right: wsw.left; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
                             text: Net.wifiBlocked ? "Off" : wifi.current ? "Connected to " + wifi.current : "Not connected"
-                            color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                            color: Theme.muted; font.family: Theme.font; font.pixelSize: 12
                         }
                         Toggle { id: wsw; anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: !Net.wifiBlocked; onToggled: { Net.toggleWifi(); wifi.refresh(true); } }
                     }
@@ -569,7 +569,7 @@ FloatingWindow {
                             id: netCol
                             y: 4
                             width: parent.width
-                            Text { visible: wifi.nets.length === 0; leftPadding: 18; topPadding: 14; bottomPadding: 14; text: "Looking for networks…"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                            Text { visible: wifi.nets.length === 0; leftPadding: 18; topPadding: 14; bottomPadding: 14; text: "Looking for networks…"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                             Repeater {
                                 model: wifi.nets
                                 Rectangle {
@@ -578,7 +578,7 @@ FloatingWindow {
                                     readonly property bool asking: wifi.joining === modelData.name
                                     width: netCol.width
                                     height: asking ? 98 : 50
-                                    color: nem.containsMouse && !asking ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+                                    color: nem.containsMouse && !asking ? Theme.fg(0.05) : "transparent"
                                     radius: 14
                                     clip: true
                                     Behavior on height { SpringAnimation { spring: 4.5; damping: 0.35; epsilon: 0.2 } }
@@ -593,27 +593,27 @@ FloatingWindow {
                                             else { wifi.joining = net.modelData.name; wifi.error = ""; pwIn.text = ""; pwIn.forceActiveFocus(); }
                                         }
                                     }
-                                    Icon {
+                                    TIcon {
                                         x: 18; y: 16; size: 18
                                         name: net.modelData.q > 66 ? "wifi" : net.modelData.q > 33 ? "wifi-2" : "wifi-1"
-                                        color: net.modelData.cur ? Theme.accent : "#FFFFFF"
+                                        color: net.modelData.cur ? Theme.accent : Theme.label
                                     }
-                                    Text { x: 50; y: 15; text: net.modelData.name; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: net.modelData.cur ? Font.DemiBold : Font.Normal }
+                                    Text { x: 50; y: 15; text: net.modelData.name; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: net.modelData.cur ? Font.DemiBold : Font.Normal }
                                     Row {
                                         anchors.right: parent.right; anchors.rightMargin: 16; y: 14
                                         spacing: 8
                                         Text {
                                             anchors.verticalCenter: parent.verticalCenter
                                             text: wifi.busy === net.modelData.name ? "Connecting…" : net.modelData.cur ? "Connected" : net.modelData.saved ? "Saved" : ""
-                                            color: net.modelData.cur ? Qt.lighter(Theme.accent, 1.3) : "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                                            color: net.modelData.cur ? Qt.lighter(Theme.accent, 1.3) : Theme.muted; font.family: Theme.font; font.pixelSize: 11
                                         }
-                                        Icon { anchors.verticalCenter: parent.verticalCenter; name: "lock"; size: 13; opacity: 0.6; visible: net.modelData.sec !== "open" }
+                                        TIcon { anchors.verticalCenter: parent.verticalCenter; name: "lock"; size: 13; opacity: 0.6; visible: net.modelData.sec !== "open" }
                                         Rectangle {
                                             visible: net.modelData.cur || net.modelData.saved
                                             anchors.verticalCenter: parent.verticalCenter
                                             width: dl.implicitWidth + 18; height: 24; radius: 12
-                                            color: dlm.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
-                                            Text { id: dl; anchors.centerIn: parent; text: net.modelData.cur ? "Disconnect" : "Forget"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 11 }
+                                            color: dlm.containsMouse ? Theme.fg(0.18) : Theme.fg(0.08)
+                                            Text { id: dl; anchors.centerIn: parent; text: net.modelData.cur ? "Disconnect" : "Forget"; color: Theme.label; font.family: Theme.font; font.pixelSize: 11 }
                                             MouseArea {
                                                 id: dlm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                                 onClicked: { Quickshell.execDetached(net.modelData.cur ? ["islet-wifi", "disconnect"] : ["islet-wifi", "forget", net.modelData.name]); wifi.refresh(false); }
@@ -626,22 +626,22 @@ FloatingWindow {
                                         x: 50; y: 52
                                         width: parent.width - 50 - 110
                                         height: 34; radius: 12
-                                        color: Qt.rgba(1, 1, 1, 0.08)
+                                        color: Theme.fg(0.08)
                                         border.width: 1
-                                        border.color: wifi.error ? Qt.rgba(1, 0.42, 0.42, 0.7) : pwIn.activeFocus ? Theme.tint(0.7) : Qt.rgba(1, 1, 1, 0.1)
+                                        border.color: wifi.error ? Qt.rgba(1, 0.42, 0.42, 0.7) : pwIn.activeFocus ? Theme.tint(0.7) : Theme.fg(0.1)
                                         TextInput {
                                             id: pwIn
                                             anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
                                             verticalAlignment: TextInput.AlignVCenter
                                             echoMode: TextInput.Password
-                                            color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13
+                                            color: Theme.label; font.family: Theme.font; font.pixelSize: 13
                                             Keys.onReturnPressed: wifi.connect(net.modelData.name, text)
                                             Keys.onEscapePressed: wifi.joining = ""
                                         }
                                         Text {
                                             visible: pwIn.text === ""
                                             anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter
-                                            text: wifi.error || "Wi-Fi password"; color: wifi.error ? "#FF8A8A" : "#636366"; font.family: Theme.font; font.pixelSize: 12
+                                            text: wifi.error || "Wi-Fi password"; color: wifi.error ? "#FF8A8A" : Theme.faint; font.family: Theme.font; font.pixelSize: 12
                                         }
                                     }
                                     Pill { visible: net.asking; x: parent.width - 100; y: 53; label: "Connect"; primary: true; onClicked: wifi.connect(net.modelData.name, pwIn.text) }
@@ -668,13 +668,13 @@ FloatingWindow {
                         Rectangle {
                             x: 18; anchors.verticalCenter: parent.verticalCenter
                             width: 44; height: 44; radius: 14
-                            color: Qt.rgba(1, 1, 1, 0.08)
-                            Icon { anchors.centerIn: parent; name: "bluetooth"; size: 20; opacity: 0.6 }
+                            color: Theme.fg(0.08)
+                            TIcon { anchors.centerIn: parent; name: "bluetooth"; size: 20; opacity: 0.6 }
                         }
                         Column {
                             x: 76; anchors.verticalCenter: parent.verticalCenter
-                            Text { text: "No Bluetooth adapter"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
-                            Text { text: "This computer has no Bluetooth, or it is turned off in the firmware"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                            Text { text: "No Bluetooth adapter"; color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                            Text { text: "This computer has no Bluetooth, or it is turned off in the firmware"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                         }
                     }
 
@@ -682,11 +682,11 @@ FloatingWindow {
                         visible: !!win.bt
                         width: parent.width
                         height: 64
-                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Bluetooth"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Bluetooth"; color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
                         Text {
                             anchors.right: btsw.left; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
                             text: !win.bt ? "" : !win.bt.enabled ? "Off" : win.bt.discovering ? "Searching…" : "On · " + (win.bt.name || "")
-                            color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                            color: Theme.muted; font.family: Theme.font; font.pixelSize: 12
                         }
                         Toggle {
                             id: btsw
@@ -721,7 +721,7 @@ FloatingWindow {
                                 visible: win.btDevices.length === 0
                                 leftPadding: 18; topPadding: 14; bottomPadding: 14
                                 text: "Looking for devices… put your headphones or mouse in pairing mode"
-                                color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                                color: Theme.muted; font.family: Theme.font; font.pixelSize: 12
                             }
                             Repeater {
                                 model: win.btDevices
@@ -732,24 +732,24 @@ FloatingWindow {
                                     width: btCol.width
                                     height: 54
                                     radius: 14
-                                    color: dm2.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+                                    color: dm2.containsMouse ? Theme.fg(0.05) : "transparent"
                                     MouseArea { id: dm2; anchors.fill: parent; hoverEnabled: true }
                                     Rectangle {
                                         x: 14; anchors.verticalCenter: parent.verticalCenter
                                         width: 34; height: 34; radius: 11
-                                        color: dev.modelData.connected ? Theme.tint(0.3) : Qt.rgba(1, 1, 1, 0.08)
-                                        Icon { anchors.centerIn: parent; name: win.btIcon(dev.modelData); size: 17 }
+                                        color: dev.modelData.connected ? Theme.tint(0.3) : Theme.fg(0.08)
+                                        TIcon { anchors.centerIn: parent; name: win.btIcon(dev.modelData); size: 17 }
                                     }
                                     Column {
                                         x: 60; anchors.verticalCenter: parent.verticalCenter
                                         width: parent.width - 60 - btAct.width - 24
-                                        Text { width: parent.width; elide: Text.ElideRight; text: dev.modelData.name || dev.modelData.address; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: dev.modelData.connected ? Font.DemiBold : Font.Normal }
+                                        Text { width: parent.width; elide: Text.ElideRight; text: dev.modelData.name || dev.modelData.address; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: dev.modelData.connected ? Font.DemiBold : Font.Normal }
                                         Text {
                                             text: dev.modelData.pairing ? "Pairing…"
                                                 : dev.modelData.state === BluetoothDeviceState.Connecting ? "Connecting…"
                                                 : dev.modelData.connected ? "Connected" + (dev.modelData.batteryAvailable ? " · battery " + Math.round(dev.modelData.battery * 100) + "%" : "")
                                                 : dev.modelData.paired ? "Paired" : "Not paired"
-                                            color: dev.modelData.connected ? Qt.lighter(Theme.accent, 1.3) : "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                                            color: dev.modelData.connected ? Qt.lighter(Theme.accent, 1.3) : Theme.muted; font.family: Theme.font; font.pixelSize: 11
                                         }
                                     }
                                     Row {
@@ -795,7 +795,7 @@ FloatingWindow {
                         color: Theme.tint(0.18)
                         border.width: 1
                         border.color: Theme.tint(0.5)
-                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Keep these display settings? Reverting in " + win.revertLeft + "s"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Keep these display settings? Reverting in " + win.revertLeft + "s"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
                         Row {
                             anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
                             spacing: 8
@@ -851,8 +851,8 @@ FloatingWindow {
                                     }
                                     Column {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        Text { text: (mon.modelData.make && mon.modelData.make !== "Unknown" ? mon.modelData.make + " " : "") + (mon.modelData.model || mon.modelData.name); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
-                                        Text { text: mon.modelData.name + " · " + mon.modelData.width + "×" + mon.modelData.height + " · " + Math.round(mon.modelData.refreshRate) + " Hz · scale " + mon.modelData.scale; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                                        Text { text: (mon.modelData.make && mon.modelData.make !== "Unknown" ? mon.modelData.make + " " : "") + (mon.modelData.model || mon.modelData.name); color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                                        Text { text: mon.modelData.name + " · " + mon.modelData.width + "×" + mon.modelData.height + " · " + Math.round(mon.modelData.refreshRate) + " Hz · scale " + mon.modelData.scale; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                                     }
                                 }
                                 SectionLabel { text: "Resolution" }
@@ -913,12 +913,12 @@ FloatingWindow {
                             Row {
                                 visible: Prefs.nightMode === "schedule"
                                 spacing: 10
-                                Text { anchors.verticalCenter: parent.verticalCenter; text: "From"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                                Text { anchors.verticalCenter: parent.verticalCenter; text: "From"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                                 Repeater {
                                     model: ["18:00", "19:00", "20:00", "21:00"]
                                     Chip { required property string modelData; label: modelData; on: Prefs.nightFrom === modelData; onClicked: Prefs.set("nightFrom", modelData) }
                                 }
-                                Text { anchors.verticalCenter: parent.verticalCenter; text: "to"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                                Text { anchors.verticalCenter: parent.verticalCenter; text: "to"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                                 Repeater {
                                     model: ["05:30", "06:30", "07:30"]
                                     Chip { required property string modelData; label: modelData; on: Prefs.nightTo === modelData; onClicked: Prefs.set("nightTo", modelData) }
@@ -934,7 +934,7 @@ FloatingWindow {
                             }
                             Text {
                                 text: NightLight.active ? "On now · " + NightLight.current + " K" : "Off now"
-                                color: NightLight.active ? "#FFB547" : "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                                color: NightLight.active ? "#FFB547" : Theme.muted; font.family: Theme.font; font.pixelSize: 12
                             }
                         }
                     }
@@ -957,7 +957,7 @@ FloatingWindow {
                     Card {
                         width: parent.width
                         height: 56
-                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Mute"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Mute"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
                         Toggle { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: Audio.muted; onToggled: if (Audio.sink?.audio) Audio.sink.audio.muted = !Audio.sink.audio.muted }
                     }
 
@@ -1001,11 +1001,11 @@ FloatingWindow {
                                     required property var modelData
                                     required property int index
                                     width: tpCol.width; height: 58
-                                    Rectangle { visible: parent.index > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
+                                    Rectangle { visible: parent.index > 0; x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
                                     Column {
                                         x: 18; anchors.verticalCenter: parent.verticalCenter
-                                        Text { text: parent.parent.modelData.t; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                                        Text { text: parent.parent.modelData.s; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                                        Text { text: parent.parent.modelData.t; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+                                        Text { text: parent.parent.modelData.s; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                                     }
                                     Toggle {
                                         anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
@@ -1049,8 +1049,8 @@ FloatingWindow {
                                 Item {
                                     required property var modelData
                                     width: gCol.width; height: 38
-                                    Text { anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[0]; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                                    Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[1]; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                                    Text { anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[0]; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+                                    Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[1]; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                                 }
                             }
                         }
@@ -1075,22 +1075,22 @@ FloatingWindow {
                         Rectangle {
                             x: 18; anchors.verticalCenter: parent.verticalCenter
                             width: 56; height: 26; radius: 7
-                            color: "transparent"; border.width: 2; border.color: Qt.rgba(1, 1, 1, 0.6)
+                            color: "transparent"; border.width: 2; border.color: Theme.fg(0.6)
                             Rectangle {
                                 x: 3; y: 3; height: parent.height - 6; radius: 4
                                 width: (parent.width - 6) * Math.max(0.04, Power.percent / 100)
-                                color: Power.percent <= 20 && !Power.charging ? "#FF5F57" : Power.charging ? "#34C77B" : "#FFFFFF"
+                                color: Power.percent <= 20 && !Power.charging ? "#FF5F57" : Power.charging ? "#34C77B" : Theme.label
                             }
-                            Rectangle { anchors.left: parent.right; anchors.leftMargin: 1; anchors.verticalCenter: parent.verticalCenter; width: 3; height: 10; radius: 1.5; color: Qt.rgba(1, 1, 1, 0.6) }
+                            Rectangle { anchors.left: parent.right; anchors.leftMargin: 1; anchors.verticalCenter: parent.verticalCenter; width: 3; height: 10; radius: 1.5; color: Theme.fg(0.6) }
                         }
                         Column {
                             x: 92; anchors.verticalCenter: parent.verticalCenter
-                            Text { text: Math.round(Power.percent) + "%" + (Power.charging ? " · charging" : " · on battery"); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold }
+                            Text { text: Math.round(Power.percent) + "%" + (Power.charging ? " · charging" : " · on battery"); color: Theme.label; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold }
                             Text {
                                 readonly property real secs: Power.charging ? (UPower.displayDevice?.timeToFull ?? 0) : (UPower.displayDevice?.timeToEmpty ?? 0)
                                 visible: secs > 0
                                 text: Math.floor(secs / 3600) + " h " + Math.round(secs % 3600 / 60) + " min " + (Power.charging ? "until full" : "left")
-                                color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                                color: Theme.muted; font.family: Theme.font; font.pixelSize: 12
                             }
                         }
                     }
@@ -1112,14 +1112,14 @@ FloatingWindow {
                                 width: (body.width - 20) / 3
                                 height: 78; radius: 18
                                 opacity: avail ? 1 : 0.4
-                                color: on ? Theme.tint(0.22) : pmm.containsMouse ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(1, 1, 1, 0.05)
+                                color: on ? Theme.tint(0.22) : pmm.containsMouse ? Theme.fg(0.09) : Theme.fg(0.05)
                                 border.width: on ? 2 : 1
-                                border.color: on ? Theme.accent : Qt.rgba(1, 1, 1, 0.06)
-                                Icon { x: 14; y: 14; name: pmode.modelData.icon; size: 18; color: pmode.on ? Qt.lighter(Theme.accent, 1.3) : "#FFFFFF" }
+                                border.color: on ? Theme.accent : Theme.fg(0.06)
+                                TIcon { x: 14; y: 14; name: pmode.modelData.icon; size: 18; color: pmode.on ? Qt.lighter(Theme.accent, 1.3) : Theme.label }
                                 Column {
                                     x: 14; y: 38
-                                    Text { text: pmode.modelData.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
-                                    Text { text: pmode.modelData.sub; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 10 }
+                                    Text { text: pmode.modelData.label; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                    Text { text: pmode.modelData.sub; color: Theme.muted; font.family: Theme.font; font.pixelSize: 10 }
                                 }
                                 MouseArea { id: pmm; anchors.fill: parent; enabled: pmode.avail; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: PowerProfiles.profile = pmode.modelData.p }
                             }
@@ -1128,7 +1128,7 @@ FloatingWindow {
                     Card {
                         visible: Power.present
                         width: parent.width; height: 56
-                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Turn on Battery saver automatically at 20%"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Turn on Battery saver automatically at 20%"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
                         Toggle { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: Prefs.autoSaver; onToggled: Prefs.set("autoSaver", !Prefs.autoSaver) }
                     }
 
@@ -1154,7 +1154,7 @@ FloatingWindow {
                                     required property var modelData
                                     width: idleCol.width
                                     height: 44
-                                    Text { anchors.verticalCenter: parent.verticalCenter; text: irow.modelData.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                                    Text { anchors.verticalCenter: parent.verticalCenter; text: irow.modelData.label; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
                                     Row {
                                         anchors.right: parent.right
                                         anchors.verticalCenter: parent.verticalCenter
@@ -1175,7 +1175,7 @@ FloatingWindow {
                     }
                     Card {
                         width: parent.width; height: 56
-                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "When I close the lid"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "When I close the lid"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
                         Row {
                             anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
                             spacing: 6
@@ -1207,11 +1207,11 @@ FloatingWindow {
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.bottom: parent.bottom; anchors.bottomMargin: 8
                             width: 150; height: 22; radius: 9
-                            color: Qt.rgba(1, 1, 1, 0.16)
-                            border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.2)
+                            color: Theme.fg(0.16)
+                            border.width: 1; border.color: Theme.fg(0.2)
                             Row {
                                 anchors.centerIn: parent; spacing: 5
-                                Repeater { model: 6; Rectangle { width: 15; height: 15; radius: 5; color: Qt.rgba(1, 1, 1, 0.55 + index * 0.05) } }
+                                Repeater { model: 6; Rectangle { width: 15; height: 15; radius: 5; color: Theme.fg(0.55 + index * 0.05) } }
                             }
                         }
                     }
@@ -1238,13 +1238,13 @@ FloatingWindow {
                                     Rounded {
                                         anchors.fill: parent
                                         radius: 14
-                                        Rectangle { anchors.fill: parent; color: Qt.rgba(1, 1, 1, 0.06) }
+                                        Rectangle { anchors.fill: parent; color: Theme.fg(0.06) }
                                         Image { anchors.fill: parent; source: "file://" + iw.modelData.path; sourceSize: Qt.size(480, 270); fillMode: Image.PreserveAspectCrop; asynchronous: true }
                                     }
-                                    Rectangle { anchors.fill: parent; radius: 14; color: "transparent"; border.width: iw.on ? 3 : 1; border.color: iw.on ? Theme.accent : Qt.rgba(1, 1, 1, 0.08) }
+                                    Rectangle { anchors.fill: parent; radius: 14; color: "transparent"; border.width: iw.on ? 3 : 1; border.color: iw.on ? Theme.accent : Theme.fg(0.08) }
                                     MouseArea { id: iwm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Prefs.set("wallpaper", iw.modelData.path) }
                                 }
-                                Text { anchors.top: iwThumb.bottom; anchors.topMargin: 5; text: iw.modelData.name; color: iw.on ? "#FFFFFF" : "#AEAEB2"; font.family: Theme.font; font.pixelSize: 12; font.weight: iw.on ? Font.DemiBold : Font.Normal }
+                                Text { anchors.top: iwThumb.bottom; anchors.topMargin: 5; text: iw.modelData.name; color: iw.on ? Theme.label : Theme.subtle; font.family: Theme.font; font.pixelSize: 12; font.weight: iw.on ? Font.DemiBold : Font.Normal }
                             }
                         }
                     }
@@ -1268,10 +1268,10 @@ FloatingWindow {
                                     scale: pm.pressed ? 0.95 : pm.containsMouse ? 1.03 : 1
                                     Behavior on scale { SpringAnimation { spring: 5; damping: 0.35; epsilon: 0.002 } }
                                     Rounded { anchors.fill: parent; radius: 14; Backdrop { anchors.fill: parent; preset: pv.modelData; image: ""; animated: false } }
-                                    Rectangle { anchors.fill: parent; radius: 14; color: "transparent"; border.width: pv.on ? 3 : 1; border.color: pv.on ? Theme.accent : Qt.rgba(1, 1, 1, 0.08) }
+                                    Rectangle { anchors.fill: parent; radius: 14; color: "transparent"; border.width: pv.on ? 3 : 1; border.color: pv.on ? Theme.accent : Theme.fg(0.08) }
                                     MouseArea { id: pm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Prefs.set("wallpaper", "preset:" + pv.modelData.id) }
                                 }
-                                Text { anchors.top: thumb.bottom; anchors.topMargin: 5; text: pv.modelData.label; color: pv.on ? "#FFFFFF" : "#AEAEB2"; font.family: Theme.font; font.pixelSize: 12; font.weight: pv.on ? Font.DemiBold : Font.Normal }
+                                Text { anchors.top: thumb.bottom; anchors.topMargin: 5; text: pv.modelData.label; color: pv.on ? Theme.label : Theme.subtle; font.family: Theme.font; font.pixelSize: 12; font.weight: pv.on ? Font.DemiBold : Font.Normal }
                             }
                         }
                     }
@@ -1294,7 +1294,7 @@ FloatingWindow {
                                 Rounded {
                                     anchors.fill: parent
                                     radius: 12
-                                    Rectangle { anchors.fill: parent; color: Qt.rgba(1, 1, 1, 0.06) }
+                                    Rectangle { anchors.fill: parent; color: Theme.fg(0.06) }
                                     Image {
                                         anchors.fill: parent
                                         source: "file://" + ph.modelData
@@ -1303,7 +1303,7 @@ FloatingWindow {
                                         asynchronous: true
                                     }
                                 }
-                                Rectangle { anchors.fill: parent; radius: 12; color: "transparent"; border.width: ph.on ? 3 : 1; border.color: ph.on ? Theme.accent : Qt.rgba(1, 1, 1, 0.08) }
+                                Rectangle { anchors.fill: parent; radius: 12; color: "transparent"; border.width: ph.on ? 3 : 1; border.color: ph.on ? Theme.accent : Theme.fg(0.08) }
                                 MouseArea { id: phm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Prefs.set("wallpaper", ph.modelData) }
                             }
                         }
@@ -1339,13 +1339,13 @@ FloatingWindow {
                                         width: sw.on ? 34 : 40; height: width; radius: width / 2
                                         color: sw.modelData.color
                                         Behavior on width { SpringAnimation { spring: 5; damping: 0.35 } }
-                                        Icon { anchors.centerIn: parent; name: "check"; size: 16; visible: sw.on }
+                                        TIcon { anchors.centerIn: parent; name: "check"; size: 16; visible: sw.on }
                                     }
                                     scale: swm.pressed ? 0.9 : swm.containsMouse ? 1.08 : 1
                                     Behavior on scale { SpringAnimation { spring: 5; damping: 0.32; epsilon: 0.002 } }
                                     MouseArea { id: swm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Prefs.set("accentId", sw.modelData.id) }
                                 }
-                                Text { anchors.horizontalCenter: parent.horizontalCenter; text: sw.modelData.label; color: sw.on ? "#FFFFFF" : "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                                Text { anchors.horizontalCenter: parent.horizontalCenter; text: sw.modelData.label; color: sw.on ? Theme.label : Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                             }
                         }
                     }
@@ -1365,9 +1365,9 @@ FloatingWindow {
                                 width: (body.width - 12) / 2
                                 height: 112
                                 radius: 18
-                                color: stm.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.05)
+                                color: stm.containsMouse ? Theme.fg(0.08) : Theme.fg(0.05)
                                 border.width: on ? 2 : 1
-                                border.color: on ? Theme.accent : Qt.rgba(1, 1, 1, 0.06)
+                                border.color: on ? Theme.accent : Theme.fg(0.06)
                                 scale: stm.pressed ? 0.97 : 1
                                 Behavior on scale { SpringAnimation { spring: 5; damping: 0.35; epsilon: 0.002 } }
                                 Row {
@@ -1386,8 +1386,8 @@ FloatingWindow {
                                 }
                                 Column {
                                     x: 18; y: 66
-                                    Text { text: st.modelData.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
-                                    Text { text: st.modelData.sub; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                                    Text { text: st.modelData.label; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                    Text { text: st.modelData.sub; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                                 }
                                 MouseArea { id: stm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Prefs.set("iconStyle", st.modelData.id) }
                             }
@@ -1405,19 +1405,19 @@ FloatingWindow {
                             spacing: 14
                             Row {
                                 spacing: 10
-                                Rectangle { width: 110; height: 34; radius: 17; color: Theme.accent; Text { anchors.centerIn: parent; text: "Primary"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Bold } }
-                                Rectangle { width: 110; height: 34; radius: 17; color: Theme.tint(0.22); Text { anchors.centerIn: parent; text: "Selected"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12 } }
+                                Rectangle { width: 110; height: 34; radius: 17; color: Theme.accent; Text { anchors.centerIn: parent; text: "Primary"; color: Theme.label; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Bold } }
+                                Rectangle { width: 110; height: 34; radius: 17; color: Theme.tint(0.22); Text { anchors.centerIn: parent; text: "Selected"; color: Theme.label; font.family: Theme.font; font.pixelSize: 12 } }
                                 Rectangle {
                                     width: 52; height: 30; radius: 15; color: Theme.accent
                                     anchors.verticalCenter: parent.verticalCenter
-                                    Rectangle { x: 25; y: 3; width: 24; height: 24; radius: 12; color: "#FFFFFF" }
+                                    Rectangle { x: 25; y: 3; width: 24; height: 24; radius: 12; color: Theme.label }
                                 }
                             }
                             Rectangle {
-                                width: parent.width; height: 8; radius: 4; color: Qt.rgba(1, 1, 1, 0.12)
+                                width: parent.width; height: 8; radius: 4; color: Theme.fg(0.12)
                                 Rectangle { width: parent.width * 0.62; height: 8; radius: 4; color: Theme.accent }
                             }
-                            Text { text: "The accent color is used for buttons, selections, the active window border and the clock colon."; width: parent.width; wrapMode: Text.Wrap; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                            Text { text: "The accent color is used for buttons, selections, the active window border and the clock colon."; width: parent.width; wrapMode: Text.Wrap; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                         }
                     }
                 }
@@ -1467,7 +1467,7 @@ FloatingWindow {
                                 Rectangle {
                                     width: 46; height: 46; radius: 15
                                     color: Updates.count > 0 || Updates.running ? Theme.tint(0.25) : Qt.rgba(0.2, 0.78, 0.48, 0.2)
-                                    Icon {
+                                    TIcon {
                                         anchors.centerIn: parent
                                         name: Updates.count > 0 || Updates.running ? "download" : "check"
                                         size: 22
@@ -1482,7 +1482,7 @@ FloatingWindow {
                                             : Updates.checking ? "Checking for updates…"
                                             : Updates.count > 0 ? Updates.count + (Updates.count === 1 ? " update available" : " updates available")
                                             : "Islet is up to date"
-                                        color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold
+                                        color: Theme.label; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold
                                     }
                                     Text {
                                         width: parent.width
@@ -1490,7 +1490,7 @@ FloatingWindow {
                                         text: Updates.running ? Packages.stepText
                                             : Updates.error ? Updates.error
                                             : Updates.lastCheck ? "Last checked " + Qt.formatTime(new Date(Updates.lastCheck), "HH:mm") : "Not checked yet"
-                                        color: Updates.error ? "#FF8A8A" : "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                                        color: Updates.error ? "#FF8A8A" : Theme.muted; font.family: Theme.font; font.pixelSize: 12
                                     }
                                 }
                                 Pill {
@@ -1506,7 +1506,7 @@ FloatingWindow {
                             Rectangle {
                                 visible: Updates.running
                                 width: parent.width; height: 8; radius: 4
-                                color: Qt.rgba(1, 1, 1, 0.12)
+                                color: Theme.fg(0.12)
                                 Rectangle {
                                     height: parent.height; radius: 4
                                     width: Math.max(8, parent.width * Packages.pct / 100)
@@ -1532,7 +1532,7 @@ FloatingWindow {
                         width: parent.width; height: 58; radius: 16
                         color: Theme.tint(0.16)
                         border.width: 1; border.color: Theme.tint(0.45)
-                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Restart to finish installing the new system core"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Restart to finish installing the new system core"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
                         Pill { anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter; label: "Restart"; primary: true; onClicked: Quickshell.execDetached(["systemctl", "reboot"]) }
                     }
 
@@ -1545,7 +1545,7 @@ FloatingWindow {
                             : "A restore point is made before every update, so you can always go back."
                         textFormat: Text.StyledText; linkColor: Qt.lighter(Theme.accent, 1.3)
                         onLinkActivated: Ui.openSettings("storage")
-                        color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                        color: Theme.muted; font.family: Theme.font; font.pixelSize: 12
                     }
 
                     // nhật ký thay đổi của chính Islet
@@ -1570,16 +1570,16 @@ FloatingWindow {
                                         required property int index
                                         width: chList.width
                                         height: chCol.implicitHeight + 20
-                                        Rectangle { visible: chRow.index > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
+                                        Rectangle { visible: chRow.index > 0; x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
                                         Rectangle { x: 20; y: 17; width: 6; height: 6; radius: 3; color: Theme.accent }
                                         Column {
                                             id: chCol
                                             x: 36; y: 10; width: parent.width - 36 - 18
                                             spacing: 2
-                                            Text { width: parent.width; wrapMode: Text.Wrap; text: chRow.modelData.subject; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium }
+                                            Text { width: parent.width; wrapMode: Text.Wrap; text: chRow.modelData.subject; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium }
                                             Text {
                                                 visible: text !== ""; width: parent.width; wrapMode: Text.Wrap; maximumLineCount: 3; elide: Text.ElideRight
-                                                text: chRow.modelData.detail || ""; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                                                text: chRow.modelData.detail || ""; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12
                                             }
                                         }
                                     }
@@ -1609,7 +1609,7 @@ FloatingWindow {
                                         required property var modelData
                                         width: upList.width
                                         height: 38
-                                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: Updates.isletNames[parent.modelData.name] ?? parent.modelData.name; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: parent.modelData.islet ? Font.DemiBold : Font.Normal }
+                                        Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: Updates.isletNames[parent.modelData.name] ?? parent.modelData.name; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: parent.modelData.islet ? Font.DemiBold : Font.Normal }
                                         Rectangle {
                                             visible: parent.modelData.islet
                                             x: 18 + isletW.implicitWidth + 8; anchors.verticalCenter: parent.verticalCenter
@@ -1629,7 +1629,7 @@ FloatingWindow {
                                         Text {
                                             anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter
                                             text: parent.modelData.from + "  →  " + parent.modelData.to
-                                            color: "#8E8E93"; font.family: Theme.mono; font.pixelSize: 11
+                                            color: Theme.muted; font.family: Theme.mono; font.pixelSize: 11
                                         }
                                     }
                                 }
@@ -1665,8 +1665,8 @@ FloatingWindow {
                                 NumberAnimation { to: 0; duration: 1800; easing.type: Easing.InOutSine }
                             }
                         }
-                        Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Islet"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 26; font.weight: Font.Bold }
-                        Text { anchors.horizontalCenter: parent.horizontalCenter; text: win.sys.os ?? ""; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                        Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Islet"; color: Theme.label; font.family: Theme.font; font.pixelSize: 26; font.weight: Font.Bold }
+                        Text { anchors.horizontalCenter: parent.horizontalCenter; text: win.sys.os ?? ""; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                     }
                     Card {
                         width: parent.width
@@ -1687,13 +1687,13 @@ FloatingWindow {
                                     visible: (modelData[1] || "") !== ""
                                     width: infoCol.width
                                     height: 42
-                                    Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[0]; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 13 }
+                                    Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[0]; color: Theme.muted; font.family: Theme.font; font.pixelSize: 13 }
                                     Text {
                                         anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter
                                         width: parent.width - 150; horizontalAlignment: Text.AlignRight; elide: Text.ElideLeft
-                                        text: parent.modelData[1] || ""; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13
+                                        text: parent.modelData[1] || ""; color: Theme.label; font.family: Theme.font; font.pixelSize: 13
                                     }
-                                    Rectangle { visible: parent.index > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
+                                    Rectangle { visible: parent.index > 0; x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
                                 }
                             }
                         }

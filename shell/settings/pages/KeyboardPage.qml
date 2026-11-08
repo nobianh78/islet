@@ -19,8 +19,8 @@ Column {
         height: 64
         Column {
             x: 18; anchors.verticalCenter: parent.verticalCenter
-            Text { text: "Vietnamese input"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-            Text { text: Ime.running ? (Ime.vietnamese ? "On · typing Vietnamese" : "On · typing English") : Prefs.imeEnabled ? "Starting…" : "Off"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+            Text { text: "Vietnamese input"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+            Text { text: Ime.running ? (Ime.vietnamese ? "On · typing Vietnamese" : "On · typing English") : Prefs.imeEnabled ? "Starting…" : "Off"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
         }
         Toggle { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: Prefs.imeEnabled; onToggled: Ime.setEnabled(!Prefs.imeEnabled) }
     }
@@ -33,7 +33,7 @@ Column {
             x: 18; y: 16
             width: parent.width - 36
             spacing: 12
-            Text { text: "Typing method"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+            Text { text: "Typing method"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
             Flow {
                 width: parent.width
                 spacing: 8
@@ -47,20 +47,20 @@ Column {
                 text: Prefs.imeMethod === "VNI" ? "VNI: type numbers after letters — tie6ng Vie65t → tiếng Việt"
                     : Prefs.imeMethod.indexOf("Telex") === 0 ? "Telex: tieesng Vieejt → tiếng Việt  ·  aw ă · aa â · dd đ · s f r x j = sắc huyền hỏi ngã nặng"
                     : "VIQR: tie^'ng Vie^.t → tiếng Việt"
-                color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                color: Theme.muted; font.family: Theme.font; font.pixelSize: 11
             }
             Row {
                 spacing: 10
-                Rectangle { width: kbd.implicitWidth + 16; height: 26; radius: 7; color: Qt.rgba(1, 1, 1, 0.1); Text { id: kbd; anchors.centerIn: parent; text: "Ctrl + Space"; color: "#FFFFFF"; font.family: Theme.mono; font.pixelSize: 12 } }
-                Text { anchors.verticalCenter: parent.verticalCenter; text: "switches Vietnamese ⇄ English · or click VI / EN in the top bar"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                Rectangle { width: kbd.implicitWidth + 16; height: 26; radius: 7; color: Theme.fg(0.1); Text { id: kbd; anchors.centerIn: parent; text: "Ctrl + Space"; color: Theme.label; font.family: Theme.mono; font.pixelSize: 12 } }
+                Text { anchors.verticalCenter: parent.verticalCenter; text: "switches Vietnamese ⇄ English · or click VI / EN in the top bar"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
             }
             // ô thử gõ
             Rectangle {
                 width: parent.width; height: 38; radius: 12
-                color: Qt.rgba(1, 1, 1, 0.06)
-                border.width: 1; border.color: tryIn.activeFocus ? Theme.tint(0.6) : Qt.rgba(1, 1, 1, 0.08)
-                TextInput { id: tryIn; anchors.fill: parent; anchors.margins: 10; verticalAlignment: TextInput.AlignVCenter; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14 }
-                Text { visible: tryIn.text === "" && !tryIn.activeFocus; anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter; text: "Try typing here…"; color: "#636366"; font.family: Theme.font; font.pixelSize: 13 }
+                color: Theme.fg(0.06)
+                border.width: 1; border.color: tryIn.activeFocus ? Theme.tint(0.6) : Theme.fg(0.08)
+                TextInput { id: tryIn; anchors.fill: parent; anchors.margins: 10; verticalAlignment: TextInput.AlignVCenter; color: Theme.label; font.family: Theme.font; font.pixelSize: 14 }
+                Text { visible: tryIn.text === "" && !tryIn.activeFocus; anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter; text: "Try typing here…"; color: Theme.faint; font.family: Theme.font; font.pixelSize: 13 }
             }
         }
     }
@@ -74,7 +74,7 @@ Column {
             x: 18; y: 16
             width: parent.width - 36
             spacing: 12
-            Text { text: "Layout"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+            Text { text: "Layout"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
             Flow {
                 width: parent.width
                 spacing: 8

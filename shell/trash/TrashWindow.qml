@@ -13,7 +13,7 @@ FloatingWindow {
     implicitWidth: 860
     implicitHeight: 580
     minimumSize: Qt.size(640, 420)
-    color: "#0D0D15"
+    color: Theme.window
     visible: false
 
     Connections {
@@ -88,7 +88,7 @@ FloatingWindow {
             anchors.fill: parent; anchors.margins: 10; radius: 18; z: 30
             color: Theme.tint(0.12); border.width: 2; border.color: Theme.accent
             visible: drop.containsDrag
-            Text { anchors.centerIn: parent; text: "Drop to move to Trash"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.DemiBold }
+            Text { anchors.centerIn: parent; text: "Drop to move to Trash"; color: Theme.label; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.DemiBold }
         }
 
         // ---------- thanh trên ----------
@@ -103,10 +103,10 @@ FloatingWindow {
                 AppIcon { anchors.verticalCenter: parent.verticalCenter; size: 30; name: Trash.full ? "trash-full" : "trash" }
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
-                    Text { text: "Trash"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Bold }
+                    Text { text: "Trash"; color: Theme.label; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Bold }
                     Text {
                         text: Trash.count === 0 ? "Empty" : Trash.count + (Trash.count === 1 ? " item" : " items") + " · " + Trash.human(Trash.bytes)
-                        color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                        color: Theme.muted; font.family: Theme.font; font.pixelSize: 11
                     }
                 }
             }
@@ -117,7 +117,7 @@ FloatingWindow {
                 Btn { label: "Open in Files"; onClicked: Quickshell.execDetached(["nautilus", "trash:///"]) }
                 Btn { label: "Empty Trash"; danger: true; enabled_: Trash.count > 0; onClicked: win.confirmEmpty = true }
             }
-            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
+            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.fg(0.06) }
         }
 
         // ---------- danh sách ----------
@@ -140,7 +140,7 @@ FloatingWindow {
                 width: list.width
                 height: 58
                 radius: 14
-                color: isSel ? Theme.tint(0.18) : rm.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
+                color: isSel ? Theme.tint(0.18) : rm.containsMouse ? Theme.fg(0.06) : "transparent"
                 // bấm để chọn · bấm đúp hoặc Space để xem nhanh
                 MouseArea {
                     id: rm; anchors.fill: parent; hoverEnabled: true
@@ -156,16 +156,16 @@ FloatingWindow {
                 Column {
                     x: 62; anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - 62 - actions.width - 110
-                    Text { width: parent.width; elide: Text.ElideMiddle; text: row.modelData.name; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                    Text { width: parent.width; elide: Text.ElideMiddle; text: row.modelData.name; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
                     Text {
                         width: parent.width; elide: Text.ElideLeft
                         text: "From " + win.where(row.modelData.orig) + "  ·  " + win.when(row.modelData.date)
-                        color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                        color: Theme.muted; font.family: Theme.font; font.pixelSize: 11
                     }
                 }
                 Text {
                     anchors.right: actions.left; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
-                    text: Trash.human(row.modelData.size); color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                    text: Trash.human(row.modelData.size); color: Theme.muted; font.family: Theme.font; font.pixelSize: 12
                 }
                 Row {
                     id: actions
@@ -190,20 +190,20 @@ FloatingWindow {
             anchors.centerIn: list
             spacing: 10
             AppIcon { anchors.horizontalCenter: parent.horizontalCenter; size: 84; name: "trash" }
-            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Trash is empty"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.DemiBold }
-            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Drag files onto the Trash in the Dock to delete them."; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Trash is empty"; color: Theme.label; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.DemiBold }
+            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Drag files onto the Trash in the Dock to delete them."; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
         }
         Text {
             visible: Trash.count > 0
             anchors.bottom: parent.bottom; anchors.bottomMargin: 10; anchors.horizontalCenter: parent.horizontalCenter
             text: "Space — Quick Look  ·  double-click to preview"
-            color: "#636366"; font.family: Theme.font; font.pixelSize: 11
+            color: Theme.faint; font.family: Theme.font; font.pixelSize: 11
         }
 
         // ---------- hỏi trước khi dọn sạch ----------
         Rectangle {
             anchors.fill: parent; z: 40
-            color: Qt.rgba(0, 0, 0, 0.5)
+            color: Theme.surface(0.5)
             visible: opacity > 0.01
             opacity: win.confirmEmpty ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: 150 } }
@@ -211,8 +211,8 @@ FloatingWindow {
             Rectangle {
                 anchors.centerIn: parent
                 width: 400; height: 196; radius: 22
-                color: Qt.rgba(0.1, 0.1, 0.14, 0.98)
-                border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.1)
+                color: Theme.surface(0.98)
+                border.width: 1; border.color: Theme.fg(0.1)
                 scale: win.confirmEmpty ? 1 : 0.92
                 Behavior on scale { SpringAnimation { spring: 5; damping: 0.32 } }
                 MouseArea { anchors.fill: parent }
@@ -223,13 +223,13 @@ FloatingWindow {
                         AppIcon { size: 40; name: "trash-full" }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "Empty the Trash?"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.Bold
+                            text: "Empty the Trash?"; color: Theme.label; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.Bold
                         }
                     }
                     Text {
                         width: parent.width; wrapMode: Text.Wrap
                         text: Trash.count + (Trash.count === 1 ? " item" : " items") + " (" + Trash.human(Trash.bytes) + ") will be erased for good. You can't undo this."
-                        color: "#AEAEB2"; font.family: Theme.font; font.pixelSize: 12
+                        color: Theme.subtle; font.family: Theme.font; font.pixelSize: 12
                     }
                     Item { width: 1; height: 6 }
                     Row {
@@ -256,11 +256,11 @@ FloatingWindow {
         opacity: enabled_ ? 1 : 0.4
         color: primary ? (bm.containsMouse ? "#FF7A73" : "#FF5F57")
              : danger ? (bm.containsMouse ? Qt.rgba(1, 0.37, 0.34, 0.32) : Qt.rgba(1, 0.37, 0.34, 0.18))
-             : (bm.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.08))
+             : (bm.containsMouse ? Theme.fg(0.16) : Theme.fg(0.08))
         Behavior on color { ColorAnimation { duration: 120 } }
         scale: bm.pressed ? 0.95 : 1
         Behavior on scale { NumberAnimation { duration: 90 } }
-        Text { id: bl; anchors.centerIn: parent; text: b.label; color: b.danger && !b.primary ? "#FF8A84" : "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold }
+        Text { id: bl; anchors.centerIn: parent; text: b.label; color: b.primary ? "#FFFFFF" : b.danger ? "#FF8A84" : Theme.label; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold }
         MouseArea { id: bm; anchors.fill: parent; enabled: b.enabled_; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: b.clicked() }
     }
 }

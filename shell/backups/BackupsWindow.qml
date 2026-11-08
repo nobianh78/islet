@@ -15,7 +15,7 @@ FloatingWindow {
     implicitWidth: 960
     implicitHeight: 620
     minimumSize: Qt.size(720, 460)
-    color: "#0D0D15"
+    color: Theme.window
     visible: false
 
     Connections {
@@ -141,15 +141,15 @@ FloatingWindow {
                 Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     width: 30; height: 30; radius: 9; color: Theme.tint(0.3)
-                    Icon { anchors.centerIn: parent; name: "history"; size: 17 }
+                    TIcon { anchors.centerIn: parent; name: "history"; size: 17 }
                 }
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
-                    Text { text: "Time Machine"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Bold }
+                    Text { text: "Time Machine"; color: Theme.label; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Bold }
                     Text {
                         text: !Backup.connected ? (Prefs.backupLabel || "Backup drive") + " is not connected"
                             : (Prefs.backupLabel || "Backup drive") + " · " + Backup.list.length + (Backup.list.length === 1 ? " version" : " versions")
-                        color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                        color: Theme.muted; font.family: Theme.font; font.pixelSize: 11
                     }
                 }
             }
@@ -160,7 +160,7 @@ FloatingWindow {
                 Btn { label: Backup.running ? "Backing up… " + Backup.pct + "%" : "Back up now"; enabled_: Backup.connected && !Backup.running; onClicked: Backup.backup() }
                 Btn { label: "Restore"; primary: true; enabled_: win.selected !== ""; onClicked: win.restore(win.selected) }
             }
-            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
+            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.fg(0.06) }
         }
 
         // ---------- các bản sao lưu ----------
@@ -168,8 +168,8 @@ FloatingWindow {
             id: side
             anchors.top: head.bottom; anchors.bottom: parent.bottom
             width: 230
-            color: Qt.rgba(1, 1, 1, 0.025)
-            Text { x: 20; y: 14; text: "VERSIONS"; color: "#636366"; font.family: Theme.font; font.pixelSize: 10; font.weight: Font.Bold; font.letterSpacing: 1 }
+            color: Theme.fg(0.025)
+            Text { x: 20; y: 14; text: "VERSIONS"; color: Theme.faint; font.family: Theme.font; font.pixelSize: 10; font.weight: Font.Bold; font.letterSpacing: 1 }
             ListView {
                 id: vlist
                 anchors.fill: parent; anchors.topMargin: 36; anchors.margins: 10
@@ -182,14 +182,14 @@ FloatingWindow {
                     required property int index
                     readonly property bool on: win.version === modelData.id
                     width: vlist.width; height: 46; radius: 12
-                    color: on ? Theme.tint(0.22) : vm.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
+                    color: on ? Theme.tint(0.22) : vm.containsMouse ? Theme.fg(0.06) : "transparent"
                     // dải thời gian bên trái, như Time Machine
-                    Rectangle { x: 14; y: 0; width: 2; height: parent.height; color: Qt.rgba(1, 1, 1, 0.08); visible: vlist.count > 1 }
+                    Rectangle { x: 14; y: 0; width: 2; height: parent.height; color: Theme.fg(0.08); visible: vlist.count > 1 }
                     Rectangle { x: 10; anchors.verticalCenter: parent.verticalCenter; width: 10; height: 10; radius: 5; color: vrow.on ? Theme.accent : "#48484A" }
                     Column {
                         x: 30; anchors.verticalCenter: parent.verticalCenter
-                        Text { text: win.vlabel(vrow.modelData); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: vrow.on ? Font.DemiBold : Font.Normal }
-                        Text { visible: vrow.index === 0; text: "Latest"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                        Text { text: win.vlabel(vrow.modelData); color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: vrow.on ? Font.DemiBold : Font.Normal }
+                        Text { visible: vrow.index === 0; text: "Latest"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                     }
                     MouseArea { id: vm; anchors.fill: parent; hoverEnabled: true; onClicked: { win.pick(vrow.modelData.id); panel.forceActiveFocus(); } }
                 }
@@ -211,11 +211,11 @@ FloatingWindow {
                         required property string modelData
                         required property int index
                         spacing: 4
-                        Text { visible: parent.index > 0; anchors.verticalCenter: parent.verticalCenter; text: "›"; color: "#636366"; font.family: Theme.font; font.pixelSize: 13 }
+                        Text { visible: parent.index > 0; anchors.verticalCenter: parent.verticalCenter; text: "›"; color: Theme.faint; font.family: Theme.font; font.pixelSize: 13 }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: parent.modelData
-                            color: cm.containsMouse ? "#FFFFFF" : "#AEAEB2"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium
+                            color: cm.containsMouse ? Theme.label : Theme.subtle; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Medium
                             MouseArea {
                                 id: cm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: win.open(win.path.split("/").slice(0, parent.parent.index).join("/"))
@@ -235,7 +235,7 @@ FloatingWindow {
                     required property var modelData
                     readonly property bool isSel: win.selected === modelData.name
                     width: list.width; height: 48; radius: 12
-                    color: isSel ? Theme.tint(0.18) : rm.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
+                    color: isSel ? Theme.tint(0.18) : rm.containsMouse ? Theme.fg(0.06) : "transparent"
                     MouseArea {
                         id: rm; anchors.fill: parent; hoverEnabled: true
                         onClicked: { win.selected = row.modelData.name; panel.forceActiveFocus(); }
@@ -250,16 +250,16 @@ FloatingWindow {
                         x: 52; anchors.verticalCenter: parent.verticalCenter
                         width: parent.width - 52 - 300
                         elide: Text.ElideMiddle; text: row.modelData.name
-                        color: row.modelData.name.startsWith(".") ? "#8E8E93" : "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13
+                        color: row.modelData.name.startsWith(".") ? Theme.muted : Theme.label; font.family: Theme.font; font.pixelSize: 13
                     }
                     Text {
                         anchors.right: parent.right; anchors.rightMargin: 150; anchors.verticalCenter: parent.verticalCenter
-                        text: Backup.when(row.modelData.mtime * 1000); color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                        text: Backup.when(row.modelData.mtime * 1000); color: Theme.muted; font.family: Theme.font; font.pixelSize: 11
                     }
                     Text {
                         anchors.right: parent.right; anchors.rightMargin: 100; anchors.verticalCenter: parent.verticalCenter
                         visible: !row.modelData.dir
-                        text: win.human(row.modelData.size); color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                        text: win.human(row.modelData.size); color: Theme.muted; font.family: Theme.font; font.pixelSize: 11
                     }
                     Btn {
                         anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter
@@ -273,18 +273,18 @@ FloatingWindow {
                 visible: !win.loading && win.items.length === 0
                 anchors.centerIn: list
                 spacing: 8
-                Icon { anchors.horizontalCenter: parent.horizontalCenter; name: "backup"; size: 46; opacity: 0.5 }
+                TIcon { anchors.horizontalCenter: parent.horizontalCenter; name: "backup"; size: 46; opacity: 0.5 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: !Backup.connected ? "Plug in " + (Prefs.backupLabel || "your backup drive") + " to see your backups"
                         : Backup.list.length === 0 ? "No backups on this drive yet" : "This folder is empty"
-                    color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 13
+                    color: Theme.muted; font.family: Theme.font; font.pixelSize: 13
                 }
             }
             Text {
                 anchors.bottom: parent.bottom; anchors.bottomMargin: 10; anchors.horizontalCenter: parent.horizontalCenter
                 text: win.msg || "Double-click to open · Space — Quick Look · Restore puts a copy back where it was"
-                color: win.msg ? "#34C77B" : "#636366"; font.family: Theme.font; font.pixelSize: 11
+                color: win.msg ? "#34C77B" : Theme.faint; font.family: Theme.font; font.pixelSize: 11
             }
         }
     }
@@ -300,11 +300,11 @@ FloatingWindow {
         radius: 15
         opacity: enabled_ ? 1 : 0.4
         color: primary ? (bm.containsMouse ? Qt.lighter(Theme.accent, 1.15) : Theme.accent)
-             : (bm.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.08))
+             : (bm.containsMouse ? Theme.fg(0.16) : Theme.fg(0.08))
         Behavior on color { ColorAnimation { duration: 120 } }
         scale: bm.pressed ? 0.95 : 1
         Behavior on scale { NumberAnimation { duration: 90 } }
-        Text { id: bl; anchors.centerIn: parent; text: b.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold }
+        Text { id: bl; anchors.centerIn: parent; text: b.label; color: b.primary ? "#FFFFFF" : Theme.label; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold }
         MouseArea { id: bm; anchors.fill: parent; enabled: b.enabled_; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: b.clicked() }
     }
 }

@@ -44,7 +44,7 @@ PanelWindow {
         width: parent.width
         height: content.implicitHeight + 28
         radius: 28
-        color: Qt.rgba(0.06, 0.06, 0.1, 0.55)
+        color: Theme.surface(0.55)
 
         transformOrigin: Item.TopRight
         opacity: win.open ? 1 : 0
@@ -145,7 +145,7 @@ PanelWindow {
                 width: parent.width
                 height: 72
                 radius: 18
-                color: Qt.rgba(1, 1, 1, 0.10)
+                color: Theme.fg(0.10)
                 visible: Media.hasPlayer
 
                 Artwork {
@@ -166,7 +166,7 @@ PanelWindow {
                     Text {
                         width: parent.width
                         text: Media.title
-                        color: Theme.text
+                        color: Theme.label
                         font.family: Theme.font
                         font.pixelSize: 13
                         font.weight: Font.DemiBold
@@ -175,7 +175,7 @@ PanelWindow {
                     Text {
                         width: parent.width
                         text: Media.artist
-                        color: Theme.textDim
+                        color: Theme.fg(0.68)
                         font.family: Theme.font
                         font.pixelSize: 12
                         elide: Text.ElideRight
@@ -189,7 +189,7 @@ PanelWindow {
                     IconButton {
                         implicitWidth: 38; implicitHeight: 38; iconSize: 18
                         icon: Qt.resolvedUrl(Media.playing ? "../assets/icons/pause.svg" : "../assets/icons/play.svg")
-                        fill: Theme.text
+                        fill: Theme.label
                         onClicked: Media.toggle()
                     }
                     IconButton {
@@ -216,7 +216,7 @@ PanelWindow {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Islet"
-                        color: Theme.textDim
+                        color: Theme.fg(0.68)
                         font.family: Theme.font
                         font.pixelSize: 12
                         font.weight: Font.Medium
@@ -227,7 +227,7 @@ PanelWindow {
                     anchors.rightMargin: 10
                     anchors.verticalCenter: parent.verticalCenter
                     text: Time.dateLong
-                    color: Theme.textFaint
+                    color: Theme.fg(0.42)
                     font.family: Theme.font
                     font.pixelSize: 12
                 }
@@ -237,9 +237,9 @@ PanelWindow {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     width: 28; height: 28; radius: 14
-                    color: gm.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(1, 1, 1, 0.1)
+                    color: gm.containsMouse ? Theme.fg(0.2) : Theme.fg(0.1)
                     Behavior on color { ColorAnimation { duration: 140 } }
-                    Icon {
+                    TIcon {
                         anchors.centerIn: parent; name: "settings"; size: 15
                         rotation: gm.containsMouse ? 60 : 0
                         Behavior on rotation { SpringAnimation { spring: 3; damping: 0.3 } }

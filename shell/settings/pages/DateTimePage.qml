@@ -32,8 +32,8 @@ Column {
         height: 84
         Column {
             x: 18; anchors.verticalCenter: parent.verticalCenter
-            Text { text: Time.time; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 26; font.weight: Font.Bold }
-            Text { text: Time.dateLong + " · " + (page.tz || "…"); color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+            Text { text: Time.time; color: Theme.label; font.family: Theme.font; font.pixelSize: 26; font.weight: Font.Bold }
+            Text { text: Time.dateLong + " · " + (page.tz || "…"); color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
         }
     }
 
@@ -41,8 +41,8 @@ Column {
         width: parent.width; height: 58
         Column {
             x: 18; anchors.verticalCenter: parent.verticalCenter
-            Text { text: "Set time automatically"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-            Text { text: "Sync the clock with internet time servers"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+            Text { text: "Set time automatically"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+            Text { text: "Sync the clock with internet time servers"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
         }
         Toggle {
             anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
@@ -62,19 +62,19 @@ Column {
             spacing: 8
             Rectangle {
                 width: parent.width; height: 36; radius: 12
-                color: Qt.rgba(1, 1, 1, 0.07)
-                border.width: 1; border.color: tzIn.activeFocus ? Theme.tint(0.6) : Qt.rgba(1, 1, 1, 0.06)
-                Icon { x: 10; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 14; opacity: 0.6 }
-                TextInput { id: tzIn; x: 32; width: parent.width - 42; height: parent.height; verticalAlignment: TextInput.AlignVCenter; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; onTextChanged: page.query = text }
-                Text { visible: tzIn.text === ""; x: 32; anchors.verticalCenter: parent.verticalCenter; text: "Search a city — e.g. Ho Chi Minh, Tokyo, London"; color: "#636366"; font.family: Theme.font; font.pixelSize: 12 }
+                color: Theme.fg(0.07)
+                border.width: 1; border.color: tzIn.activeFocus ? Theme.tint(0.6) : Theme.fg(0.06)
+                TIcon { x: 10; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 14; opacity: 0.6 }
+                TextInput { id: tzIn; x: 32; width: parent.width - 42; height: parent.height; verticalAlignment: TextInput.AlignVCenter; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; onTextChanged: page.query = text }
+                Text { visible: tzIn.text === ""; x: 32; anchors.verticalCenter: parent.verticalCenter; text: "Search a city — e.g. Ho Chi Minh, Tokyo, London"; color: Theme.faint; font.family: Theme.font; font.pixelSize: 12 }
             }
             Repeater {
                 model: page.matches
                 Rectangle {
                     required property string modelData
                     width: tzCol.width; height: 36; radius: 10
-                    color: zm.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
-                    Text { x: 10; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData.replace(/_/g, " ").replace("/", " › "); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                    color: zm.containsMouse ? Theme.fg(0.08) : "transparent"
+                    Text { x: 10; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData.replace(/_/g, " ").replace("/", " › "); color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
                     Text { anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter; visible: parent.modelData === page.tz; text: "Current"; color: Qt.lighter(Theme.accent, 1.3); font.family: Theme.font; font.pixelSize: 11 }
                     MouseArea {
                         id: zm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -94,13 +94,13 @@ Column {
             x: 0; y: 4; width: parent.width
             Item {
                 width: parent.width; height: 54
-                Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "24-hour time"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "24-hour time"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
                 Toggle { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: Prefs.clock24; onToggled: Prefs.set("clock24", !Prefs.clock24) }
             }
             Item {
                 width: parent.width; height: 54
-                Rectangle { x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
-                Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Show seconds"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                Rectangle { x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
+                Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Show seconds"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
                 Toggle { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: Prefs.clockSeconds; onToggled: Prefs.set("clockSeconds", !Prefs.clockSeconds) }
             }
         }

@@ -50,7 +50,7 @@ Column {
         Column {
             id: pCol
             y: 4; width: parent.width
-            Text { visible: page.printers.length === 0; leftPadding: 18; topPadding: 14; bottomPadding: 14; text: "No printers yet — turn on your printer or add one"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+            Text { visible: page.printers.length === 0; leftPadding: 18; topPadding: 14; bottomPadding: 14; text: "No printers yet — turn on your printer or add one"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
             Repeater {
                 model: page.printers
                 Item {
@@ -58,12 +58,12 @@ Column {
                     required property var modelData
                     required property int index
                     width: pCol.width; height: 56
-                    Rectangle { visible: pr.index > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
-                    Rectangle { x: 16; anchors.verticalCenter: parent.verticalCenter; width: 32; height: 32; radius: 10; color: Qt.rgba(1, 1, 1, 0.08); Icon { anchors.centerIn: parent; name: "document"; size: 16 } }
+                    Rectangle { visible: pr.index > 0; x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
+                    Rectangle { x: 16; anchors.verticalCenter: parent.verticalCenter; width: 32; height: 32; radius: 10; color: Theme.fg(0.08); TIcon { anchors.centerIn: parent; name: "document"; size: 16 } }
                     Column {
                         x: 60; anchors.verticalCenter: parent.verticalCenter
-                        Text { text: pr.modelData.name.replace(/_/g, " "); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                        Text { text: pr.modelData.state + (pr.modelData.isDefault ? " · Default" : ""); color: pr.modelData.isDefault ? Qt.lighter(Theme.accent, 1.3) : "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                        Text { text: pr.modelData.name.replace(/_/g, " "); color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+                        Text { text: pr.modelData.state + (pr.modelData.isDefault ? " · Default" : ""); color: pr.modelData.isDefault ? Qt.lighter(Theme.accent, 1.3) : Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                     }
                     Row {
                         anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
@@ -82,6 +82,6 @@ Column {
         Pill { label: "Add a printer…"; primary: true; onClicked: Quickshell.execDetached(["system-config-printer"]) }
         Pill { label: "Refresh"; onClicked: page.refresh() }
     }
-    Text { visible: page.msg !== ""; text: page.msg; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+    Text { visible: page.msg !== ""; text: page.msg; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
     Hint { text: "Islet also adds a “Save as PDF” printer, so any app can print to a PDF file." }
 }

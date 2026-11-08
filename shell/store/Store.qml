@@ -15,7 +15,7 @@ FloatingWindow {
     implicitWidth: 1000
     implicitHeight: 680
     minimumSize: Qt.size(820, 540)
-    color: "#0D0D15"
+    color: Theme.window
     visible: false
 
     readonly property bool open: Ui.storeOpen && visible
@@ -104,8 +104,8 @@ FloatingWindow {
             id: side
             width: 214
             height: parent.height
-            color: Qt.rgba(1, 1, 1, 0.035)
-            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Qt.rgba(1, 1, 1, 0.06) }
+            color: Theme.fg(0.035)
+            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Theme.fg(0.06) }
 
             // thanh tiêu đề: kéo để di chuyển, bấm đúp để phóng to · ba nút cửa sổ
             TitleDrag { width: parent.width; height: 92 }
@@ -114,7 +114,7 @@ FloatingWindow {
             Row {
                 x: 20; y: 48; spacing: 10
                 Image { width: 32; height: 32; sourceSize: Qt.size(64, 64); source: Theme.appIcon("store") }
-                Text { anchors.verticalCenter: parent.verticalCenter; text: "Store"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Bold }
+                Text { anchors.verticalCenter: parent.verticalCenter; text: "Store"; color: Theme.label; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Bold }
             }
 
             Column {
@@ -153,10 +153,10 @@ FloatingWindow {
                         text: (Packages.current?.op === "remove" ? "Removing " : "Installing ") + (Packages.current?.name ?? "")
                             + (Packages.queue.length ? "  (+" + Packages.queue.length + ")" : "")
                         elide: Text.ElideRight
-                        color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold
+                        color: Theme.label; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold
                     }
                     Rectangle {
-                        width: parent.width; height: 5; radius: 3; color: Qt.rgba(1, 1, 1, 0.12)
+                        width: parent.width; height: 5; radius: 3; color: Theme.fg(0.12)
                         Rectangle {
                             height: parent.height; radius: 3; color: Theme.violet
                             width: parent.width * Packages.pct / 100
@@ -182,16 +182,16 @@ FloatingWindow {
                 width: main.width
                 height: 40
                 radius: 20
-                color: Qt.rgba(1, 1, 1, searchInput.activeFocus ? 0.12 : 0.07)
+                color: Theme.fg(searchInput.activeFocus ? 0.12 : 0.07)
                 border.width: 1
-                border.color: searchInput.activeFocus ? Theme.tint(0.7) : Qt.rgba(1, 1, 1, 0.08)
-                Icon { id: si; x: 15; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 16; opacity: 0.75 }
+                border.color: searchInput.activeFocus ? Theme.tint(0.7) : Theme.fg(0.08)
+                TIcon { id: si; x: 15; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 16; opacity: 0.75 }
                 TextInput {
                     id: searchInput
                     x: si.x + si.width + 10
                     width: parent.width - x - 16
                     anchors.verticalCenter: parent.verticalCenter
-                    color: "#FFFFFF"; selectionColor: Theme.violet
+                    color: Theme.label; selectionColor: Theme.violet
                     font.family: Theme.font; font.pixelSize: 13
                     clip: true
                     onTextChanged: { win.query = text; Packages.search(text); }
@@ -200,7 +200,7 @@ FloatingWindow {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: searchInput.text === ""
                         text: "Search over 14,000 apps and packages…"
-                        color: Qt.rgba(1, 1, 1, 0.4); font: searchInput.font
+                        color: Theme.fg(0.4); font: searchInput.font
                     }
                 }
                 MouseArea { anchors.fill: parent; z: -1; cursorShape: Qt.IBeamCursor; onClicked: searchInput.forceActiveFocus() }
@@ -264,7 +264,7 @@ FloatingWindow {
                         text: win.section === "discover" ? "Featured"
                             : win.section === "installed" ? "Installed from the Store"
                             : Catalog.category(win.section).label
-                        color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 18; font.weight: Font.Bold
+                        color: Theme.label; font.family: Theme.font; font.pixelSize: 18; font.weight: Font.Bold
                     }
 
                     // ---- lưới app chọn sẵn ----
@@ -284,7 +284,7 @@ FloatingWindow {
                     Text {
                         visible: win.query === "" && win.shown.length === 0
                         text: win.section === "installed" ? "No apps installed from the Store yet." : ""
-                        color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 13
+                        color: Theme.muted; font.family: Theme.font; font.pixelSize: 13
                     }
 
                     // ---- Khám phá: thêm từng nhóm ----
@@ -299,12 +299,12 @@ FloatingWindow {
                                 Row {
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: 8
-                                    Icon { anchors.verticalCenter: parent.verticalCenter; name: modelData.icon; size: 17 }
-                                    Text { anchors.verticalCenter: parent.verticalCenter; text: modelData.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.Bold }
+                                    TIcon { anchors.verticalCenter: parent.verticalCenter; name: modelData.icon; size: 17 }
+                                    Text { anchors.verticalCenter: parent.verticalCenter; text: modelData.label; color: Theme.label; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.Bold }
                                 }
                                 Text {
                                     anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                                    text: "See all ›"; color: am.containsMouse ? "#FFFFFF" : Theme.violet
+                                    text: "See all ›"; color: am.containsMouse ? Theme.label : Theme.violet
                                     font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold
                                     MouseArea { id: am; anchors.fill: parent; anchors.margins: -6; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { win.section = modelData.id; flick.contentY = 0; } }
                                 }
@@ -325,7 +325,7 @@ FloatingWindow {
                         text: Packages.searching ? "Searching…"
                             : win.appResults.length === 0 ? "No apps match “" + win.query + "”"
                             : win.appResults.length + " apps for “" + win.query + "”"
-                        color: "#AEAEB2"; font.family: Theme.font; font.pixelSize: 13
+                        color: Theme.subtle; font.family: Theme.font; font.pixelSize: 13
                     }
                     Repeater {
                         model: win.query !== "" ? win.appResults : []
@@ -339,7 +339,7 @@ FloatingWindow {
                     Text {
                         visible: win.query !== "" && !Packages.searching && Packages.results.length > win.appResults.length
                         text: "… and " + (Packages.results.length - win.appResults.length) + " more packages (command-line tools, libraries) not shown here"
-                        color: "#636366"; font.family: Theme.font; font.pixelSize: 11
+                        color: Theme.faint; font.family: Theme.font; font.pixelSize: 11
                     }
                 }
             }
@@ -349,34 +349,34 @@ FloatingWindow {
         Rectangle {
             anchors.fill: parent
             visible: Packages.askPassword
-            color: Qt.rgba(0, 0, 0, 0.55)
+            color: Theme.surface(0.55)
             MouseArea { anchors.fill: parent }
             onVisibleChanged: if (visible) { pw.text = ""; pw.forceActiveFocus(); }
 
             Glass {
                 anchors.centerIn: parent
                 width: 380; height: 210; radius: 24
-                color: Qt.rgba(0.08, 0.08, 0.13, 0.97)
+                color: Theme.surface(0.97)
                 Column {
                     x: 24; y: 22; width: parent.width - 48; spacing: 12
                     Row {
                         spacing: 10
-                        Icon { anchors.verticalCenter: parent.verticalCenter; name: "lock"; size: 20; color: Theme.violet }
-                        Text { anchors.verticalCenter: parent.verticalCenter; text: "Password required"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Bold }
+                        TIcon { anchors.verticalCenter: parent.verticalCenter; name: "lock"; size: 20; color: Theme.violet }
+                        Text { anchors.verticalCenter: parent.verticalCenter; text: "Password required"; color: Theme.label; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Bold }
                     }
                     Text {
                         width: parent.width; wrapMode: Text.WordWrap
                         text: "Enter your password to " + (Packages.queue[0]?.op === "remove" ? "remove " : "install ") + (Packages.queue[0]?.name ?? "")
-                        color: "#AEAEB2"; font.family: Theme.font; font.pixelSize: 12
+                        color: Theme.subtle; font.family: Theme.font; font.pixelSize: 12
                     }
                     Rectangle {
                         width: parent.width; height: 40; radius: 12
-                        color: Qt.rgba(1, 1, 1, 0.08); border.width: 1; border.color: Theme.violet
+                        color: Theme.fg(0.08); border.width: 1; border.color: Theme.violet
                         TextInput {
                             id: pw
                             x: 12; width: parent.width - 24; anchors.verticalCenter: parent.verticalCenter
                             echoMode: TextInput.Password
-                            color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14
+                            color: Theme.label; font.family: Theme.font; font.pixelSize: 14
                             onAccepted: if (text) Packages.submitPassword(text)
                             Keys.onEscapePressed: Packages.cancelPassword()
                         }
@@ -407,11 +407,11 @@ FloatingWindow {
         width: parent.width
         height: 36
         radius: 12
-        color: on ? Theme.tint(0.22) : nm.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : "transparent"
+        color: on ? Theme.tint(0.22) : nm.containsMouse ? Theme.fg(0.07) : "transparent"
         Behavior on color { ColorAnimation { duration: 140 } }
-        Icon { x: 14; anchors.verticalCenter: parent.verticalCenter; name: n.icon; size: 17; opacity: n.on ? 1 : 0.8 }
-        Text { x: 42; anchors.verticalCenter: parent.verticalCenter; text: n.label; color: n.on ? "#FFFFFF" : "#D1D1D6"; font.family: Theme.font; font.pixelSize: 13; font.weight: n.on ? Font.DemiBold : Font.Normal }
-        Text { visible: n.badge !== "" && n.badge !== "0"; anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter; text: n.badge; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+        TIcon { x: 14; anchors.verticalCenter: parent.verticalCenter; name: n.icon; size: 17; opacity: n.on ? 1 : 0.8 }
+        Text { x: 42; anchors.verticalCenter: parent.verticalCenter; text: n.label; color: n.on ? Theme.label : Theme.labelSoft; font.family: Theme.font; font.pixelSize: 13; font.weight: n.on ? Font.DemiBold : Font.Normal }
+        Text { visible: n.badge !== "" && n.badge !== "0"; anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter; text: n.badge; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
         MouseArea {
             id: nm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
             onClicked: { win.section = n.key; searchInput.text = ""; flick.contentY = 0; }
@@ -427,11 +427,11 @@ FloatingWindow {
         width: pl.implicitWidth + 30
         height: 32
         radius: 16
-        color: primary ? (pm.containsMouse ? Qt.lighter(tint, 1.15) : tint) : (pm.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
+        color: primary ? (pm.containsMouse ? Qt.lighter(tint, 1.15) : tint) : (pm.containsMouse ? Theme.fg(0.18) : Theme.fg(0.09))
         Behavior on color { ColorAnimation { duration: 130 } }
         scale: pm.pressed ? 0.94 : 1
         Behavior on scale { SpringAnimation { spring: 6; damping: 0.35; epsilon: 0.003 } }
-        Text { id: pl; anchors.centerIn: parent; text: pb.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Bold }
+        Text { id: pl; anchors.centerIn: parent; text: pb.label; color: Theme.label; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Bold }
         MouseArea { id: pm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: pb.clicked() }
     }
 
@@ -452,9 +452,9 @@ FloatingWindow {
 
         height: wide ? 70 : 92
         radius: 20
-        color: cm.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.045)
+        color: cm.containsMouse ? Theme.fg(0.08) : Theme.fg(0.045)
         border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.05)
+        border.color: Theme.fg(0.05)
         Behavior on color { ColorAnimation { duration: 140 } }
         HoverHandler { id: cm }
 
@@ -476,7 +476,7 @@ FloatingWindow {
                 Text {
                     anchors.centerIn: parent
                     text: (card.app.name || "?").charAt(0).toUpperCase()
-                    color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: parent.width * 0.44; font.weight: Font.Bold
+                    color: Theme.label; font.family: Theme.font; font.pixelSize: parent.width * 0.44; font.weight: Font.Bold
                 }
             }
             Image {
@@ -502,7 +502,7 @@ FloatingWindow {
                 width: parent.width
                 text: card.app.name + (card.app.ver ? "  ·  " + card.app.ver : "")
                 elide: Text.ElideRight
-                color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold
+                color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold
             }
             Text {
                 width: parent.width
@@ -510,7 +510,7 @@ FloatingWindow {
                 elide: Text.ElideRight
                 maximumLineCount: card.wide ? 1 : 2
                 wrapMode: Text.Wrap
-                color: card.err ? "#FF8A8A" : card.running ? Qt.lighter(Theme.violet, 1.3) : "#8E8E93"
+                color: card.err ? "#FF8A8A" : card.running ? Qt.lighter(Theme.violet, 1.3) : Theme.muted
                 font.family: Theme.font; font.pixelSize: 12
             }
             Text {
@@ -520,7 +520,7 @@ FloatingWindow {
                     : "Download " + (Packages.sizes[card.app.pkg]?.dl ?? "") + " · installed " + (Packages.sizes[card.app.pkg]?.inst ?? "")
                 elide: Text.ElideRight
                 width: parent.width
-                color: "#636366"; font.family: Theme.font; font.pixelSize: 10
+                color: Theme.faint; font.family: Theme.font; font.pixelSize: 10
             }
         }
 
@@ -545,7 +545,7 @@ FloatingWindow {
                     onPaint: {
                         const c = getContext("2d"); c.reset();
                         c.lineWidth = 3.5; c.lineCap = "round";
-                        c.strokeStyle = Qt.rgba(1, 1, 1, 0.12);
+                        c.strokeStyle = Theme.fg(0.12);
                         c.beginPath(); c.arc(18, 18, 14, 0, Math.PI * 2); c.stroke();
                         c.strokeStyle = Theme.violet;
                         c.beginPath(); c.arc(18, 18, 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0.03, p)); c.stroke();
@@ -554,7 +554,7 @@ FloatingWindow {
                 Text {
                     anchors.centerIn: parent
                     text: card.running ? Packages.pct : "…"
-                    color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 10; font.bold: true
+                    color: Theme.label; font.family: Theme.font; font.pixelSize: 10; font.bold: true
                 }
             }
             PillBtn {

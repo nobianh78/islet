@@ -42,7 +42,7 @@ Column {
             onPaint: {
                 const c = getContext("2d"); c.reset();
                 const W = width, H = height - 14, now = Date.now(), t0 = now - 24 * 3600 * 1000;
-                c.strokeStyle = Qt.rgba(1, 1, 1, 0.08); c.lineWidth = 1;
+                c.strokeStyle = Theme.fg(0.08); c.lineWidth = 1;
                 for (const f of [0, 0.5, 1]) { c.beginPath(); c.moveTo(0, H * f); c.lineTo(W, H * f); c.stroke(); }
                 if (pts.length < 2) return;
                 const X = t => (t - t0) / (now - t0) * W, Y = p => H - p * H;
@@ -57,7 +57,7 @@ Column {
                 for (const p of pts) if (p.c) c.fillRect(X(p.t) - 1, H + 6, 3, 4);
             }
         }
-        Text { anchors.right: parent.right; anchors.rightMargin: 16; anchors.bottom: parent.bottom; anchors.bottomMargin: 6; text: "green = charging"; color: "#636366"; font.family: Theme.font; font.pixelSize: 10 }
+        Text { anchors.right: parent.right; anchors.rightMargin: 16; anchors.bottom: parent.bottom; anchors.bottomMargin: 6; text: "green = charging"; color: Theme.faint; font.family: Theme.font; font.pixelSize: 10 }
     }
 
     Card {
@@ -65,14 +65,14 @@ Column {
         width: parent.width; height: 64
         Column {
             x: 18; anchors.verticalCenter: parent.verticalCenter
-            Text { text: "Battery health · " + (page.health?.pct ?? 0) + "%"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-            Text { text: (page.health?.pct ?? 0) >= 80 ? "Holds most of its original charge" + (page.health?.cycles ? " · " + page.health.cycles + " charge cycles" : "") : "Holds noticeably less than when new — consider a replacement"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+            Text { text: "Battery health · " + (page.health?.pct ?? 0) + "%"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+            Text { text: (page.health?.pct ?? 0) >= 80 ? "Holds most of its original charge" + (page.health?.cycles ? " · " + page.health.cycles + " charge cycles" : "") : "Holds noticeably less than when new — consider a replacement"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
         }
     }
     Card {
         visible: page.canLimit
         width: parent.width; height: 74
-        Text { x: 18; y: 14; text: "Limit charging to protect the battery"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+        Text { x: 18; y: 14; text: "Limit charging to protect the battery"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
         Row {
             x: 18; y: 38; spacing: 6
             Repeater {

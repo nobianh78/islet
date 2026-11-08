@@ -32,7 +32,7 @@ PanelWindow {
     // nền mờ, bấm ra ngoài để đóng
     Rectangle {
         anchors.fill: parent
-        color: Qt.rgba(0, 0, 0, 0.45)
+        color: Theme.surface(0.45)
         opacity: QuickLook.open ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: 140 } }
         MouseArea { anchors.fill: parent; onClicked: QuickLook.close() }
@@ -56,8 +56,8 @@ PanelWindow {
         Rectangle {
             anchors.fill: parent
             radius: 24
-            color: Qt.rgba(0.07, 0.07, 0.1, 0.98)
-            border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.12)
+            color: Theme.surface(0.98)
+            border.width: 1; border.color: Theme.fg(0.12)
         }
 
         // ---- thanh trên ----
@@ -77,12 +77,12 @@ PanelWindow {
                 Text {
                     width: parent.width; elide: Text.ElideMiddle
                     text: QuickLook.name
-                    color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold
+                    color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold
                 }
                 Text {
                     text: (win.isDir ? "Folder" : QuickLook.human(win.info.size ?? 0))
                         + (win.info.mtime ? "  ·  " + Qt.formatDateTime(new Date((win.info.mtime ?? 0) * 1000), "d MMM yyyy HH:mm") : "")
-                    color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                    color: Theme.muted; font.family: Theme.font; font.pixelSize: 11
                 }
             }
             Row {
@@ -92,7 +92,7 @@ PanelWindow {
                 Btn { label: win.isDir ? "Open folder" : "Open"; primary: true; onClicked: QuickLook.openInApp() }
                 Btn { label: "Close"; onClicked: QuickLook.close() }
             }
-            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.07) }
+            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.fg(0.07) }
         }
 
         // ---- nội dung ----
@@ -129,7 +129,7 @@ PanelWindow {
                 Text {
                     id: txt
                     text: win.isText ? fv.text() : ""
-                    color: "#D1D1D6"
+                    color: Theme.labelSoft
                     font.family: Theme.mono
                     font.pixelSize: 12
                     textFormat: Text.PlainText
@@ -151,7 +151,7 @@ PanelWindow {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: win.info.mime || "No preview"
-                    color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                    color: Theme.muted; font.family: Theme.font; font.pixelSize: 12
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -162,7 +162,7 @@ PanelWindow {
                         : (win.info.handler === "none") ? "Nothing on this computer opens this kind of file yet — the Store can help."
                         : (win.info.handler === "terminal") ? "Its usual app runs in a terminal, so there's nothing to preview here."
                         : "Press Enter to open it."
-                    color: "#636366"; font.family: Theme.font; font.pixelSize: 11
+                    color: Theme.faint; font.family: Theme.font; font.pixelSize: 11
                 }
             }
         }
@@ -170,7 +170,7 @@ PanelWindow {
         Text {
             anchors.bottom: parent.bottom; anchors.bottomMargin: -22; anchors.horizontalCenter: parent.horizontalCenter
             text: "Space or Esc to close  ·  Enter to open"
-            color: Qt.rgba(1, 1, 1, 0.55); font.family: Theme.font; font.pixelSize: 11
+            color: Theme.fg(0.55); font.family: Theme.font; font.pixelSize: 11
         }
     }
 
@@ -183,9 +183,9 @@ PanelWindow {
         height: 30
         radius: 15
         color: primary ? (bm.containsMouse ? Qt.lighter(Theme.accent, 1.15) : Theme.accent)
-                       : (bm.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.08))
+                       : (bm.containsMouse ? Theme.fg(0.16) : Theme.fg(0.08))
         Behavior on color { ColorAnimation { duration: 130 } }
-        Text { id: bl; anchors.centerIn: parent; text: b.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold }
+        Text { id: bl; anchors.centerIn: parent; text: b.label; color: b.primary ? "#FFFFFF" : Theme.label; font.family: Theme.font; font.pixelSize: 12; font.weight: Font.DemiBold }
         MouseArea { id: bm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: b.clicked() }
     }
 }

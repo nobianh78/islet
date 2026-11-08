@@ -33,8 +33,8 @@ Column {
                 width: parent.width; height: 50
                 Row {
                     x: 18; anchors.verticalCenter: parent.verticalCenter; spacing: 16
-                    Row { spacing: 6; Rectangle { width: 8; height: 8; radius: 4; color: Privacy.mic ? "#FF9F0A" : Qt.rgba(1, 1, 1, 0.25); anchors.verticalCenter: parent.verticalCenter } Text { text: Privacy.mic ? "Microphone in use · " + Privacy.micApps.join(", ") : "Microphone not in use"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 } }
-                    Row { spacing: 6; Rectangle { width: 8; height: 8; radius: 4; color: Privacy.camera ? "#30D158" : Qt.rgba(1, 1, 1, 0.25); anchors.verticalCenter: parent.verticalCenter } Text { text: Privacy.camera ? "Camera in use · " + Privacy.camApps.join(", ") : "Camera not in use"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 } }
+                    Row { spacing: 6; Rectangle { width: 8; height: 8; radius: 4; color: Privacy.mic ? "#FF9F0A" : Theme.fg(0.25); anchors.verticalCenter: parent.verticalCenter } Text { text: Privacy.mic ? "Microphone in use · " + Privacy.micApps.join(", ") : "Microphone not in use"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 } }
+                    Row { spacing: 6; Rectangle { width: 8; height: 8; radius: 4; color: Privacy.camera ? "#30D158" : Theme.fg(0.25); anchors.verticalCenter: parent.verticalCenter } Text { text: Privacy.camera ? "Camera in use · " + Privacy.camApps.join(", ") : "Camera not in use"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 } }
                 }
             }
             Repeater {
@@ -42,10 +42,10 @@ Column {
                 Item {
                     required property var modelData
                     width: pCol.width; height: 38
-                    Rectangle { x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
-                    Icon { x: 18; anchors.verticalCenter: parent.verticalCenter; name: parent.modelData.what === "camera" ? "camera" : "mic"; size: 14 }
-                    Text { x: 42; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData.app + " used the " + parent.modelData.what; color: "#D1D1D6"; font.family: Theme.font; font.pixelSize: 12 }
-                    Text { anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter; text: page.ago(parent.modelData.time); color: "#636366"; font.family: Theme.font; font.pixelSize: 11 }
+                    Rectangle { x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
+                    TIcon { x: 18; anchors.verticalCenter: parent.verticalCenter; name: parent.modelData.what === "camera" ? "camera" : "mic"; size: 14 }
+                    Text { x: 42; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData.app + " used the " + parent.modelData.what; color: Theme.labelSoft; font.family: Theme.font; font.pixelSize: 12 }
+                    Text { anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter; text: page.ago(parent.modelData.time); color: Theme.faint; font.family: Theme.font; font.pixelSize: 11 }
                 }
             }
         }
@@ -69,13 +69,13 @@ Column {
             y: 4; width: parent.width
             Item {
                 width: parent.width; height: 54
-                Column { x: 18; anchors.verticalCenter: parent.verticalCenter; Text { text: "Clipboard history"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 } Text { text: Clipboard.items.length + " items · pinned items are kept"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 } }
+                Column { x: 18; anchors.verticalCenter: parent.verticalCenter; Text { text: "Clipboard history"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 } Text { text: Clipboard.items.length + " items · pinned items are kept"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 } }
                 Pill { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; label: "Clear"; onClicked: { Clipboard.clear(); page.msg = "Clipboard history cleared"; } }
             }
             Item {
                 width: parent.width; height: 54
-                Rectangle { x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
-                Column { x: 18; anchors.verticalCenter: parent.verticalCenter; Text { text: "Recent files"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 } Text { text: "The list of recently opened files in Files and apps"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 } }
+                Rectangle { x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
+                Column { x: 18; anchors.verticalCenter: parent.verticalCenter; Text { text: "Recent files"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 } Text { text: "The list of recently opened files in Files and apps"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 } }
                 Pill {
                     anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; label: "Clear"
                     onClicked: { Quickshell.execDetached(["sh", "-c", 'f="$HOME/.local/share/recently-used.xbel"; [ -f "$f" ] && printf "%s\\n" "<?xml version=\\"1.0\\" encoding=\\"UTF-8\\"?>" "<xbel version=\\"1.0\\"/>" > "$f"']); page.msg = "Recent files cleared"; }
@@ -83,5 +83,5 @@ Column {
             }
         }
     }
-    Text { visible: page.msg !== ""; text: page.msg; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+    Text { visible: page.msg !== ""; text: page.msg; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
 }

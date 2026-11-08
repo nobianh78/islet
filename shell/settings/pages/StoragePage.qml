@@ -49,11 +49,11 @@ Column {
             required property var modelData
             width: page.width; height: 78
             readonly property real frac: modelData.size ? modelData.used / modelData.size : 0
-            Icon { x: 18; y: 16; name: "disk"; size: 20 }
-            Text { x: 50; y: 14; text: modelData.mount === "/" ? "Islet (System)" : modelData.mount.split("/").pop(); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
-            Text { anchors.right: parent.right; anchors.rightMargin: 18; y: 16; text: page.human(modelData.size - modelData.used) + " free of " + page.human(modelData.size); color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+            TIcon { x: 18; y: 16; name: "disk"; size: 20 }
+            Text { x: 50; y: 14; text: modelData.mount === "/" ? "Islet (System)" : modelData.mount.split("/").pop(); color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+            Text { anchors.right: parent.right; anchors.rightMargin: 18; y: 16; text: page.human(modelData.size - modelData.used) + " free of " + page.human(modelData.size); color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
             Rectangle {
-                x: 18; y: 48; width: parent.width - 36; height: 10; radius: 5; color: Qt.rgba(1, 1, 1, 0.1)
+                x: 18; y: 48; width: parent.width - 36; height: 10; radius: 5; color: Theme.fg(0.1)
                 Rectangle { width: Math.max(10, parent.width * parent.parent.frac); height: parent.height; radius: 5; color: parent.parent.frac > 0.9 ? "#FF5F57" : Theme.accent }
             }
         }
@@ -66,7 +66,7 @@ Column {
         Column {
             id: fCol
             y: 4; width: parent.width
-            Text { visible: page.folders.length === 0; leftPadding: 18; topPadding: 14; bottomPadding: 14; text: "Measuring…"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+            Text { visible: page.folders.length === 0; leftPadding: 18; topPadding: 14; bottomPadding: 14; text: "Measuring…"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
             Repeater {
                 model: page.folders
                 Item {
@@ -74,10 +74,10 @@ Column {
                     required property int index
                     width: fCol.width; height: 42
                     readonly property real frac: page.folders.length ? modelData.bytes / Math.max(1, page.folders[0].bytes) : 0
-                    Rectangle { visible: parent.index > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
-                    Text { x: 18; anchors.verticalCenter: parent.verticalCenter; width: 150; elide: Text.ElideRight; text: parent.modelData.name; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+                    Rectangle { visible: parent.index > 0; x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
+                    Text { x: 18; anchors.verticalCenter: parent.verticalCenter; width: 150; elide: Text.ElideRight; text: parent.modelData.name; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
                     Rectangle { x: 176; anchors.verticalCenter: parent.verticalCenter; width: (parent.width - 290) * parent.frac + 4; height: 6; radius: 3; color: Theme.tint(0.7) }
-                    Text { anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter; text: page.human(parent.modelData.bytes); color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                    Text { anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter; text: page.human(parent.modelData.bytes); color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Quickshell.execDetached(["nautilus", Quickshell.env("HOME") + "/" + parent.modelData.path]) }
                 }
             }
@@ -106,16 +106,16 @@ Column {
                     required property int index
                     width: cCol.width; height: 56
                     readonly property real amount: page.sizes[modelData.k] ?? -1
-                    Rectangle { visible: crow.index > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
+                    Rectangle { visible: crow.index > 0; x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
                     Column {
                         x: 18; anchors.verticalCenter: parent.verticalCenter
-                        Text { text: crow.modelData.t; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                        Text { text: crow.modelData.s; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                        Text { text: crow.modelData.t; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+                        Text { text: crow.modelData.s; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                     }
                     Text {
                         anchors.right: cbtn.left; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
                         text: crow.amount < 0 ? "…" : crow.modelData.k === "orphans" ? crow.amount + " packages" : page.human(crow.amount)
-                        color: "#AEAEB2"; font.family: Theme.font; font.pixelSize: 12
+                        color: Theme.subtle; font.family: Theme.font; font.pixelSize: 12
                     }
                     Pill {
                         id: cbtn
@@ -135,5 +135,5 @@ Column {
             }
         }
     }
-    Text { visible: page.msg !== ""; text: page.msg; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+    Text { visible: page.msg !== ""; text: page.msg; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
 }

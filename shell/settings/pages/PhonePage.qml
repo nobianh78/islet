@@ -51,12 +51,12 @@ Column {
     Card {
         visible: !page.installed
         width: parent.width; height: 96
-        Icon { x: 22; anchors.verticalCenter: parent.verticalCenter; name: "phone"; size: 30 }
+        TIcon { x: 22; anchors.verticalCenter: parent.verticalCenter; name: "phone"; size: 30 }
         Column {
             x: 68; anchors.verticalCenter: parent.verticalCenter
             width: parent.width - 220
-            Text { text: "Phone link needs KDE Connect"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
-            Text { width: parent.width; wrapMode: Text.Wrap; text: "A small free app that links your phone and this computer."; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+            Text { text: "Phone link needs KDE Connect"; color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+            Text { width: parent.width; wrapMode: Text.Wrap; text: "A small free app that links your phone and this computer."; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
         }
         Pill {
             anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter
@@ -77,8 +77,8 @@ Column {
             spacing: 10
             Row {
                 spacing: 12
-                Icon { anchors.verticalCenter: parent.verticalCenter; name: "phone"; size: 26 }
-                Text { anchors.verticalCenter: parent.verticalCenter; text: "Link your phone"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.Bold }
+                TIcon { anchors.verticalCenter: parent.verticalCenter; name: "phone"; size: 26 }
+                Text { anchors.verticalCenter: parent.verticalCenter; text: "Link your phone"; color: Theme.label; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.Bold }
             }
             Repeater {
                 model: [
@@ -93,12 +93,12 @@ Column {
                     spacing: 10
                     Rectangle {
                         width: 22; height: 22; radius: 11; color: Theme.tint(0.25)
-                        Text { anchors.centerIn: parent; text: parent.parent.index + 1; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.Bold }
+                        Text { anchors.centerIn: parent; text: parent.parent.index + 1; color: Theme.label; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.Bold }
                     }
-                    Text { width: setupCol.width - 32; wrapMode: Text.Wrap; text: parent.modelData; color: "#D1D1D6"; font.family: Theme.font; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                    Text { width: setupCol.width - 32; wrapMode: Text.Wrap; text: parent.modelData; color: Theme.labelSoft; font.family: Theme.font; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
                 }
             }
-            Text { text: "Looking for phones…"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+            Text { text: "Looking for phones…"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
         }
     }
 
@@ -113,7 +113,7 @@ Column {
             width: page.width
             height: 86 + (live ? 50 : 0)
             border.width: drop.containsDrag ? 2 : 1
-            border.color: drop.containsDrag ? Theme.accent : Qt.rgba(1, 1, 1, 0.05)
+            border.color: drop.containsDrag ? Theme.accent : Theme.fg(0.05)
 
             // thả file lên thẻ = gửi sang điện thoại
             DropArea {
@@ -130,14 +130,14 @@ Column {
 
             Rectangle {
                 x: 18; y: 18; width: 50; height: 50; radius: 16
-                color: card.live ? Theme.tint(0.25) : Qt.rgba(1, 1, 1, 0.07)
-                Icon { anchors.centerIn: parent; name: card.d.type === "tablet" ? "device" : "phone"; size: 24 }
+                color: card.live ? Theme.tint(0.25) : Theme.fg(0.07)
+                TIcon { anchors.centerIn: parent; name: card.d.type === "tablet" ? "device" : "phone"; size: 24 }
             }
             Column {
                 x: 82; y: 22
                 width: parent.width - 82 - btns.width - 30
                 spacing: 3
-                Text { width: parent.width; elide: Text.ElideRight; text: card.d.name; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold }
+                Text { width: parent.width; elide: Text.ElideRight; text: card.d.name; color: Theme.label; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.DemiBold }
                 Text {
                     width: parent.width; elide: Text.ElideRight
                     text: card.d.incoming ? "Wants to pair with this computer"
@@ -145,7 +145,7 @@ Column {
                         : !card.d.paired ? (card.d.reachable ? "Nearby · not paired" : "Not nearby")
                         : !card.d.reachable ? "Paired · not nearby"
                         : "Connected" + (card.d.battery >= 0 ? "  ·  " + card.d.battery + "%" + (card.d.charging ? " charging" : "") : "")
-                    color: card.d.incoming ? Qt.lighter(Theme.accent, 1.3) : card.live ? "#34C77B" : "#8E8E93"
+                    color: card.d.incoming ? Qt.lighter(Theme.accent, 1.3) : card.live ? "#34C77B" : Theme.muted
                     font.family: Theme.font; font.pixelSize: 12
                 }
             }
@@ -166,7 +166,7 @@ Column {
                 spacing: 8
                 Pill { label: "Ring phone"; onClicked: page.act(["ring", card.d.id], "Ringing " + card.d.name) }
                 Pill { label: "Send clipboard"; onClicked: page.act(["clip", card.d.id], "Clipboard sent") }
-                Text { anchors.verticalCenter: parent.verticalCenter; text: "Drop files here to send them"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                Text { anchors.verticalCenter: parent.verticalCenter; text: "Drop files here to send them"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
             }
         }
     }
@@ -193,8 +193,8 @@ Column {
                 Item {
                     required property var modelData
                     width: featCol.width; height: 36
-                    Icon { anchors.verticalCenter: parent.verticalCenter; name: parent.modelData[0]; size: 15; opacity: 0.8 }
-                    Text { x: 28; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 28; elide: Text.ElideRight; text: parent.modelData[1]; color: "#D1D1D6"; font.family: Theme.font; font.pixelSize: 13 }
+                    TIcon { anchors.verticalCenter: parent.verticalCenter; name: parent.modelData[0]; size: 15; opacity: 0.8 }
+                    Text { x: 28; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 28; elide: Text.ElideRight; text: parent.modelData[1]; color: Theme.labelSoft; font.family: Theme.font; font.pixelSize: 13 }
                 }
             }
         }

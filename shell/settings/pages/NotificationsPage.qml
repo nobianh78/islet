@@ -39,9 +39,9 @@ Column {
                 Row {
                     x: 18; anchors.verticalCenter: parent.verticalCenter
                     spacing: 6
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: "From"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: "From"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                     Repeater { model: ["21:00", "22:00", "23:00", "00:00"]; Chip { required property string modelData; label: modelData; on: Prefs.dndFrom === modelData; onClicked: Prefs.set("dndFrom", modelData) } }
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: "to"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: "to"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                     Repeater { model: ["06:00", "07:00", "08:00"]; Chip { required property string modelData; label: modelData; on: Prefs.dndTo === modelData; onClicked: Prefs.set("dndTo", modelData) } }
                 }
             }
@@ -57,7 +57,7 @@ Column {
         Column {
             id: aCol
             y: 4; width: parent.width
-            Text { visible: page.apps.length === 0; leftPadding: 18; topPadding: 14; bottomPadding: 14; text: "Apps appear here after they send a notification"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+            Text { visible: page.apps.length === 0; leftPadding: 18; topPadding: 14; bottomPadding: 14; text: "Apps appear here after they send a notification"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
             Repeater {
                 model: page.apps
                 Row2 { required property string modelData; required property int index; divider: index > 0; title: modelData; sub: page.muted(modelData) ? "Muted — kept in Notification Center only" : "Banners on"; checked: !page.muted(modelData); onToggled: page.toggleMute(modelData) }

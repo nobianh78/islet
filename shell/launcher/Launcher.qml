@@ -184,7 +184,7 @@ PanelWindow {
     Rectangle {
         id: bg
         anchors.fill: parent
-        color: Qt.rgba(0.04, 0.04, 0.08, 0.55)
+        color: Theme.surface(0.55)
         opacity: win.open ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: win.open ? 220 : 180; easing.type: Easing.OutCubic } }
 
@@ -218,12 +218,12 @@ PanelWindow {
             width: 380
             height: 42
             radius: 21
-            color: Qt.rgba(1, 1, 1, search.activeFocus ? 0.16 : 0.10)
+            color: Theme.fg(search.activeFocus ? 0.16 : 0.10)
             border.width: 1
-            border.color: Qt.rgba(1, 1, 1, 0.18)
+            border.color: Theme.fg(0.18)
             Behavior on color { ColorAnimation { duration: 150 } }
 
-            Icon {
+            TIcon {
                 id: sIcon
                 x: 15
                 anchors.verticalCenter: parent.verticalCenter
@@ -236,7 +236,7 @@ PanelWindow {
                 x: sIcon.x + sIcon.width + 10
                 width: parent.width - x - 16
                 anchors.verticalCenter: parent.verticalCenter
-                color: "#FFFFFF"
+                color: Theme.label
                 selectionColor: Theme.violet
                 font.family: Theme.font
                 font.pixelSize: 14
@@ -253,7 +253,7 @@ PanelWindow {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: search.text === ""
                     text: "Search apps"
-                    color: Qt.rgba(1, 1, 1, 0.45)
+                    color: Theme.fg(0.45)
                     font: search.font
                 }
             }
@@ -331,7 +331,7 @@ PanelWindow {
                                     width: 92
                                     height: 92
                                     radius: 26
-                                    color: Qt.rgba(1, 1, 1, m.containsMouse && !win.dragging ? 0.10 : 0)
+                                    color: Theme.fg(m.containsMouse && !win.dragging ? 0.10 : 0)
                                     Behavior on color { ColorAnimation { duration: 150 } }
                                 }
                                 AppIcon {
@@ -349,7 +349,7 @@ PanelWindow {
                                 horizontalAlignment: Text.AlignHCenter
                                 text: win.nameOf(cell.modelData)
                                 elide: Text.ElideRight
-                                color: "#FFFFFF"
+                                color: Theme.label
                                 style: Text.Raised
                                 styleColor: Qt.rgba(0, 0, 0, 0.35)
                                 font.family: Theme.font
@@ -419,7 +419,7 @@ PanelWindow {
             y: pager.y + 80
             visible: win.apps.length === 0
             text: "Nothing found for “" + win.query + "”"
-            color: Qt.rgba(1, 1, 1, 0.6)
+            color: Theme.fg(0.6)
             font.family: Theme.font
             font.pixelSize: 15
         }
@@ -438,7 +438,7 @@ PanelWindow {
                     width: cur ? 22 : 8
                     height: 8
                     radius: 4
-                    color: cur ? "#FFFFFF" : Qt.rgba(1, 1, 1, 0.35)
+                    color: cur ? Theme.label : Theme.fg(0.35)
                     Behavior on width { SpringAnimation { spring: 4.5; damping: 0.3; epsilon: 0.05 } }
                     Behavior on color { ColorAnimation { duration: 200 } }
                     MouseArea {
@@ -465,8 +465,8 @@ PanelWindow {
 
             color: win.dropHovered
                 ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.28)
-                : Qt.rgba(1, 1, 1, 0.09)
-            border.color: win.dropHovered ? Theme.accent : Qt.rgba(1, 1, 1, 0.25)
+                : Theme.fg(0.09)
+            border.color: win.dropHovered ? Theme.accent : Theme.fg(0.25)
             border.width: win.dropHovered ? 2 : 1
             scale: win.dragging ? (win.dropHovered ? 1.04 : 1.0) : 0.92
             opacity: win.dragging ? 1 : 0
@@ -479,16 +479,16 @@ PanelWindow {
             Row {
                 anchors.centerIn: parent
                 spacing: 8
-                Icon {
+                TIcon {
                     anchors.verticalCenter: parent.verticalCenter
                     name: "pin"
                     size: 16
-                    color: win.dropHovered ? "#FFFFFF" : Qt.rgba(1, 1, 1, 0.7)
+                    color: win.dropHovered ? Theme.label : Theme.fg(0.7)
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: win.dropHovered ? "Drop to pin to the Dock" : "Drag here to pin to the Dock"
-                    color: "#FFFFFF"
+                    color: Theme.label
                     font.family: Theme.font
                     font.pixelSize: 13
                     font.weight: win.dropHovered ? Font.Bold : Font.Medium
@@ -512,7 +512,7 @@ PanelWindow {
                 width: parent.width + 16
                 height: parent.height + 16
                 radius: width / 2
-                color: win.dropHovered ? Theme.accent : Qt.rgba(1, 1, 1, 0.2)
+                color: win.dropHovered ? Theme.accent : Theme.fg(0.2)
                 opacity: win.dropHovered ? 0.45 : 0.25
                 Behavior on color { ColorAnimation { duration: 150 } }
             }
@@ -537,18 +537,18 @@ PanelWindow {
                 height: 24
                 radius: 12
                 color: win.dropHovered ? Theme.accent : Qt.rgba(0.1, 0.1, 0.15, 0.85)
-                border.color: "#FFFFFF"
+                border.color: Theme.label
                 border.width: 1.5
                 scale: win.dropHovered ? 1.2 : 0.8
                 opacity: win.dropHovered ? 1 : 0
                 Behavior on opacity { NumberAnimation { duration: 120 } }
                 Behavior on scale { SpringAnimation { spring: 6; damping: 0.4; epsilon: 0.01 } }
 
-                Icon {
+                TIcon {
                     anchors.centerIn: parent
                     name: "plus"
                     size: 13
-                    color: "#FFFFFF"
+                    color: Theme.label
                 }
             }
         }
@@ -571,8 +571,8 @@ PanelWindow {
             Glass {
                 anchors.fill: parent
                 radius: 16
-                color: Qt.rgba(0.08, 0.08, 0.12, 0.94)
-                border.color: Qt.rgba(1, 1, 1, 0.18)
+                color: Theme.surface(0.94)
+                border.color: Theme.fg(0.18)
 
                 Column {
                     id: menuCol
@@ -597,7 +597,7 @@ PanelWindow {
                             width: parent.width - 34
                             text: win.menuApp ? win.nameOf(win.menuApp) : ""
                             elide: Text.ElideRight
-                            color: "#FFFFFF"
+                            color: Theme.label
                             font.family: Theme.font
                             font.pixelSize: 13
                             font.weight: Font.Bold
@@ -608,7 +608,7 @@ PanelWindow {
                     Rectangle {
                         width: parent.width
                         height: 1
-                        color: Qt.rgba(1, 1, 1, 0.1)
+                        color: Theme.fg(0.1)
                     }
 
                     // Nút Ghim / Bỏ ghim
@@ -618,12 +618,12 @@ PanelWindow {
                         width: parent.width
                         height: 32
                         radius: 8
-                        color: pinHover.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+                        color: pinHover.containsMouse ? Theme.fg(0.12) : "transparent"
                         Row {
                             anchors.fill: parent
                             leftPadding: 8
                             spacing: 8
-                            Icon {
+                            TIcon {
                                 anchors.verticalCenter: parent.verticalCenter
                                 name: "pin"
                                 size: 14
@@ -632,7 +632,7 @@ PanelWindow {
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: pinBtn.pinned ? "Unpin from Dock" : "Pin to Dock"
-                                color: "#FFFFFF"
+                                color: Theme.label
                                 font.family: Theme.font
                                 font.pixelSize: 12
                             }
@@ -662,21 +662,21 @@ PanelWindow {
                         width: parent.width
                         height: 32
                         radius: 8
-                        color: openHover.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+                        color: openHover.containsMouse ? Theme.fg(0.12) : "transparent"
                         Row {
                             anchors.fill: parent
                             leftPadding: 8
                             spacing: 8
-                            Icon {
+                            TIcon {
                                 anchors.verticalCenter: parent.verticalCenter
                                 name: "plus"
                                 size: 14
-                                color: "#FFFFFF"
+                                color: Theme.label
                             }
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: "Open"
-                                color: "#FFFFFF"
+                                color: Theme.label
                                 font.family: Theme.font
                                 font.pixelSize: 12
                             }

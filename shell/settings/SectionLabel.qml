@@ -4,7 +4,7 @@ import "../theme"
 import "../common"
 
 Text {
-    color: "#8E8E93"
+    color: Theme.muted
     font.family: Theme.font
     font.pixelSize: 12
     font.weight: Font.DemiBold

@@ -13,12 +13,12 @@ Column {
     spacing: 12
     Card {
         width: parent.width; height: 70
-        Text { x: 18; y: 14; text: "Desktops in the top bar"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+        Text { x: 18; y: 14; text: "Desktops in the top bar"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
         Row { x: 18; y: 36; spacing: 6; Repeater { model: [3, 4, 5, 6, 8, 10]; Chip { required property int modelData; label: String(modelData); on: Prefs.wsCount === modelData; onClicked: Prefs.set("wsCount", modelData) } } }
     }
     Card {
         width: parent.width; height: 70
-        Text { x: 18; y: 14; text: "Switch animation"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
+        Text { x: 18; y: 14; text: "Switch animation"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
         Row {
             x: 18; y: 36; spacing: 6
             Repeater {
@@ -39,8 +39,8 @@ Column {
                 Item {
                     required property var modelData
                     width: sc.width; height: 36
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[0]; color: "#FFFFFF"; font.family: Theme.mono; font.pixelSize: 12 }
-                    Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[1]; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[0]; color: Theme.label; font.family: Theme.mono; font.pixelSize: 12 }
+                    Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: parent.modelData[1]; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                 }
             }
         }

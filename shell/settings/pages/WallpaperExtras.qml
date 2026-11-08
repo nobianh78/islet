@@ -20,7 +20,7 @@ Column {
         Column {
             id: nCol
             x: 18; y: 14; width: parent.width - 36; spacing: 10
-            Text { text: "Switch to a darker wallpaper from " + Prefs.nightFrom + " to " + Prefs.nightTo + " (same hours as Night Light)"; width: parent.width; wrapMode: Text.Wrap; color: "#D1D1D6"; font.family: Theme.font; font.pixelSize: 12 }
+            Text { text: "Switch to a darker wallpaper from " + Prefs.nightFrom + " to " + Prefs.nightTo + " (same hours as Night Light)"; width: parent.width; wrapMode: Text.Wrap; color: Theme.labelSoft; font.family: Theme.font; font.pixelSize: 12 }
             Flow {
                 width: parent.width; spacing: 8
                 Chip { label: "Off"; on: Prefs.wallNight === ""; onClicked: Prefs.set("wallNight", "") }
@@ -33,8 +33,8 @@ Column {
         width: parent.width; height: 64
         Column {
             x: 18; anchors.verticalCenter: parent.verticalCenter
-            Text { text: "Get a random landscape photo"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-            Text { text: "From picsum.photos · saved to Pictures/Wallpapers"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+            Text { text: "Get a random landscape photo"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+            Text { text: "From picsum.photos · saved to Pictures/Wallpapers"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
         }
         Pill {
             anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
@@ -53,5 +53,5 @@ Column {
         property string file: ""
         onExited: code => { page.fetching = false; if (code === 0) { Prefs.set("wallpaper", file); page.msg = "New wallpaper set"; page.fetched(); } else page.msg = "Couldn't download a photo (offline?)"; }
     }
-    Text { visible: page.msg !== ""; text: page.msg; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+    Text { visible: page.msg !== ""; text: page.msg; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
 }

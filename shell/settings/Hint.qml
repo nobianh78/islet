@@ -6,7 +6,7 @@ import "../common"
 Text {
     width: parent ? parent.width : 300
     wrapMode: Text.Wrap
-    color: "#636366"
+    color: Theme.faint
     font.family: Theme.font
     font.pixelSize: 11
 }

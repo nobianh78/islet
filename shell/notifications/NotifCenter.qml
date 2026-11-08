@@ -66,7 +66,7 @@ PanelWindow {
         width: parent.width
         height: Math.min(parent.height, head.height + (items.count > 0 ? list.contentHeight + 8 : empty.height + 26) + 34)
         radius: 28
-        color: Qt.rgba(0.06, 0.06, 0.1, 0.6)
+        color: Theme.surface(0.6)
         clip: true
 
         transformOrigin: Item.TopRight
@@ -89,7 +89,7 @@ PanelWindow {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "Notifications"
-                color: "#FFFFFF"
+                color: Theme.label
                 font.family: Theme.font
                 font.pixelSize: 17
                 font.weight: Font.Bold
@@ -104,14 +104,14 @@ PanelWindow {
                     height: 30
                     width: dndRow.implicitWidth + 22
                     radius: 15
-                    color: Prefs.dnd ? Theme.tint(0.32) : dm.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.08)
+                    color: Prefs.dnd ? Theme.tint(0.32) : dm.containsMouse ? Theme.fg(0.14) : Theme.fg(0.08)
                     Behavior on color { ColorAnimation { duration: 150 } }
                     Row {
                         id: dndRow
                         anchors.centerIn: parent
                         spacing: 6
-                        Icon { name: "moon"; size: 13; anchors.verticalCenter: parent.verticalCenter; color: Prefs.dnd ? Qt.lighter(Theme.accent, 1.35) : "#FFFFFF" }
-                        Text { text: Prefs.dnd ? "Silenced" : "Do Not Disturb"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+                        TIcon { name: "moon"; size: 13; anchors.verticalCenter: parent.verticalCenter; color: Prefs.dnd ? Qt.lighter(Theme.accent, 1.35) : Theme.label }
+                        Text { text: Prefs.dnd ? "Silenced" : "Do Not Disturb"; color: Theme.label; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
                     }
                     MouseArea { id: dm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Prefs.set("dnd", !Prefs.dnd) }
                 }
@@ -120,8 +120,8 @@ PanelWindow {
                     height: 30
                     width: clr.implicitWidth + 22
                     radius: 15
-                    color: cm.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.08)
-                    Text { id: clr; anchors.centerIn: parent; text: "Clear all"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
+                    color: cm.containsMouse ? Theme.fg(0.16) : Theme.fg(0.08)
+                    Text { id: clr; anchors.centerIn: parent; text: "Clear all"; color: Theme.label; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
                     MouseArea { id: cm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Notifs.clearAll() }
                 }
             }
@@ -138,13 +138,13 @@ PanelWindow {
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: 64; height: 64; radius: 32
-                color: Qt.rgba(1, 1, 1, 0.06)
-                Icon { anchors.centerIn: parent; name: Prefs.dnd ? "moon" : "bell"; size: 28; opacity: 0.7 }
+                color: Theme.fg(0.06)
+                TIcon { anchors.centerIn: parent; name: Prefs.dnd ? "moon" : "bell"; size: 28; opacity: 0.7 }
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "No notifications"
-                color: Qt.rgba(1, 1, 1, 0.7)
+                color: Theme.fg(0.7)
                 font.family: Theme.font
                 font.pixelSize: 13
                 font.weight: Font.DemiBold
@@ -152,7 +152,7 @@ PanelWindow {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: Prefs.dnd ? "Do Not Disturb is on — notifications are still kept here" : "Notifications from your apps will appear here"
-                color: Qt.rgba(1, 1, 1, 0.42)
+                color: Theme.fg(0.42)
                 font.family: Theme.font
                 font.pixelSize: 11
             }
@@ -196,9 +196,9 @@ PanelWindow {
                     width: parent.width
                     height: body.implicitHeight + 26
                     radius: 20
-                    color: hov.hovered ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.07)
+                    color: hov.hovered ? Theme.fg(0.12) : Theme.fg(0.07)
                     border.width: 1
-                    border.color: row.n?.critical ? Qt.rgba(1, 0.42, 0.42, 0.5) : Qt.rgba(1, 1, 1, 0.06)
+                    border.color: row.n?.critical ? Qt.rgba(1, 0.42, 0.42, 0.5) : Theme.fg(0.06)
                     Behavior on color { ColorAnimation { duration: 140 } }
                     opacity: 1 - Math.min(1, Math.abs(x) / 260)
 
@@ -219,7 +219,7 @@ PanelWindow {
                         id: ic
                         x: 12; y: 13
                         width: 38; height: 38; radius: 11
-                        color: Qt.rgba(1, 1, 1, 0.08)
+                        color: Theme.fg(0.08)
                         clip: true
                         Image {
                             anchors.fill: parent
@@ -229,7 +229,7 @@ PanelWindow {
                             sourceSize: Qt.size(76, 76)
                             visible: status === Image.Ready
                         }
-                        Icon { anchors.centerIn: parent; name: "bell"; size: 18; visible: !(row.n?.icon) }
+                        TIcon { anchors.centerIn: parent; name: "bell"; size: 18; visible: !(row.n?.icon) }
                     }
 
                     Column {
@@ -243,7 +243,7 @@ PanelWindow {
                             height: 16
                             Text {
                                 text: row.n?.app ?? ""
-                                color: Qt.rgba(1, 1, 1, 0.5)
+                                color: Theme.fg(0.5)
                                 font.family: Theme.font
                                 font.pixelSize: 11
                                 font.weight: Font.DemiBold
@@ -252,7 +252,7 @@ PanelWindow {
                                 anchors.right: parent.right
                                 visible: !hov.hovered
                                 text: win.ago(row.n?.time)
-                                color: Qt.rgba(1, 1, 1, 0.38)
+                                color: Theme.fg(0.38)
                                 font.family: Theme.font
                                 font.pixelSize: 10
                             }
@@ -262,7 +262,7 @@ PanelWindow {
                             text: row.n?.summary ?? ""
                             visible: text !== ""
                             elide: Text.ElideRight
-                            color: "#FFFFFF"
+                            color: Theme.label
                             font.family: Theme.font
                             font.pixelSize: 13
                             font.weight: Font.DemiBold
@@ -274,7 +274,7 @@ PanelWindow {
                             wrapMode: Text.Wrap
                             maximumLineCount: 4
                             elide: Text.ElideRight
-                            color: Qt.rgba(1, 1, 1, 0.72)
+                            color: Theme.fg(0.72)
                             font.family: Theme.font
                             font.pixelSize: 12
                         }
@@ -289,8 +289,8 @@ PanelWindow {
                                     height: 26
                                     width: at.implicitWidth + 20
                                     radius: 13
-                                    color: am.containsMouse ? Theme.tint(0.4) : Qt.rgba(1, 1, 1, 0.1)
-                                    Text { id: at; anchors.centerIn: parent; text: parent.modelData.text; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                    color: am.containsMouse ? Theme.tint(0.4) : Theme.fg(0.1)
+                                    Text { id: at; anchors.centerIn: parent; text: parent.modelData.text; color: Theme.label; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
                                     MouseArea { id: am; anchors.fill: parent; hoverEnabled: true; onClicked: { Notifs.invoke(row.uid, parent.modelData.id); Notifs.dismiss(row.uid); } }
                                 }
                             }
@@ -303,8 +303,8 @@ PanelWindow {
                         anchors.top: parent.top; anchors.topMargin: 8
                         width: 22; height: 22; radius: 11
                         visible: hov.hovered
-                        color: xm.containsMouse ? Qt.rgba(1, 1, 1, 0.24) : Qt.rgba(1, 1, 1, 0.12)
-                        Icon { anchors.centerIn: parent; name: "close"; size: 11 }
+                        color: xm.containsMouse ? Theme.fg(0.24) : Theme.fg(0.12)
+                        TIcon { anchors.centerIn: parent; name: "close"; size: 11 }
                         MouseArea { id: xm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Notifs.dismiss(row.uid) }
                     }
                 }

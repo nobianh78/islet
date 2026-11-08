@@ -137,7 +137,7 @@ PanelWindow {
         id: panel
         anchors.fill: parent
         radius: 28
-        color: Qt.rgba(0.05, 0.05, 0.09, 0.92)
+        color: Theme.surface(0.92)
         opacity: win.open ? 1 : 0
         scale: win.open ? 1 : 0.94
         Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
@@ -148,7 +148,7 @@ PanelWindow {
         Item {
             anchors.fill: parent
             clip: true
-            opacity: 0.22
+            opacity: Theme.light ? 0.07 : 0.22
             Backdrop { anchors.fill: parent; animated: false }
         }
 
@@ -176,25 +176,25 @@ PanelWindow {
                         Text {
                             readonly property string name: win.who.toLowerCase() === "islet" ? "" : win.who
                             text: win.sid === "done" ? (name ? "Enjoy Islet, " + name + "!" : "You're all set") : (name ? "Hello, " + name : "Welcome to Islet")
-                            color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 30; font.weight: Font.Bold
+                            color: Theme.label; font.family: Theme.font; font.pixelSize: 30; font.weight: Font.Bold
                         }
                         Text {
                             text: win.sid === "done" ? "Everything below is in Settings whenever you want to change it."
                                                      : "A few quick things and you're ready to go."
-                            color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 13
+                            color: Theme.muted; font.family: Theme.font; font.pixelSize: 13
                         }
                     }
                 }
                 Text {
                     visible: win.sid !== "hello" && win.sid !== "done"
                     text: win.steps[win.step].title
-                    color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 26; font.weight: Font.Bold
+                    color: Theme.label; font.family: Theme.font; font.pixelSize: 26; font.weight: Font.Bold
                 }
                 Text {
                     visible: win.sid !== "hello" && win.sid !== "done"
                     width: parent.width; wrapMode: Text.Wrap
                     text: win.steps[win.step].sub
-                    color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 13
+                    color: Theme.muted; font.family: Theme.font; font.pixelSize: 13
                 }
             }
 
@@ -221,12 +221,12 @@ PanelWindow {
                             spacing: 14
                             Rectangle {
                                 width: 42; height: 42; radius: 13; color: Theme.tint(0.22)
-                                Icon { anchors.centerIn: parent; name: parent.parent.modelData[0]; size: 20 }
+                                TIcon { anchors.centerIn: parent; name: parent.parent.modelData[0]; size: 20 }
                             }
                             Column {
                                 anchors.verticalCenter: parent.verticalCenter
-                                Text { text: parent.parent.modelData[1]; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
-                                Text { text: parent.parent.modelData[2]; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                                Text { text: parent.parent.modelData[1]; color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                                Text { text: parent.parent.modelData[2]; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                             }
                         }
                     }
@@ -267,7 +267,7 @@ PanelWindow {
                     }
                     Column {
                         spacing: 8
-                        Text { text: "Accent colour"; color: "#AEAEB2"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
+                        Text { text: "Accent colour"; color: Theme.subtle; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
                         Row {
                             spacing: 10
                             Repeater {
@@ -277,7 +277,7 @@ PanelWindow {
                                     width: 32; height: 32; radius: 16
                                     color: modelData.color
                                     border.width: Prefs.accentId === modelData.id ? 3 : 0
-                                    border.color: Qt.rgba(1, 1, 1, 0.9)
+                                    border.color: Theme.fg(0.9)
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Prefs.set("accent", parent.modelData.id) }
                                 }
                             }
@@ -285,12 +285,12 @@ PanelWindow {
                                 width: 32; height: 32; radius: 16
                                 color: Prefs.autoAccent
                                 border.width: Prefs.accentId === "auto" ? 3 : 1
-                                border.color: Qt.rgba(1, 1, 1, Prefs.accentId === "auto" ? 0.9 : 0.25)
-                                Icon { anchors.centerIn: parent; name: "sparkle"; size: 15 }
+                                border.color: Theme.fg(Prefs.accentId === "auto" ? 0.9 : 0.25)
+                                TIcon { anchors.centerIn: parent; name: "sparkle"; size: 15 }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Prefs.set("accent", "auto") }
                             }
                         }
-                        Text { text: "The last one follows your wallpaper."; color: "#636366"; font.family: Theme.font; font.pixelSize: 11 }
+                        Text { text: "The last one follows your wallpaper."; color: Theme.faint; font.family: Theme.font; font.pixelSize: 11 }
                     }
                 }
 
@@ -302,18 +302,18 @@ PanelWindow {
                     Row {
                         spacing: 10
                         visible: Net.kind === "ethernet" || Net.kind === "wifi"
-                        Icon { anchors.verticalCenter: parent.verticalCenter; name: Net.icon; size: 18; color: "#34C77B" }
+                        TIcon { anchors.verticalCenter: parent.verticalCenter; name: Net.icon; size: 18; color: "#34C77B" }
                         Text { anchors.verticalCenter: parent.verticalCenter; text: "Connected · " + Net.label; color: "#34C77B"; font.family: Theme.font; font.pixelSize: 13 }
                     }
                     Text {
                         visible: wifi.dev === ""
                         text: Net.kind === "ethernet" ? "You're on a cable — nothing to do here." : "This computer has no Wi-Fi adapter. Plug in a network cable to get online."
-                        color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 13
+                        color: Theme.muted; font.family: Theme.font; font.pixelSize: 13
                     }
                     Rectangle {
                         visible: wifi.dev !== ""
                         width: parent.width; height: Math.min(nets.implicitHeight + 8, 250); radius: 16
-                        color: Qt.rgba(1, 1, 1, 0.05)
+                        color: Theme.fg(0.05)
                         clip: true
                         Column {
                             id: nets
@@ -326,21 +326,21 @@ PanelWindow {
                                     required property int index
                                     width: nets.width
                                     height: 44 + (wifi.joining === modelData.name ? 46 : 0)
-                                    Rectangle { visible: nrow.index > 0; x: 14; width: parent.width - 28; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
-                                    Icon {
+                                    Rectangle { visible: nrow.index > 0; x: 14; width: parent.width - 28; height: 1; color: Theme.fg(0.06) }
+                                    TIcon {
                                         x: 16; y: 14; size: 16
                                         name: nrow.modelData.q > 66 ? "wifi" : nrow.modelData.q > 33 ? "wifi-2" : "wifi-1"
-                                        color: nrow.modelData.cur ? "#34C77B" : "#FFFFFF"
+                                        color: nrow.modelData.cur ? "#34C77B" : Theme.label
                                     }
                                     Text {
                                         x: 44; y: 14; width: parent.width - 160; elide: Text.ElideRight
                                         text: nrow.modelData.name
-                                        color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13
+                                        color: Theme.label; font.family: Theme.font; font.pixelSize: 13
                                     }
                                     Text {
                                         anchors.right: parent.right; anchors.rightMargin: 16; y: 15
                                         text: nrow.modelData.cur ? "Connected" : wifi.busy === nrow.modelData.name ? "Connecting…" : nrow.modelData.sec === "open" ? "Open" : ""
-                                        color: nrow.modelData.cur ? "#34C77B" : "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                                        color: nrow.modelData.cur ? "#34C77B" : Theme.muted; font.family: Theme.font; font.pixelSize: 12
                                     }
                                     MouseArea {
                                         anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
@@ -359,14 +359,14 @@ PanelWindow {
                                         spacing: 8
                                         Rectangle {
                                             width: 240; height: 36; radius: 11
-                                            color: Qt.rgba(1, 1, 1, pwIn.activeFocus ? 0.12 : 0.06)
-                                            border.width: 1; border.color: wifi.error ? "#FF5F57" : pwIn.activeFocus ? Theme.accent : Qt.rgba(1, 1, 1, 0.08)
+                                            color: Theme.fg(pwIn.activeFocus ? 0.12 : 0.06)
+                                            border.width: 1; border.color: wifi.error ? "#FF5F57" : pwIn.activeFocus ? Theme.accent : Theme.fg(0.08)
                                             TextInput {
                                                 id: pwIn
                                                 x: 12; width: parent.width - 24
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 echoMode: TextInput.Password
-                                                color: "#FFFFFF"; selectionColor: Theme.accent
+                                                color: Theme.label; selectionColor: Theme.accent
                                                 font.family: Theme.font; font.pixelSize: 13
                                                 onTextEdited: wifi.pw = text
                                                 Keys.onReturnPressed: wifi.connect(nrow.modelData.name, wifi.pw)
@@ -380,7 +380,7 @@ PanelWindow {
                             Text {
                                 visible: wifi.nets.length === 0
                                 leftPadding: 16; topPadding: 12; bottomPadding: 12
-                                text: "Looking for networks…"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                                text: "Looking for networks…"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12
                             }
                         }
                     }
@@ -407,16 +407,16 @@ PanelWindow {
                                 spacing: 10
                                 Rectangle {
                                     width: 22; height: 22; radius: 11; color: Theme.tint(0.25)
-                                    Text { anchors.centerIn: parent; text: parent.parent.index + 1; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.Bold }
+                                    Text { anchors.centerIn: parent; text: parent.parent.index + 1; color: Theme.label; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.Bold }
                                 }
-                                Text { anchors.verticalCenter: parent.verticalCenter; text: parent.modelData; color: "#D1D1D6"; font.family: Theme.font; font.pixelSize: 13 }
+                                Text { anchors.verticalCenter: parent.verticalCenter; text: parent.modelData; color: Theme.labelSoft; font.family: Theme.font; font.pixelSize: 13 }
                             }
                         }
                     }
                     Text {
                         visible: !win.kdeInstalled
                         text: "Phone link needs KDE Connect — install it from the Store later, then open Settings › Phone."
-                        color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 13
+                        color: Theme.muted; font.family: Theme.font; font.pixelSize: 13
                     }
                     Repeater {
                         model: win.devices
@@ -424,16 +424,16 @@ PanelWindow {
                             id: dev
                             required property var modelData
                             width: pages.width; height: 58; radius: 14
-                            color: Qt.rgba(1, 1, 1, 0.05)
-                            Icon { x: 18; anchors.verticalCenter: parent.verticalCenter; name: "phone"; size: 20 }
+                            color: Theme.fg(0.05)
+                            TIcon { x: 18; anchors.verticalCenter: parent.verticalCenter; name: "phone"; size: 20 }
                             Column {
                                 x: 50; anchors.verticalCenter: parent.verticalCenter
-                                Text { text: dev.modelData.name; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                Text { text: dev.modelData.name; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
                                 Text {
                                     text: dev.modelData.incoming ? "Wants to pair with this computer"
                                         : dev.modelData.requested ? "Waiting for the phone to accept…"
                                         : dev.modelData.paired ? "Linked" : "Nearby · not linked"
-                                    color: dev.modelData.paired ? "#34C77B" : "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                                    color: dev.modelData.paired ? "#34C77B" : Theme.muted; font.family: Theme.font; font.pixelSize: 11
                                 }
                             }
                             Row {
@@ -446,7 +446,7 @@ PanelWindow {
                     }
                     Text {
                         visible: win.kdeInstalled && win.devices.length === 0
-                        text: "Looking for phones…"; color: "#636366"; font.family: Theme.font; font.pixelSize: 12
+                        text: "Looking for phones…"; color: Theme.faint; font.family: Theme.font; font.pixelSize: 12
                     }
                 }
 
@@ -459,7 +459,7 @@ PanelWindow {
                         visible: Backup.drives.length === 0
                         text: "No drive plugged in. You can set this up later in Settings › Storage & Backup — Islet will remind you when you plug one in."
                         width: parent.width; wrapMode: Text.Wrap
-                        color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 13
+                        color: Theme.muted; font.family: Theme.font; font.pixelSize: 13
                     }
                     Repeater {
                         model: Backup.drives
@@ -467,17 +467,17 @@ PanelWindow {
                             id: drv
                             required property var modelData
                             width: pages.width; height: 62; radius: 14
-                            color: Prefs.backupDrive === modelData.uuid ? Theme.tint(0.18) : Qt.rgba(1, 1, 1, 0.05)
+                            color: Prefs.backupDrive === modelData.uuid ? Theme.tint(0.18) : Theme.fg(0.05)
                             border.width: Prefs.backupDrive === modelData.uuid ? 1 : 0
                             border.color: Theme.accent
-                            Icon { x: 18; anchors.verticalCenter: parent.verticalCenter; name: "disk"; size: 20 }
+                            TIcon { x: 18; anchors.verticalCenter: parent.verticalCenter; name: "disk"; size: 20 }
                             Column {
                                 x: 50; anchors.verticalCenter: parent.verticalCenter
-                                Text { text: Backup.label(drv.modelData); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                Text { text: Backup.label(drv.modelData); color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
                                 Text {
                                     text: Math.round(drv.modelData.size / 1e9) + " GB · " + drv.modelData.fstype
                                         + (drv.modelData.history ? "" : " · keeps only the latest copy")
-                                    color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                                    color: Theme.muted; font.family: Theme.font; font.pixelSize: 11
                                 }
                             }
                             Btn {
@@ -490,7 +490,7 @@ PanelWindow {
                     }
                     Text {
                         text: "Islet skips caches and the Trash, and thins out old versions on its own."
-                        color: "#636366"; font.family: Theme.font; font.pixelSize: 11
+                        color: Theme.faint; font.family: Theme.font; font.pixelSize: 11
                     }
                 }
 
@@ -509,16 +509,16 @@ PanelWindow {
                             id: card
                             required property var modelData
                             width: pages.width; height: 66; radius: 16
-                            color: Qt.rgba(1, 1, 1, 0.05)
+                            color: Theme.fg(0.05)
                             Rectangle {
                                 x: 14; anchors.verticalCenter: parent.verticalCenter
                                 width: 40; height: 40; radius: 13; color: Theme.tint(0.22)
-                                Icon { anchors.centerIn: parent; name: card.modelData[0]; size: 19 }
+                                TIcon { anchors.centerIn: parent; name: card.modelData[0]; size: 19 }
                             }
                             Column {
                                 x: 68; anchors.verticalCenter: parent.verticalCenter
-                                Text { text: card.modelData[1]; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
-                                Text { text: card.modelData[2]; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                                Text { text: card.modelData[1]; color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                                Text { text: card.modelData[2]; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                             }
                             Btn {
                                 anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
@@ -546,7 +546,7 @@ PanelWindow {
                 Rectangle {
                     required property int index
                     width: index === win.step ? 20 : 7; height: 7; radius: 4
-                    color: index === win.step ? Theme.accent : Qt.rgba(1, 1, 1, index < win.step ? 0.4 : 0.16)
+                    color: index === win.step ? Theme.accent : Theme.fg(index < win.step ? 0.4 : 0.16)
                     anchors.verticalCenter: parent.verticalCenter
                     Behavior on width { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
                     Behavior on color { ColorAnimation { duration: 180 } }
@@ -572,11 +572,11 @@ PanelWindow {
         height: 38
         radius: 19
         color: primary ? (bm.containsMouse ? Qt.lighter(Theme.accent, 1.15) : Theme.accent)
-                       : (bm.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.08))
+                       : (bm.containsMouse ? Theme.fg(0.16) : Theme.fg(0.08))
         Behavior on color { ColorAnimation { duration: 140 } }
         scale: bm.pressed ? 0.96 : 1
         Behavior on scale { SpringAnimation { spring: 6; damping: 0.35; epsilon: 0.003 } }
-        Text { id: bl; anchors.centerIn: parent; text: b.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Bold }
+        Text { id: bl; anchors.centerIn: parent; text: b.label; color: b.primary ? "#FFFFFF" : Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Bold }
         MouseArea { id: bm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: b.clicked() }
     }
 }

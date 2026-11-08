@@ -10,21 +10,21 @@ Rectangle {
     signal accepted()
     function focusField() { pfIn.forceActiveFocus(); }
     height: 36; radius: 12
-    color: Qt.rgba(1, 1, 1, 0.08)
+    color: Theme.fg(0.08)
     border.width: 1
-    border.color: pfIn.activeFocus ? Theme.tint(0.7) : Qt.rgba(1, 1, 1, 0.1)
+    border.color: pfIn.activeFocus ? Theme.tint(0.7) : Theme.fg(0.1)
     TextInput {
         id: pfIn
         anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
         verticalAlignment: TextInput.AlignVCenter
         echoMode: TextInput.Password
-        color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13
+        color: Theme.label; font.family: Theme.font; font.pixelSize: 13
         Keys.onReturnPressed: pf.accepted()
     }
     Text {
         visible: pfIn.text === ""
         anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter
-        text: pf.hint; color: "#636366"; font.family: Theme.font; font.pixelSize: 12
+        text: pf.hint; color: Theme.faint; font.family: Theme.font; font.pixelSize: 12
     }
     MouseArea { anchors.fill: parent; cursorShape: Qt.IBeamCursor; onClicked: pfIn.forceActiveFocus() }
 }

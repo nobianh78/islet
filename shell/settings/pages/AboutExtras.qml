@@ -23,8 +23,8 @@ Column {
     }
     Card {
         width: parent.width; height: 104
-        Text { x: 18; y: 16; text: "Computer name"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-        Text { x: 18; y: 34; text: "How this computer appears on the network and to Bluetooth devices"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+        Text { x: 18; y: 16; text: "Computer name"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+        Text { x: 18; y: 34; text: "How this computer appears on the network and to Bluetooth devices"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
         Row {
             x: 18; y: 58; spacing: 8
             Field { id: nameIn; width: 240; hint: "islet" }
@@ -36,8 +36,8 @@ Column {
         width: parent.width; height: 64
         Column {
             x: 18; anchors.verticalCenter: parent.verticalCenter
-            Text { text: "Disk health · " + page.disk; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-            Text { text: page.health === "PASSED" ? "Healthy" : page.health === "FAILED" ? "The disk reports problems — back up your files now" : page.health === "UNKNOWN" ? "This disk does not report health" : "Not checked yet"; color: page.health === "FAILED" ? "#FF8A8A" : page.health === "PASSED" ? "#34C77B" : "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+            Text { text: "Disk health · " + page.disk; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+            Text { text: page.health === "PASSED" ? "Healthy" : page.health === "FAILED" ? "The disk reports problems — back up your files now" : page.health === "UNKNOWN" ? "This disk does not report health" : "Not checked yet"; color: page.health === "FAILED" ? "#FF8A8A" : page.health === "PASSED" ? "#34C77B" : Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
         }
         Pill { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; label: "Check"; onClicked: Admin.run(["smart", page.disk], (ok, out) => page.health = ok ? out : "UNKNOWN") }
     }
@@ -53,5 +53,5 @@ Column {
             }
         }
     }
-    Text { visible: page.msg !== ""; text: page.msg; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+    Text { visible: page.msg !== ""; text: page.msg; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
 }

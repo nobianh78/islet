@@ -22,7 +22,7 @@ Column {
         Column {
             id: aCol
             y: 4; width: parent.width
-            Text { visible: page.streams.length === 0; leftPadding: 18; topPadding: 14; bottomPadding: 14; text: "Apps playing sound appear here"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+            Text { visible: page.streams.length === 0; leftPadding: 18; topPadding: 14; bottomPadding: 14; text: "Apps playing sound appear here"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
             Repeater {
                 model: page.streams
                 Item {
@@ -31,20 +31,20 @@ Column {
                     required property int index
                     width: aCol.width; height: 62
                     readonly property string app: modelData.properties?.["application.name"] || modelData.description || modelData.name || "App"
-                    Rectangle { visible: st.index > 0; x: 18; width: parent.width - 36; height: 1; color: Qt.rgba(1, 1, 1, 0.06) }
+                    Rectangle { visible: st.index > 0; x: 18; width: parent.width - 36; height: 1; color: Theme.fg(0.06) }
                     AppIcon {
                         x: 16; anchors.verticalCenter: parent.verticalCenter; size: 30
                         readonly property var e: DesktopEntries.heuristicLookup(st.modelData.properties?.["application.process.binary"] || st.app)
                         name: Theme.appKey(e?.id ?? "")
                         source: e ? Quickshell.iconPath(e.icon, true) : Quickshell.iconPath("audio-x-generic", true)
                     }
-                    Text { x: 58; y: 12; text: st.app; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-                    Text { anchors.right: parent.right; anchors.rightMargin: 18; y: 12; text: Math.round((st.modelData.audio?.volume ?? 0) * 100) + "%"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12 }
+                    Text { x: 58; y: 12; text: st.app; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+                    Text { anchors.right: parent.right; anchors.rightMargin: 18; y: 12; text: Math.round((st.modelData.audio?.volume ?? 0) * 100) + "%"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
                     Rectangle {
                         id: tr
                         x: 58; y: 38; width: parent.width - 58 - 18; height: 6; radius: 3
-                        color: Qt.rgba(1, 1, 1, 0.14)
-                        Rectangle { width: Math.max(6, tr.width * Math.min(1, st.modelData.audio?.volume ?? 0)); height: parent.height; radius: 3; color: st.modelData.audio?.muted ? "#8E8E93" : Theme.accent }
+                        color: Theme.fg(0.14)
+                        Rectangle { width: Math.max(6, tr.width * Math.min(1, st.modelData.audio?.volume ?? 0)); height: parent.height; radius: 3; color: st.modelData.audio?.muted ? Theme.muted : Theme.accent }
                         MouseArea {
                             anchors.fill: parent; anchors.margins: -8; preventStealing: true; cursorShape: Qt.PointingHandCursor
                             function setAt(x) { if (st.modelData.audio) st.modelData.audio.volume = Math.max(0, Math.min(1, x / tr.width)); }
