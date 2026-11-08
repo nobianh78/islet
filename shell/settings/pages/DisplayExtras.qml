@@ -68,24 +68,10 @@ Column {
             width: page.width
             height: mcCol.implicitHeight + 28
             readonly property string res: modelData.width + "x" + modelData.height
-            readonly property var rates: {
-                const out = [];
-                for (const m of (modelData.availableModes || [])) {
-                    const r = m.match(/^(\d+x\d+)@([\d.]+)/);
-                    if (r && r[1] === mc.res) { const hz = Math.round(parseFloat(r[2])); if (out.indexOf(hz) < 0) out.push(hz); }
-                }
-                return out.sort((a, b) => b - a);
-            }
             Column {
                 id: mcCol
                 x: 18; y: 14; width: parent.width - 36; spacing: 10
                 Text { text: mc.modelData.name + " · " + mc.res + " @ " + Math.round(mc.modelData.refreshRate) + " Hz"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
-                Row {
-                    spacing: 6
-                    visible: mc.rates.length > 1
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: "Refresh rate"; width: 100; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
-                    Repeater { model: mc.rates; Chip { required property int modelData; label: modelData + " Hz"; on: Math.round(mc.modelData.refreshRate) === modelData; onClicked: page.apply(mc.modelData.name, { mode: mc.res + "@" + modelData }) } }
-                }
                 Row {
                     spacing: 6
                     Text { anchors.verticalCenter: parent.verticalCenter; text: "Rotation"; width: 100; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }

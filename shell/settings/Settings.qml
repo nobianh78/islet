@@ -835,6 +835,16 @@ FloatingWindow {
                                 if (cur && top.indexOf(cur) < 0) top.push(cur);
                                 return top;
                             }
+                            // tần số quét có ở độ phân giải hiện tại (giữ số lẻ như 59.94 để Hyprland chọn đúng chế độ)
+                            readonly property var rates: {
+                                const out = [];
+                                for (const m of (modelData.availableModes || [])) {
+                                    const r = m.match(/^(\d+)x(\d+)@([\d.]+)/);
+                                    if (r && r[1] + "x" + r[2] === modelData.width + "x" + modelData.height)
+                                        out.push({ hz: parseFloat(r[3]), mode: r[1] + "x" + r[2] + "@" + r[3] });
+                                }
+                                return out.sort((x, y) => y.hz - x.hz);
+                            }
                             width: parent.width
                             height: monCol.implicitHeight + 32
                             Column {
@@ -865,6 +875,21 @@ FloatingWindow {
                                             required property var modelData
                                             label: modelData.label
                                             on: mon.curMode.split("@")[0] === modelData.mode.split("@")[0]
+                                            onClicked: win.setMonitor(mon.modelData.name, { mode: modelData.mode })
+                                        }
+                                    }
+                                }
+                                SectionLabel { text: "Refresh rate"; visible: mon.rates.length > 1 }
+                                Flow {
+                                    width: parent.width
+                                    spacing: 8
+                                    visible: mon.rates.length > 1
+                                    Repeater {
+                                        model: mon.rates
+                                        Chip {
+                                            required property var modelData
+                                            label: Math.round(modelData.hz) + " Hz"
+                                            on: Math.abs(mon.modelData.refreshRate - modelData.hz) < 0.3
                                             onClicked: win.setMonitor(mon.modelData.name, { mode: modelData.mode })
                                         }
                                     }
