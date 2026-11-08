@@ -42,18 +42,18 @@ Column {
         }
         Toggle { anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter; checked: Prefs.accentId === "auto"; onToggled: Prefs.set("accentId", Prefs.accentId === "auto" ? "violet" : "auto") }
     }
-    SectionLabel { text: "Island glass" }
+    SectionLabel { text: "Glass" }
     Slider {
         width: parent.width
-        title: "Glass (0 = solid black)"
+        title: "Transparency and shine (Dock, Control Center, panels)"
         label: v => Math.round(v * 100) + "%"
-        value: Prefs.islandGlass
+        value: Prefs.glass
         fill: Theme.accent
-        onMoved: v => Prefs.set("islandGlass", Math.round(v * 20) / 20)
+        onMoved: v => Prefs.set("glass", Math.round(v * 20) / 20)
     }
     Slider {
         width: parent.width
-        title: "Blur behind glass (shared by the Dock and all panels)"
+        title: "Blur behind glass"
         label: v => Math.round(2 + v * 18)
         value: (Prefs.blurSize - 2) / 18
         fill: Theme.accent
