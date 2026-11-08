@@ -51,6 +51,10 @@ Singleton {
     property bool welcomeOpen: false
     property bool liveSession: false
     Process { running: true; command: ["test", "-d", "/run/archiso"]; onExited: code => root.liveSession = code === 0 }
+    // Kho widget của màn hình nền
+    property bool widgetsOpen: false
+    signal widgetsRaiseRequested()
+    function openWidgets() { launcherOpen = false; if (widgetsOpen) widgetsRaiseRequested(); widgetsOpen = true; }
     // Time Machine: xem lại / khôi phục file từ các bản sao lưu
     property bool backupsOpen: false
     signal backupsRaiseRequested()

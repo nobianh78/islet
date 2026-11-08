@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+"""Islet — những thứ nằm trên màn hình nền (thư mục ~/Desktop).
+
+  islet-desktop list                      JSON các mục trong ~/Desktop
+  islet-desktop open <đường dẫn>          mở bằng app mặc định (.desktop thì chạy app đó)
+  islet-desktop folder [tên]              tạo thư mục mới, in đường dẫn
+  islet-desktop group <tên> <đường dẫn…>  tạo thư mục rồi chuyển các mục vào, in đường dẫn
+  islet-desktop drop <đường dẫn…>         đưa vào ~/Desktop (cùng ổ thì chuyển, khác ổ thì chép)
+  islet-desktop rename <đường dẫn> <tên>  đổi tên
+  islet-desktop trash <đường dẫn…>        bỏ vào thùng rác (dùng islet-trash)
+
+"list" in mỗi mục: name, path, dir, size, mtime, kind, icon, image (ảnh để xem trước), app
+  kind:  folder image video audio document archive code app other     (để gom nhóm tự động)
+Chỉ làm việc bên trong ~/Desktop (trừ "drop" và "trash" nhận đường dẫn bất kỳ).
+"""
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+HOME = os.path.expanduser("~")
+
+
+def desktop_dir():
+    d = subprocess.run(["xdg-user-dir", "DESKTOP"], capture_output=True, text=True).stdout.strip()
+    return d if d and d != HOME else os.path.join(HOME, "Desktop")
+
+
+DESK = desktop_dir()
+
+EXT = {
+    "image": "png jpg jpeg webp gif bmp svg avif heic tiff ico",
+    "video": "mp4 mkv webm mov avi m4v wmv flv",
+    "audio": "mp3 flac ogg wav m4a opus aac",
+    "document": "pdf txt md doc docx odt rtf xls xlsx ods ppt pptx odp epub csv",
+    "archive": "zip tar gz xz bz2 7z rar zst deb rpm pkg iso",
+    "code": "py js ts jsx tsx c h cpp hpp rs go java kt rb php sh bash lua qml json yaml yml toml ini html css sql",
+}
+BY_EXT = {e: k for k, v in EXT.items() for e in v.split()}
+ICONS = {"folder": "folder", "image": "image-x-generic", "video": "video-x-generic", "audio": "audio-x-generic",
+         "document": "x-office-document", "archive": "package-x-generic", "code": "text-x-script", "other": "text-x-generic"}
+
+
+def inside(p):
+    p = os.path.realpath(p)
+    return p == os.path.realpath(DESK) or p.startswith(os.path.realpath(DESK) + os.sep)
+
+
+def need_inside(p):
+    if not inside(p):
+        print("ERROR Not on the desktop", file=sys.stderr)
+        sys.exit(1)
+    return p
+
+
+def entry(name):
+    p = os.path.join(DESK, name)
+    try:
+        st = os.stat(p)
+    except OSError:
+        return None
+    isdir = os.path.isdir(p)
+    ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+    kind = "folder" if isdir else BY_EXT.get(ext, "other")
+    icon, app, image = ICONS[kind], None, None
+    if kind == "image" and st.st_size < 40 * 1024 * 1024:
+        image = p
+    if not isdir and ext == "desktop":
+        kind, icon = "app", "application-x-executable"
+        try:
+            for line in open(p, encoding="utf-8", errors="replace"):
+                line = line.strip()
+                if line.startswith("Name=") and not app:
+                    app = line[5:]
+                elif line.startswith("Icon="):
+                    icon = line[5:]
+        except OSError:
+            pass
+    count = 0
+    if isdir:
+        try:
+            count = sum(1 for e in os.scandir(p) if not e.name.startswith("."))
+        except OSError:
+            pass
+    return {"name": name, "path": p, "dir": isdir, "size": st.st_size, "mtime": int(st.st_mtime),
+            "kind": kind, "icon": icon, "image": image, "app": app, "count": count}
+
+
+def listing():
+    try:
+        names = [n for n in os.listdir(DESK) if not n.startswith(".")]
+    except OSError:
+        os.makedirs(DESK, exist_ok=True)
+        names = []
+    out = [e for e in (entry(n) for n in sorted(names, key=str.lower)) if e]
+    out.sort(key=lambda e: (not e["dir"], e["name"].lower()))
+    print(json.dumps(out, ensure_ascii=False))
+
+
+def unique(path):
+    if not os.path.lexists(path):
+        return path
+    stem, ext = os.path.splitext(path)
+    i = 2
+    while os.path.lexists(f"{stem} {i}{ext}"):
+        i += 1
+    return f"{stem} {i}{ext}"
+
+
+def open_item(p):
+    if p.endswith(".desktop") and os.path.isfile(p):
+        subprocess.Popen(["gio", "launch", p], start_new_session=True)
+    else:
+        subprocess.Popen(["xdg-open", p], start_new_session=True)
+
+
+def folder(name="New Folder"):
+    os.makedirs(DESK, exist_ok=True)
+    p = unique(os.path.join(DESK, name.replace("/", "-") or "New Folder"))
+    os.mkdir(p)
+    print(p)
+
+
+def group(name, paths):
+    dest = unique(os.path.join(DESK, (name or "New Folder").replace("/", "-")))
+    os.mkdir(dest)
+    for p in paths:
+        need_inside(p)
+        if os.path.realpath(p) == os.path.realpath(dest):
+            continue
+        try:
+            shutil.move(p, unique(os.path.join(dest, os.path.basename(p))))
+        except OSError as e:
+            print(f"ERROR {e}", file=sys.stderr)
+    print(dest)
+
+
+def drop(paths):
+    os.makedirs(DESK, exist_ok=True)
+    for p in paths:
+        if not os.path.lexists(p) or inside(p):
+            continue
+        target = unique(os.path.join(DESK, os.path.basename(p.rstrip("/"))))
+        try:
+            shutil.move(p, target)                       # cùng ổ: đổi chỗ · khác ổ: chép rồi xoá
+        except (OSError, shutil.Error) as e:
+            print(f"ERROR {e}", file=sys.stderr)
+
+
+def rename(p, name):
+    need_inside(p)
+    name = name.strip().replace("/", "-")
+    if not name:
+        return
+    os.rename(p, unique(os.path.join(os.path.dirname(p), name)))
+
+
+def main(a):
+    if not a:
+        print(__doc__)
+        return 2
+    c, rest = a[0], a[1:]
+    if c == "list":
+        listing()
+    elif c == "open" and len(rest) == 1:
+        open_item(rest[0])
+    elif c == "folder":
+        folder(rest[0] if rest else "New Folder")
+    elif c == "group" and len(rest) >= 2:
+        group(rest[0], rest[1:])
+    elif c == "drop" and rest:
+        drop(rest)
+    elif c == "rename" and len(rest) == 2:
+        rename(rest[0], rest[1])
+    elif c == "trash" and rest:
+        subprocess.run(["islet-trash", "put"] + rest)
+    elif c == "dir":
+        print(DESK)
+    else:
+        print(__doc__)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

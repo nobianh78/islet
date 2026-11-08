@@ -169,6 +169,7 @@ hl.layer_rule({ name = "islet-launcher-noanim", match = { namespace = "^islet-la
 hl.layer_rule({ name = "islet-tabs-noanim",   match = { namespace = "^islet-tabs$" },      no_anim = true })
 hl.layer_rule({ name = "islet-desktop-noanim", match = { namespace = "^islet-desktop$" }, no_anim = true })
 hl.layer_rule({ name = "islet-welcome-noanim", match = { namespace = "^islet-welcome$" }, no_anim = true })
+hl.layer_rule({ name = "islet-widgets-noanim", match = { namespace = "^islet-widgets$" }, no_anim = true })
 
 -- Kính mờ thật: nhoè phần phía sau dock, trung tâm điều khiển và widget đồng hồ.
 hl.layer_rule({

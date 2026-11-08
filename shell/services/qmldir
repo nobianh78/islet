@@ -36,3 +36,4 @@ singleton Restore 1.0 Restore.qml
 singleton Backup 1.0 Backup.qml
 singleton DesktopItems 1.0 DesktopItems.qml
 singleton Weather 1.0 Weather.qml
+singleton DesktopFiles 1.0 DesktopFiles.qml

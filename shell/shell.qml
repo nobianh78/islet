@@ -87,6 +87,7 @@ ShellRoot {
     LazyLoader { activeAsync: true; TrashWindow {} }
     LazyLoader { activeAsync: true; BackupsWindow {} }
     LazyLoader { activeAsync: true; Welcome {} }
+    LazyLoader { activeAsync: true; WidgetGallery {} }
     LazyLoader { activeAsync: true; NotifCenter {} }
     LazyLoader { activeAsync: true; Snap {} }
     LazyLoader { activeAsync: true; Search {} }
@@ -152,6 +153,9 @@ ShellRoot {
         target: "desktop"
         function note(): void { DesktopItems.focusNote(DesktopItems.addNote()); }
         function widgets(on: bool): void { Prefs.set("desktopWidgets", on); }
+        function gallery(): void { Ui.openWidgets(); }
+        function add(kind: string): void { DesktopItems.addWidget(kind); }
+        function stacks(on: bool): void { DesktopItems.setStacks(on); }
     }
     IpcHandler {
         target: "backup"

@@ -56,23 +56,25 @@ Column {
         Column {
             id: dCol
             y: 4; width: parent.width
-            Row2 { title: "Widgets and sticky notes"; sub: "On the desktop, under your windows — right-click the desktop to add a note"; checked: Prefs.desktopWidgets; onToggled: Prefs.set("desktopWidgets", !Prefs.desktopWidgets) }
-            Repeater {
-                model: Prefs.desktopWidgets ? DesktopItems.kinds : []
-                Row2 {
-                    required property var modelData
-                    divider: true
-                    title: modelData.label
-                    sub: modelData.id === "clock" ? "Time and date" : modelData.id === "calendar" ? "This month — days with notes have a dot"
-                        : modelData.id === "weather" ? "Today and the next days, from Open-Meteo" : "How busy the processor and memory are"
-                    checked: DesktopItems.widget(modelData.id).on
-                    onToggled: DesktopItems.toggle(modelData.id)
-                }
-            }
+            Row2 { title: "Widgets and sticky notes"; sub: "On the desktop, under your windows — right-click the desktop to add one"; checked: Prefs.desktopWidgets; onToggled: Prefs.set("desktopWidgets", !Prefs.desktopWidgets) }
+            Row2 { divider: true; visible: Prefs.desktopWidgets; title: "Group desktop files into stacks"; sub: "Pile up what's on the desktop by kind — images, documents, folders"; checked: DesktopItems.stacks; onToggled: DesktopItems.setStacks(!DesktopItems.stacks) }
         }
     }
+    Row {
+        visible: Prefs.desktopWidgets
+        spacing: 10
+        Pill { label: "Open the widget gallery"; primary: true; onClicked: { Ui.settingsOpen = false; Ui.openWidgets(); } }
+        Pill { label: "New sticky note"; onClicked: { Ui.settingsOpen = false; DesktopItems.focusNote(DesktopItems.addNote()); } }
+        Pill { label: "Tidy up"; onClicked: { DesktopItems.tidyFiles(); DesktopItems.resetPositions(); } }
+    }
+    Text {
+        visible: Prefs.desktopWidgets
+        text: DesktopItems.widgets.length + (DesktopItems.widgets.length === 1 ? " widget" : " widgets") + " on the desktop · "
+            + DesktopItems.kinds.length + " to choose from"
+        color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+    }
     Card {
-        visible: Prefs.desktopWidgets && DesktopItems.widget("weather").on
+        visible: Prefs.desktopWidgets && DesktopItems.countOf("weather") > 0
         width: parent.width; height: 64
         Column {
             x: 18; anchors.verticalCenter: parent.verticalCenter
@@ -86,11 +88,5 @@ Column {
             Chip { label: "°C"; on: !Prefs.tempF; onClicked: Prefs.set("tempF", false) }
             Chip { label: "°F"; on: Prefs.tempF; onClicked: Prefs.set("tempF", true) }
         }
-    }
-    Row {
-        visible: Prefs.desktopWidgets
-        spacing: 10
-        Pill { label: "New sticky note"; onClicked: { Ui.settingsOpen = false; DesktopItems.focusNote(DesktopItems.addNote()); } }
-        Pill { label: "Put widgets back in place"; onClicked: { for (const k of DesktopItems.kinds) DesktopItems.setWidget(k.id, { x: -1, y: -1 }); } }
     }
 }

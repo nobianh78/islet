@@ -5,9 +5,9 @@ import "../theme"
 import "../services"
 import "../common"
 
-// Màn hình nền: widget (đồng hồ, lịch, thời tiết, CPU & bộ nhớ) và ghi chú dán.
-// Nằm ngay trên hình nền, dưới mọi cửa sổ. Kéo để dời chỗ; bấm chuột phải lên màn hình nền để
-// thêm ghi chú hay bật/tắt widget. Chỉ ở màn hình chính.
+// Màn hình nền: widget, ghi chú dán và icon của những gì nằm trong ~/Desktop.
+// Nằm ngay trên hình nền, dưới mọi cửa sổ. Bấm chuột phải để thêm widget / ghi chú / thư mục.
+// Chỉ ở màn hình chính.
 PanelWindow {
     id: win
 
@@ -18,53 +18,66 @@ PanelWindow {
 
     WlrLayershell.namespace: "islet-desktop"
     WlrLayershell.layer: WlrLayer.Bottom
-    // gõ được vào ghi chú: lớp này chỉ nhận bàn phím khi bấm vào nó
-    WlrLayershell.keyboardFocus: DesktopItems.notes.length > 0 ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    // gõ được vào ghi chú / đổi tên file: lớp này chỉ nhận bàn phím khi bấm vào nó
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 
     readonly property int top: 56                 // dưới thanh trên + island
     readonly property int gap: 16
-
-    // chỗ mặc định: cột bên phải, xếp từ trên xuống theo thứ tự các loại widget; hết chỗ (chừa dock)
-    // thì sang cột bên trái kế đó
     readonly property int bottomLimit: win.height - 100
-    function autoPos(id) {
+
+    // chỗ mặc định của widget: cột bên phải, xếp từ trên xuống; hết chỗ thì sang cột bên trái kế đó
+    function autoPos(uid) {
         let x = win.width - 28, y = top, colW = 0;
-        for (const k of DesktopItems.kinds) {
-            const w = DesktopItems.widget(k.id);
-            if (!(w.on && w.x < 0) && k.id !== id) continue;
+        for (const w of DesktopItems.widgets) {
+            const k = DesktopItems.kind(w.kind);
+            if (!k) continue;
+            if (w.x >= 0 && w.uid !== uid) continue;
             if (y > top && y + k.h > bottomLimit) { x -= colW + gap; y = top; colW = 0; }
-            if (k.id === id) return Qt.point(x - k.w, y);
+            if (w.uid === uid) return Qt.point(x - k.w, y);
             y += k.h + gap;
             colW = Math.max(colW, k.w);
         }
         return Qt.point(win.width - 328, top);
     }
 
-    // ---------- bấm chuột phải lên màn hình nền ----------
+    // ---------- bấm vào nền ----------
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onPressed: m => {
             menu.close();
+            icons.clearSelection();
+            icons.openStack = null;
             win.contentItem.forceActiveFocus();          // bỏ con trỏ gõ khỏi ghi chú
             if (m.button === Qt.RightButton) menu.openAt(m.x, m.y);
         }
     }
 
+    // ---------- thả file vào màn hình nền ----------
+    DropArea {
+        anchors.fill: parent
+        keys: ["text/uri-list"]
+        onDropped: e => {
+            const files = e.urls.map(u => decodeURIComponent(String(u).replace(/^file:\/\//, ""))).filter(x => x.startsWith("/"));
+            DesktopFiles.drop(files);
+            e.acceptProposedAction();
+        }
+    }
+
+    // ---------- file trong ~/Desktop ----------
+    DesktopIcons { id: icons; anchors.fill: parent; topY: win.top }
+
     // ---------- widget ----------
     Repeater {
-        model: DesktopItems.kinds
+        model: DesktopItems.widgetModel
         DesktopWidget {
             id: dw
-            required property var modelData
-            readonly property var st: DesktopItems.widget(modelData.id)
-            visible: st.on
-            kind: modelData.id
-            width: modelData.w; height: modelData.h
-            x: st.x >= 0 ? Math.min(st.x, win.width - width) : win.autoPos(modelData.id).x
-            y: st.y >= 0 ? Math.min(st.y, win.height - height) : win.autoPos(modelData.id).y
-            onMoved: (nx, ny) => DesktopItems.setWidget(modelData.id, { x: Math.round(nx), y: Math.round(ny) })
-            onRemoveRequested: DesktopItems.setWidget(modelData.id, { on: false })
+            required property string wid
+            uid: wid
+            readonly property point auto_: win.autoPos(dw.uid)
+            x: (st?.x ?? -1) >= 0 ? Math.min(st.x, win.width - width) : auto_.x
+            y: (st?.y ?? -1) >= 0 ? Math.min(st.y, win.height - height) : auto_.y
+            onMoved: (nx, ny) => DesktopItems.setWidget(dw.uid, { x: Math.round(nx), y: Math.round(ny) })
         }
     }
 
@@ -83,7 +96,7 @@ PanelWindow {
         id: menu
         visible: false
         z: 100
-        width: 220
+        width: 230
         height: mcol.implicitHeight + 12
         radius: 14
         color: Qt.rgba(0.11, 0.11, 0.15, 0.96)
@@ -95,61 +108,24 @@ PanelWindow {
             y = Math.min(py, win.height - height - 8);
             visible = true;
         }
-        function close() { visible = false; sub.visible = false; }
-        HoverHandler { id: menuHover }
+        function close() { visible = false; }
         Column {
             id: mcol
             x: 6; y: 6; width: parent.width - 12
+            MenuRow { icon: "grid"; label: "Widgets…"; onClicked: { menu.close(); Ui.openWidgets(); } }
             MenuRow { icon: "note"; label: "New sticky note"; onClicked: { menu.close(); DesktopItems.focusNote(DesktopItems.addNote(menu.at.x, menu.at.y)); } }
+            MenuRow { icon: "folder"; label: "New folder"; onClicked: { menu.close(); DesktopFiles.newFolder(null); } }
             Rectangle { width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.08) }
             MenuRow {
-                id: widgetsRow
-                icon: "grid"; label: "Widgets"; submenu: true
-                onEntered: sub.openFor(widgetsRow)
-                onClicked: sub.openFor(widgetsRow)
+                icon: DesktopItems.stacks ? "check" : "dot"
+                dim: !DesktopItems.stacks
+                label: "Group files into stacks"
+                onClicked: { DesktopItems.setStacks(!DesktopItems.stacks); menu.close(); }
             }
+            MenuRow { icon: "refresh"; label: "Tidy up"; onClicked: { menu.close(); DesktopItems.tidyFiles(); DesktopItems.resetPositions(); } }
             Rectangle { width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.08) }
-            MenuRow { icon: "image"; label: "Change wallpaper…"; onEntered: sub.visible = false; onClicked: { menu.close(); Ui.openSettings("wallpaper"); } }
-            MenuRow { icon: "settings"; label: "Desktop settings…"; onEntered: sub.visible = false; onClicked: { menu.close(); Ui.openSettings("island"); } }
-        }
-    }
-
-    // ---------- menu con: Widgets ----------
-    Rectangle {
-        id: sub
-        visible: false
-        z: 101
-        width: 210
-        height: scol.implicitHeight + 12
-        radius: 14
-        color: Qt.rgba(0.11, 0.11, 0.15, 0.96)
-        border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.1)
-        // mở cạnh mục "Widgets"; hết chỗ bên phải thì lật sang trái
-        function openFor(row) {
-            const p = row.mapToItem(sub.parent, 0, 0);
-            x = menu.x + menu.width + 4 + width > win.width ? menu.x - width - 4 : menu.x + menu.width + 4;
-            y = Math.max(0, Math.min(p.y - 6, win.height - height - 8));
-            visible = true;
-        }
-        // rời khỏi cả hai menu thì đóng menu con
-        HoverHandler { id: subHover }
-        Timer {
-            interval: 320; repeat: true; running: sub.visible
-            onTriggered: if (!subHover.hovered && !menuHover.hovered) sub.visible = false
-        }
-        Column {
-            id: scol
-            x: 6; y: 6; width: parent.width - 12
-            Repeater {
-                model: DesktopItems.kinds
-                MenuRow {
-                    required property var modelData
-                    icon: DesktopItems.widget(modelData.id).on ? "check" : "dot"
-                    dim: !DesktopItems.widget(modelData.id).on
-                    label: modelData.label
-                    onClicked: DesktopItems.toggle(modelData.id)
-                }
-            }
+            MenuRow { icon: "image"; label: "Change wallpaper…"; onClicked: { menu.close(); Ui.openSettings("wallpaper"); } }
+            MenuRow { icon: "settings"; label: "Desktop settings…"; onClicked: { menu.close(); Ui.openSettings("island"); } }
         }
     }
 
@@ -158,19 +134,12 @@ PanelWindow {
         property string icon: ""
         property string label: ""
         property bool dim: false
-        property bool submenu: false            // có mũi tên ▸ và mở menu con khi rê chuột
         signal clicked()
-        signal entered()
         width: parent ? parent.width : 200
         height: 34; radius: 9
-        color: mra.containsMouse || (mr.submenu && sub.visible) ? Theme.tint(0.3) : "transparent"
+        color: mra.containsMouse ? Theme.tint(0.3) : "transparent"
         Icon { x: 10; anchors.verticalCenter: parent.verticalCenter; name: mr.icon; size: 15; opacity: mr.dim ? 0.35 : 0.9 }
         Text { x: 36; anchors.verticalCenter: parent.verticalCenter; text: mr.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13 }
-        Text {
-            visible: mr.submenu
-            anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
-            text: "›"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 15
-        }
-        MouseArea { id: mra; anchors.fill: parent; hoverEnabled: true; onEntered: mr.entered(); onClicked: mr.clicked() }
+        MouseArea { id: mra; anchors.fill: parent; hoverEnabled: true; onClicked: mr.clicked() }
     }
 }
