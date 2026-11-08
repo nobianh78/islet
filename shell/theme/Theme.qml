@@ -54,6 +54,8 @@ Singleton {
     readonly property color muted: light ? "#6C6C70" : "#8E8E93"       // chữ phụ
     readonly property color faint: light ? "#8E8E93" : "#636366"
     readonly property color window: light ? Qt.rgba(0.95, 0.95, 0.97, 1 - 0.4 * Prefs.glass) : Qt.rgba(0.05, 0.05, 0.08, 1 - 0.45 * Prefs.glass)      // nền cửa sổ
+    // icon thư mục của Islet là navy tối; chế độ sáng dùng bản sáng
+    function icon(name) { return light && name === "folder" ? "file:///usr/share/icons/Islet-Light/scalable/places/folder.svg" : Quickshell.iconPath(name, true); }
     function fg(a) { return light ? Qt.rgba(0, 0, 0, a) : Qt.rgba(1, 1, 1, a); }          // lớp phủ nhẹ (hover, thẻ, đường kẻ)
     function surface(a) { return light ? Qt.rgba(1, 1, 1, Math.min(0.97, a + 0.4)) : Qt.rgba(0.07, 0.07, 0.11, a < 0.9 ? a * (1 - 0.6 * Prefs.glass) : a); }   // kính / bảng nổi
 

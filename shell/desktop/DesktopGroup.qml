@@ -59,7 +59,7 @@ Item {
                     width: 20; height: 20
                     Image {
                         anchors.fill: parent
-                        source: modelData.image ? "file://" + modelData.image : Quickshell.iconPath(modelData.icon ?? "text-x-generic", true)
+                        source: modelData.image ? "file://" + modelData.image : Theme.icon(modelData.icon ?? "text-x-generic")
                         fillMode: modelData.image ? Image.PreserveAspectCrop : Image.PreserveAspectFit
                         sourceSize: Qt.size(40, 40)
                         asynchronous: true

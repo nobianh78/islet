@@ -515,6 +515,13 @@ def main():
     places = os.path.join(THEME, "scalable", "places")
     for name, em in EMBLEMS.items():
         write(os.path.join(places, name + ".svg"), folder_svg(em))
+    # bản sáng (Islet-Light, kế thừa Islet): chỉ thư mục đổi màu, app và thùng rác dùng chung
+    lp = os.path.join(THEME + "-Light", "scalable", "places")
+    for name, em in EMBLEMS.items():
+        svg = folder_svg(em, top="#FAFAFE", bot="#E2E2EE", back="#C8C8DA").replace("#1B1B22", "#B4B4C8")
+        svg = svg.replace('stroke="#fff" stroke-width="2.4"', 'stroke="#4A4A60" stroke-width="2.4"').replace('fill="#fff"', 'fill="#4A4A60"').replace('flood-opacity=".35"', 'flood-opacity=".18"')
+        write(os.path.join(lp, name + ".svg"), svg)
+    write(os.path.join(THEME + "-Light", "index.theme"), INDEX_THEME.replace("Name=Islet", "Name=Islet-Light").replace("Inherits=Adwaita,hicolor", "Inherits=Islet").replace("\nDirectories=scalable/places,scalable/apps", "\nDirectories=scalable/places").split("[scalable/apps]")[0])
     write(os.path.join(places, "user-trash.svg"), trash_svg(False))
     write(os.path.join(places, "user-trash-full.svg"), trash_svg(True))
 

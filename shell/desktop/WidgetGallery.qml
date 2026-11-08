@@ -121,7 +121,7 @@ FloatingWindow {
                                         x: 10; y: 10
                                         width: parent.width - 20; height: 126
                                         clip: true
-                                        Rectangle { anchors.fill: parent; radius: 16; color: Qt.rgba(0.07, 0.07, 0.11, 0.92) }   // widget luôn vẽ chữ trắng → nền tối như trên màn hình nền
+                                        Rectangle { anchors.fill: parent; radius: 16; color: Theme.light ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0.07, 0.07, 0.11, 0.92) }   // preview theo chủ đề như widget thật
                                         WidgetContent {
                                             readonly property real k: Math.min((box.width - 24) / card.modelData.w, (box.height - 20) / card.modelData.h, 1)
                                             width: card.modelData.w

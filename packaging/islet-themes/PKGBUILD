@@ -10,7 +10,7 @@ license=(custom OFL-1.1)
 package() {
     local S="$ISLET_SRC" D="$pkgdir"
     install -d "$D/usr/share/icons" "$D/usr/share/islet" "$D/usr/share/plymouth/themes" "$D/usr/share/pixmaps"
-    cp -r --no-preserve=ownership "$S/theme/icons/Islet" "$S/theme/cursors/Islet-Cursors" "$S/theme/cursors/Islet-Cursors-Busy" "$D/usr/share/icons/"
+    cp -r --no-preserve=ownership "$S/theme/icons/Islet" "$S/theme/icons/Islet-Light" "$S/theme/cursors/Islet-Cursors" "$S/theme/cursors/Islet-Cursors-Busy" "$D/usr/share/icons/"
     cp -r --no-preserve=ownership "$S/theme/wallpapers" "$D/usr/share/islet/wallpapers"
     mkdir -p "$D/usr/share/sounds"
     cp -r --no-preserve=ownership "$S/theme/sounds/islet" "$D/usr/share/sounds/islet"

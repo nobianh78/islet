@@ -257,7 +257,7 @@ Item {
                     Image {
                         anchors.horizontalCenter: parent.horizontalCenter
                         y: 10; width: 46; height: 46; sourceSize: Qt.size(92, 92)
-                        source: gi.modelData.image ? "file://" + gi.modelData.image : Quickshell.iconPath(gi.modelData.icon, true)
+                        source: gi.modelData.image ? "file://" + gi.modelData.image : Theme.icon(gi.modelData.icon)
                         fillMode: gi.modelData.image ? Image.PreserveAspectCrop : Image.PreserveAspectFit
                         asynchronous: true
                     }
@@ -360,7 +360,7 @@ Item {
                     anchors.centerIn: parent
                     width: 34; height: 34; sourceSize: Qt.size(68, 68)
                     source: pile.modelData.items[0]?.image ? "file://" + pile.modelData.items[0].image
-                          : Quickshell.iconPath(pile.modelData.items[0]?.icon ?? "folder", true)
+                          : Theme.icon(pile.modelData.items[0]?.icon ?? "folder")
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
                 }
@@ -415,7 +415,7 @@ Item {
                     Image {
                         anchors.horizontalCenter: parent.horizontalCenter
                         y: 10; width: 46; height: 46; sourceSize: Qt.size(92, 92)
-                        source: parent.modelData.image ? "file://" + parent.modelData.image : Quickshell.iconPath(parent.modelData.icon, true)
+                        source: parent.modelData.image ? "file://" + parent.modelData.image : Theme.icon(parent.modelData.icon)
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
                     }

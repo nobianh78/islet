@@ -1,0 +1,12 @@
+[Icon Theme]
+Name=Islet-Light
+Comment=Icon của Islet: thư mục, thùng rác và ứng dụng theo màu logo
+Inherits=Islet
+Directories=scalable/places
+
+[scalable/places]
+Size=64
+MinSize=16
+MaxSize=512
+Type=Scalable
+Context=Places

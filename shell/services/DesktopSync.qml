@@ -18,6 +18,7 @@ Singleton {
             g("org.gnome.desktop.a11y.interface", "high-contrast", Prefs.highContrast);
             g("org.gnome.desktop.interface", "cursor-theme", "Islet-Cursors");
             g("org.gnome.desktop.interface", "color-scheme", Theme.light ? "prefer-light" : "prefer-dark");      // Files, Quick Look… theo chủ đề
+            g("org.gnome.desktop.interface", "icon-theme", Theme.light ? "Islet-Light" : "Islet");            // thư mục sáng trong Files
             g("org.gnome.desktop.interface", "cursor-size", Prefs.cursorSize);
             g("org.gnome.desktop.interface", "font-name", Prefs.fontFamily + " 11");
             g("org.gnome.desktop.interface", "enable-animations", !Prefs.reduceMotion);

@@ -26,14 +26,14 @@ Item {
     }
 
     // ---- dùng chung ----
-    component Title: Text { color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
-    component Sub: Text { color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+    component Title: Text { color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+    component Sub: Text { color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
     component Bar: Rectangle {
         id: br
         property real value: 0
         property color fill: Theme.accent
         height: 8; radius: 4
-        color: Qt.rgba(1, 1, 1, 0.1)
+        color: Theme.fg(0.1)
         Rectangle {
             height: br.height; radius: 4
             width: Math.max(8, br.width * Math.max(0, Math.min(1, br.value)))
@@ -52,9 +52,9 @@ Item {
         spacing: 6
         Item {
             width: mt.width; height: 18
-            Icon { anchors.verticalCenter: parent.verticalCenter; name: mt.icon; size: 15; opacity: 0.8 }
-            Text { x: 24; anchors.verticalCenter: parent.verticalCenter; text: mt.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
-            Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: mt.text_; color: "#D1D1D6"; font.family: Theme.font; font.pixelSize: 12 }
+            TIcon { anchors.verticalCenter: parent.verticalCenter; name: mt.icon; size: 15; opacity: 0.8 }
+            Text { x: 24; anchors.verticalCenter: parent.verticalCenter; text: mt.label; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+            Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: mt.text_; color: Theme.labelSoft; font.family: Theme.font; font.pixelSize: 12 }
         }
         Bar { width: mt.width; value: mt.value; fill: mt.fill }
     }
@@ -66,9 +66,9 @@ Item {
             Column {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 2
-                Text { text: Time.weekdayUpper; color: Qt.lighter(Theme.accent, 1.35); font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Bold; font.letterSpacing: 1.5 }
-                Text { text: Time.time; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 58; font.weight: Font.Light; lineHeight: 0.9 }
-                Text { text: Time.dayMonth + " · " + Time.now.getFullYear(); color: "#D1D1D6"; font.family: Theme.font; font.pixelSize: 14 }
+                Text { text: Time.weekdayUpper; color: (Theme.light ? Qt.darker(Theme.accent, 1.3) : Qt.lighter(Theme.accent, 1.35)); font.family: Theme.font; font.pixelSize: 13; font.weight: Font.Bold; font.letterSpacing: 1.5 }
+                Text { text: Time.time; color: Theme.label; font.family: Theme.font; font.pixelSize: 58; font.weight: Font.Light; lineHeight: 0.9 }
+                Text { text: Time.dayMonth + " · " + Time.now.getFullYear(); color: Theme.labelSoft; font.family: Theme.font; font.pixelSize: 14 }
             }
         }
     }
@@ -83,8 +83,8 @@ Item {
             Rectangle {
                 anchors.centerIn: parent
                 width: an.r * 2; height: an.r * 2; radius: an.r
-                color: Qt.rgba(1, 1, 1, 0.05)
-                border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.12)
+                color: Theme.fg(0.05)
+                border.width: 1; border.color: Theme.fg(0.12)
                 // vạch giờ
                 Repeater {
                     model: 12
@@ -94,7 +94,7 @@ Item {
                         width: index % 3 === 0 ? 3 : 2
                         height: index % 3 === 0 ? 9 : 5
                         radius: 1.5
-                        color: Qt.rgba(1, 1, 1, index % 3 === 0 ? 0.65 : 0.3)
+                        color: Theme.fg(index % 3 === 0 ? 0.65 : 0.3)
                         x: parent.width / 2 - width / 2 + Math.sin(a) * (an.r - 11)
                         y: parent.height / 2 - height / 2 - Math.cos(a) * (an.r - 11)
                         rotation: index * 30
@@ -103,8 +103,8 @@ Item {
                 // kim
                 Repeater {
                     model: [
-                        { len: 0.52, w: 4,   col: "#FFFFFF", ang: (an.now.getHours() % 12 + an.now.getMinutes() / 60) * 30 },
-                        { len: 0.74, w: 3,   col: "#FFFFFF", ang: (an.now.getMinutes() + an.now.getSeconds() / 60) * 6 },
+                        { len: 0.52, w: 4,   col: Theme.label, ang: (an.now.getHours() % 12 + an.now.getMinutes() / 60) * 30 },
+                        { len: 0.74, w: 3,   col: Theme.label, ang: (an.now.getMinutes() + an.now.getSeconds() / 60) * 6 },
                         { len: 0.80, w: 1.5, col: Theme.accent, ang: an.now.getSeconds() * 6 }
                     ]
                     Rectangle {
@@ -155,17 +155,17 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             width: parent.width - 90; elide: Text.ElideRight
                             text: wc.zones[index].split("/").pop().replace(/_/g, " ")
-                            color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13
+                            color: Theme.label; font.family: Theme.font; font.pixelSize: 13
                         }
                         Text {
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             text: wc.times[index] ? wc.times[index][0] : "--:--"
-                            color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Medium
+                            color: Theme.label; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Medium
                         }
                         Text {
                             anchors.right: parent.right; anchors.rightMargin: 58; anchors.verticalCenter: parent.verticalCenter
                             text: wc.times[index] ? wc.times[index][1] : ""
-                            color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                            color: Theme.muted; font.family: Theme.font; font.pixelSize: 11
                         }
                     }
                 }
@@ -186,15 +186,15 @@ Item {
             readonly property int days: new Date(y_, m_ + 1, 0).getDate()
             Row {
                 width: parent.width
-                Text { text: Time.monthLong[cal.m_]; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.Bold }
-                Text { text: "  " + cal.y_; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 16 }
+                Text { text: Time.monthLong[cal.m_]; color: Theme.label; font.family: Theme.font; font.pixelSize: 16; font.weight: Font.Bold }
+                Text { text: "  " + cal.y_; color: Theme.muted; font.family: Theme.font; font.pixelSize: 16 }
             }
             Grid {
                 columns: 7
                 rowSpacing: 2
                 Repeater {
                     model: ["M", "T", "W", "T", "F", "S", "S"]
-                    Text { required property string modelData; width: 37; horizontalAlignment: Text.AlignHCenter; text: modelData; color: "#636366"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.Bold }
+                    Text { required property string modelData; width: 37; horizontalAlignment: Text.AlignHCenter; text: modelData; color: Theme.faint; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.Bold }
                 }
                 Repeater {
                     model: 42
@@ -210,12 +210,12 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             text: parent.inMonth ? parent.d : ""
-                            color: parent.isToday ? "#FFFFFF" : (parent.index % 7 >= 5 ? "#8E8E93" : "#E5E5EA")
+                            color: parent.isToday ? "#FFFFFF" : (parent.index % 7 >= 5 ? Theme.muted : Theme.labelSoft)
                             font.family: Theme.font; font.pixelSize: 12; font.weight: parent.isToday ? Font.Bold : Font.Normal
                         }
                         Rectangle {
                             anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom
-                            width: 4; height: 4; radius: 2; color: Qt.lighter(Theme.accent, 1.3)
+                            width: 4; height: 4; radius: 2; color: (Theme.light ? Qt.darker(Theme.accent, 1.2) : Qt.lighter(Theme.accent, 1.3))
                             visible: parent.inMonth && !parent.isToday && Calendar.pending(parent.k) > 0
                         }
                     }
@@ -234,21 +234,21 @@ Item {
                 spacing: 10
                 Row {
                     spacing: 8
-                    Icon { anchors.verticalCenter: parent.verticalCenter; name: "timer"; size: 16; opacity: 0.85 }
+                    TIcon { anchors.verticalCenter: parent.verticalCenter; name: "timer"; size: 16; opacity: 0.85 }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: Chrono.active ? (Chrono.phase || (Chrono.mode === "stopwatch" ? "Stopwatch" : "Timer")) : "Timer"
-                        color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold
+                        color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: Chrono.mode === "pomodoro"
-                        text: "round " + Chrono.round; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11
+                        text: "round " + Chrono.round; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11
                     }
                 }
                 Text {
                     text: Chrono.active ? Chrono.text : "--:--"
-                    color: Chrono.active ? "#FFFFFF" : "#636366"
+                    color: Chrono.active ? Theme.label : Theme.faint
                     font.family: Theme.font; font.pixelSize: 38; font.weight: Font.Light
                 }
                 Row {
@@ -260,8 +260,8 @@ Item {
                         Rectangle {
                             required property var modelData
                             width: tl.implicitWidth + 18; height: 24; radius: 12
-                            color: tm.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(1, 1, 1, 0.1)
-                            Text { id: tl; anchors.centerIn: parent; text: parent.modelData[0]; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
+                            color: tm.containsMouse ? Theme.fg(0.2) : Theme.fg(0.1)
+                            Text { id: tl; anchors.centerIn: parent; text: parent.modelData[0]; color: Theme.label; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
                             MouseArea {
                                 id: tm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: {
@@ -294,23 +294,23 @@ Item {
                 Item {
                     width: parent.width; height: 62
                     Column {
-                        Text { text: Weather.place || Weather.city || "Weather"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
-                        Text { text: wx.deg(Weather.temp); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 40; font.weight: Font.Light }
+                        Text { text: Weather.place || Weather.city || "Weather"; color: Theme.label; font.family: Theme.font; font.pixelSize: 14; font.weight: Font.DemiBold }
+                        Text { text: wx.deg(Weather.temp); color: Theme.label; font.family: Theme.font; font.pixelSize: 40; font.weight: Font.Light }
                     }
                     Column {
                         anchors.right: parent.right
                         spacing: 4
-                        Icon { anchors.right: parent.right; name: Weather.code >= 0 ? Weather.icon(Weather.code, Weather.day) : "cloud"; size: 30 }
-                        Text { anchors.right: parent.right; text: Weather.error || (Weather.code >= 0 ? Weather.label(Weather.code) : "Loading…"); color: "#D1D1D6"; font.family: Theme.font; font.pixelSize: 12 }
+                        TIcon { anchors.right: parent.right; name: Weather.code >= 0 ? Weather.icon(Weather.code, Weather.day) : "cloud"; size: 30 }
+                        Text { anchors.right: parent.right; text: Weather.error || (Weather.code >= 0 ? Weather.label(Weather.code) : "Loading…"); color: Theme.labelSoft; font.family: Theme.font; font.pixelSize: 12 }
                         Text {
                             anchors.right: parent.right
                             visible: Weather.daily.length > 0
                             text: Weather.daily.length ? "H " + wx.deg(Weather.daily[0].max) + "  L " + wx.deg(Weather.daily[0].min) : ""
-                            color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 12
+                            color: Theme.muted; font.family: Theme.font; font.pixelSize: 12
                         }
                     }
                 }
-                Rectangle { width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+                Rectangle { width: parent.width; height: 1; color: Theme.fg(0.08) }
                 Row {
                     width: parent.width
                     Repeater {
@@ -319,9 +319,9 @@ Item {
                             required property var modelData
                             width: parent.width / 4
                             spacing: 3
-                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: Time.dayShort[new Date(modelData.date + "T12:00").getDay()]; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
-                            Icon { anchors.horizontalCenter: parent.horizontalCenter; name: Weather.icon(modelData.code, true); size: 18 }
-                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: Math.round(Prefs.tempF ? modelData.max * 9 / 5 + 32 : modelData.max) + "°"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12 }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: Time.dayShort[new Date(modelData.date + "T12:00").getDay()]; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
+                            TIcon { anchors.horizontalCenter: parent.horizontalCenter; name: Weather.icon(modelData.code, true); size: 18 }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: Math.round(Prefs.tempF ? modelData.max * 9 / 5 + 32 : modelData.max) + "°"; color: Theme.label; font.family: Theme.font; font.pixelSize: 12 }
                         }
                     }
                 }
@@ -343,16 +343,16 @@ Item {
                     spacing: 12
                     Rectangle {
                         width: 54; height: 54; radius: 12; clip: true
-                        color: Qt.rgba(1, 1, 1, 0.08)
+                        color: Theme.fg(0.08)
                         Image { anchors.fill: parent; source: Media.artUrl; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(108, 108); asynchronous: true }
-                        Icon { anchors.centerIn: parent; visible: !Media.artUrl; name: "music"; size: 22; opacity: 0.6 }
+                        TIcon { anchors.centerIn: parent; visible: !Media.artUrl; name: "music"; size: 22; opacity: 0.6 }
                     }
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
                         width: parent.width - 66
                         spacing: 2
-                        Text { width: parent.width; elide: Text.ElideRight; text: Media.hasPlayer ? Media.title : "Nothing playing"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
-                        Text { width: parent.width; elide: Text.ElideRight; text: Media.artist; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                        Text { width: parent.width; elide: Text.ElideRight; text: Media.hasPlayer ? Media.title : "Nothing playing"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                        Text { width: parent.width; elide: Text.ElideRight; text: Media.artist; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                     }
                 }
                 Row {
@@ -364,7 +364,7 @@ Item {
                         Item {
                             required property var modelData
                             width: 26; height: 26
-                            Icon { anchors.centerIn: parent; name: parent.modelData[0]; size: parent.modelData[1] === "toggle" ? 22 : 18; opacity: mm.containsMouse ? 1 : 0.8 }
+                            TIcon { anchors.centerIn: parent; name: parent.modelData[0]; size: parent.modelData[1] === "toggle" ? 22 : 18; opacity: mm.containsMouse ? 1 : 0.8 }
                             MouseArea {
                                 id: mm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: { const a = parent.modelData[1]; if (a === "prev") Media.previous(); else if (a === "next") Media.next(); else Media.toggle(); }
@@ -377,8 +377,8 @@ Item {
                 anchors.centerIn: parent
                 spacing: 6
                 visible: !Media.hasPlayer && !root.preview
-                Icon { anchors.horizontalCenter: parent.horizontalCenter; name: "music"; size: 26; opacity: 0.45 }
-                Text { text: "Nothing playing"; color: "#636366"; font.family: Theme.font; font.pixelSize: 12 }
+                TIcon { anchors.horizontalCenter: parent.horizontalCenter; name: "music"; size: 26; opacity: 0.45 }
+                Text { text: "Nothing playing"; color: Theme.faint; font.family: Theme.font; font.pixelSize: 12 }
             }
         }
     }
@@ -418,15 +418,15 @@ Item {
             }
             Rectangle {
                 anchors.fill: parent; radius: 14; clip: true
-                color: Qt.rgba(1, 1, 1, 0.05)
+                color: Theme.fg(0.05)
                 Image { id: imgA; anchors.fill: parent; fillMode: Image.PreserveAspectCrop; asynchronous: true; sourceSize: Qt.size(560, 440); opacity: ph.flip ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 900 } } }
                 Image { id: imgB; anchors.fill: parent; fillMode: Image.PreserveAspectCrop; asynchronous: true; sourceSize: Qt.size(560, 440); opacity: ph.flip ? 0 : 1; Behavior on opacity { NumberAnimation { duration: 900 } } }
                 Column {
                     anchors.centerIn: parent
                     spacing: 6
                     visible: ph.pics.length === 0
-                    Icon { anchors.horizontalCenter: parent.horizontalCenter; name: "image"; size: 26; opacity: 0.45 }
-                    Text { text: root.preview ? "Your pictures" : "No pictures in " + ph.dir.split("/").pop(); color: "#636366"; font.family: Theme.font; font.pixelSize: 11 }
+                    TIcon { anchors.horizontalCenter: parent.horizontalCenter; name: "image"; size: 26; opacity: 0.45 }
+                    Text { text: root.preview ? "Your pictures" : "No pictures in " + ph.dir.split("/").pop(); color: Theme.faint; font.family: Theme.font; font.pixelSize: 11 }
                 }
             }
         }
@@ -541,7 +541,7 @@ Item {
                         text_: dk.gb(modelData.size - modelData.used) + " free"
                     }
                 }
-                Text { visible: dk.rows.length === 0; text: "No drives"; color: "#636366"; font.family: Theme.font; font.pixelSize: 12 }
+                Text { visible: dk.rows.length === 0; text: "No drives"; color: Theme.faint; font.family: Theme.font; font.pixelSize: 12 }
             }
         }
     }
@@ -584,22 +584,22 @@ Item {
                 spacing: 12
                 Row {
                     spacing: 8
-                    Icon { anchors.verticalCenter: parent.verticalCenter; name: Net.icon; size: 15; opacity: 0.85 }
-                    Text { anchors.verticalCenter: parent.verticalCenter; width: 230; elide: Text.ElideRight; text: Net.connected ? Net.label : "Offline"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                    TIcon { anchors.verticalCenter: parent.verticalCenter; name: Net.icon; size: 15; opacity: 0.85 }
+                    Text { anchors.verticalCenter: parent.verticalCenter; width: 230; elide: Text.ElideRight; text: Net.connected ? Net.label : "Offline"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
                 }
                 Row {
                     width: parent.width
                     Column {
                         width: parent.width / 2
                         spacing: 2
-                        Row { spacing: 6; Icon { anchors.verticalCenter: parent.verticalCenter; name: "download"; size: 13; opacity: 0.7 } Text { text: "Down"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 } }
-                        Text { text: nt.rate(nt.rx); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Medium }
+                        Row { spacing: 6; TIcon { anchors.verticalCenter: parent.verticalCenter; name: "download"; size: 13; opacity: 0.7 } Text { text: "Down"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 } }
+                        Text { text: nt.rate(nt.rx); color: Theme.label; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Medium }
                     }
                     Column {
                         width: parent.width / 2
                         spacing: 2
-                        Row { spacing: 6; Icon { anchors.verticalCenter: parent.verticalCenter; name: "download"; size: 13; opacity: 0.7; rotation: 180 } Text { text: "Up"; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 } }
-                        Text { text: nt.rate(nt.tx); color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Medium }
+                        Row { spacing: 6; TIcon { anchors.verticalCenter: parent.verticalCenter; name: "download"; size: 13; opacity: 0.7; rotation: 180 } Text { text: "Up"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 } }
+                        Text { text: nt.rate(nt.tx); color: Theme.label; font.family: Theme.font; font.pixelSize: 17; font.weight: Font.Medium }
                     }
                 }
             }
@@ -626,19 +626,19 @@ Item {
                 spacing: 10
                 Row {
                     spacing: 8
-                    Icon { anchors.verticalCenter: parent.verticalCenter; name: Power.charging ? "bolt" : "battery"; size: 16; opacity: 0.85 }
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: "Battery"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
+                    TIcon { anchors.verticalCenter: parent.verticalCenter; name: Power.charging ? "bolt" : "battery"; size: 16; opacity: 0.85 }
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: "Battery"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
                 }
                 Text {
                     text: Power.present ? Math.round(bt.pct * 100) + "%" : "—"
-                    color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 32; font.weight: Font.Light
+                    color: Theme.label; font.family: Theme.font; font.pixelSize: 32; font.weight: Font.Light
                 }
                 Bar {
                     width: parent.width
                     value: bt.pct
                     fill: Power.charging ? "#34C77B" : bt.pct < 0.15 ? "#FF5F57" : bt.pct < 0.3 ? "#FFB547" : Theme.accent
                 }
-                Text { text: bt.left(); color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                Text { text: bt.left(); color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
             }
         }
     }
@@ -681,10 +681,10 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - 60
                     spacing: 2
-                    Text { width: parent.width; elide: Text.ElideRight; text: si.info.host || "Islet"; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.Bold }
-                    Text { width: parent.width; elide: Text.ElideRight; text: si.info.ver ? "Islet " + si.info.ver : (si.info.os || "Islet"); color: "#D1D1D6"; font.family: Theme.font; font.pixelSize: 12 }
-                    Text { width: parent.width; elide: Text.ElideRight; text: "Linux " + (si.info.kernel || "") ; color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
-                    Text { text: "Up " + si.uptime(); color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 11 }
+                    Text { width: parent.width; elide: Text.ElideRight; text: si.info.host || "Islet"; color: Theme.label; font.family: Theme.font; font.pixelSize: 15; font.weight: Font.Bold }
+                    Text { width: parent.width; elide: Text.ElideRight; text: si.info.ver ? "Islet " + si.info.ver : (si.info.os || "Islet"); color: Theme.labelSoft; font.family: Theme.font; font.pixelSize: 12 }
+                    Text { width: parent.width; elide: Text.ElideRight; text: "Linux " + (si.info.kernel || "") ; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
+                    Text { text: "Up " + si.uptime(); color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
                 }
             }
         }

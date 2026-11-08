@@ -48,7 +48,7 @@ Item {
         y: 10
         width: 48; height: 48
         sourceSize: Qt.size(96, 96)
-        source: root.item.image ? "file://" + root.item.image : Quickshell.iconPath(root.item.icon ?? "text-x-generic", true)
+        source: root.item.image ? "file://" + root.item.image : Theme.icon(root.item.icon ?? "text-x-generic")
         fillMode: root.item.image ? Image.PreserveAspectCrop : Image.PreserveAspectFit
         asynchronous: true
         scale: ma.drag.active ? 1.08 : 1
