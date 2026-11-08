@@ -21,17 +21,17 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 8
 
-        // --- hoạt động trực tiếp (thay cột ngày): quay màn hình > đồng hồ > tải file ---
+        // --- hoạt động trực tiếp (thay cột ngày): quay màn hình > đồng hồ > copy file > tải file ---
         Row {
             id: live
-            readonly property string kind: !Prefs.islandLive ? "" : Recorder.recording ? "rec" : Chrono.active ? "timer" : Downloads.active ? "dl" : ""
+            readonly property string kind: !Prefs.islandLive ? "" : Recorder.recording ? "rec" : Chrono.active ? "timer" : CopyProgress.active ? "copy" : Downloads.active ? "dl" : ""
             visible: root.mode === "idle" && kind !== ""
             anchors.verticalCenter: parent.verticalCenter
             spacing: 8
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 22; height: 22; radius: 11
-                color: live.kind === "rec" ? Qt.rgba(1, 0.27, 0.27, 0.2) : live.kind === "timer" ? Theme.tint(0.25) : Qt.rgba(0.36, 0.55, 1, 0.22)
+                color: live.kind === "rec" ? Qt.rgba(1, 0.27, 0.27, 0.2) : live.kind === "timer" ? Theme.tint(0.25) : live.kind === "copy" ? Qt.rgba(0.2, 0.78, 0.48, 0.22) : Qt.rgba(0.36, 0.55, 1, 0.22)
                 Rectangle {
                     visible: live.kind === "rec"
                     anchors.centerIn: parent
@@ -43,21 +43,23 @@ Item {
                         NumberAnimation { to: 1; duration: 600; easing.type: Easing.InOutSine }
                     }
                 }
-                Icon { visible: live.kind !== "rec"; anchors.centerIn: parent; name: live.kind === "timer" ? "timer" : "download"; size: 13 }
+                Icon { visible: live.kind !== "rec"; anchors.centerIn: parent; name: live.kind === "timer" ? "timer" : live.kind === "copy" ? "layers" : "download"; size: 13 }
             }
             Column {
                 anchors.verticalCenter: parent.verticalCenter
                 Text {
                     text: live.kind === "rec" ? "Recording" : live.kind === "timer" ? (Chrono.phase || (Chrono.mode === "stopwatch" ? "Stopwatch" : "Timer"))
-                        : (Downloads.top?.name ?? "")
+                        : live.kind === "copy" ? (CopyProgress.top?.name ?? "") : (Downloads.top?.name ?? "")
                     width: Math.min(implicitWidth, 150); elide: Text.ElideMiddle
                     color: "#8E8E93"; font.family: Theme.font; font.pixelSize: 10; font.weight: Font.ExtraBold; font.letterSpacing: 0.3
                 }
                 Text {
                     text: live.kind === "rec" ? Recorder.text : live.kind === "timer" ? Chrono.text
+                        : live.kind === "copy" ? Math.round((CopyProgress.top?.frac ?? 0) * 100) + "%  " + CopyProgress.etaText(CopyProgress.top?.eta ?? 0)
+                            + (CopyProgress.items.length > 1 ? "  +" + (CopyProgress.items.length - 1) : "")
                         : Downloads.human(Downloads.top?.size ?? 0) + (Downloads.top?.speed ? " · " + Downloads.human(Downloads.top.speed) + "/s" : "")
                         + (Downloads.items.length > 1 ? "  +" + (Downloads.items.length - 1) : "")
-                    color: live.kind === "rec" ? "#FF6961" : live.kind === "timer" ? Qt.lighter(Theme.accent, 1.3) : "#E5E5EA"
+                    color: live.kind === "rec" ? "#FF6961" : live.kind === "timer" ? Qt.lighter(Theme.accent, 1.3) : live.kind === "copy" ? "#6BE29B" : "#E5E5EA"
                     font.family: Theme.font; font.pixelSize: 12; font.weight: Font.Bold
                     font.features: ({ "tnum": 1 })
                 }

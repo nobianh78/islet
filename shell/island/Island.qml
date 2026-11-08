@@ -64,7 +64,7 @@ PanelWindow {
         // có agent đang chạy → island nở thêm một chút để chừa chỗ cho icon agent
         return (mode === "idle" ? 300 : Lyrics.status === "ok" ? 420 : 380) + (agentActive ? 30 : 0) + (liveActive && mode === "idle" ? 40 : 0);
     }
-    readonly property bool liveActive: Prefs.islandLive && (Recorder.recording || Chrono.active || Downloads.active)
+    readonly property bool liveActive: Prefs.islandLive && (Recorder.recording || Chrono.active || CopyProgress.active || Downloads.active)
     readonly property bool agentActive: Prefs.islandAgents && Agents.sessions.some(x => x.state === "working" || x.state === "attention")
     readonly property real targetH: {
         if (view === "expanded") return Math.max(barH + 120, Math.min(420, Math.max(150, expandedView.contentHeight)));
@@ -244,6 +244,12 @@ PanelWindow {
         function onSaved(path) {
             win.pushBanner({ kind: "notification", title: "Recording saved", body: path.split("/").pop(), appName: "Screen recording",
                              icon: "", duration: 7000, onClick: () => Quickshell.execDetached(["xdg-open", path]) });
+        }
+    }
+    Connections {
+        target: CopyProgress
+        function onFinished(name) {
+            win.pushBanner({ kind: "notification", title: "Copied", body: name, appName: "Files", icon: "", duration: 5000 });
         }
     }
     Connections {

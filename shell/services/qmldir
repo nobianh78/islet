@@ -37,3 +37,4 @@ singleton Backup 1.0 Backup.qml
 singleton DesktopItems 1.0 DesktopItems.qml
 singleton Weather 1.0 Weather.qml
 singleton DesktopFiles 1.0 DesktopFiles.qml
+singleton CopyProgress 1.0 CopyProgress.qml

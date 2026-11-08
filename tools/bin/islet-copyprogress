@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""Tiến độ các lệnh copy đang chạy (cho island). In một dòng JSON: [{pid, app, name, pos, size}].
+
+Quét /proc tìm cp / mv / rsync / dd và Files (nautilus). Một lần copy = một file nguồn mở chỉ-đọc (lớn)
+cùng một file đích mở ghi có vị trí ghi xấp xỉ vị trí đọc. Tiến độ = vị trí đọc / dung lượng nguồn.
+shortcut: chỉ thấy file ĐANG chép, không biết tổng của cả mẻ nhiều file; thêm khi cần = đọc trước cây thư mục.
+"""
+import json
+import os
+import sys
+
+APPS = {"cp", "mv", "rsync", "dd", "nautilus", "pcmanfm", "dolphin", "thunar"}
+MIN_SIZE = 16 << 20          # dưới 16 MB xong trước khi kịp hiện
+
+
+def fds(pid):
+    """(đường dẫn, vị trí, cờ, dung lượng) của mọi fd là file thường."""
+    base = f"/proc/{pid}/fd"
+    try:
+        names = os.listdir(base)
+    except OSError:
+        return
+    for n in names:
+        try:
+            path = os.readlink(f"{base}/{n}")
+            if not path.startswith("/") or path.startswith(("/proc/", "/sys/", "/dev/", "/usr/", "/run/")):
+                continue
+            st = os.stat(f"{base}/{n}")
+            if not os.path.isfile(f"{base}/{n}"):
+                continue
+            pos = flags = None
+            for line in open(f"/proc/{pid}/fdinfo/{n}"):
+                if line.startswith("pos:"):
+                    pos = int(line.split()[1])
+                elif line.startswith("flags:"):
+                    flags = int(line.split()[1], 8)
+            if pos is not None and flags is not None:
+                yield path, pos, flags & 3, st.st_size       # 0 chỉ đọc · 1 chỉ ghi · 2 đọc ghi
+        except (OSError, ValueError):
+            continue
+
+
+def scan():
+    out = []
+    for pid in filter(str.isdigit, os.listdir("/proc")):
+        try:
+            comm = open(f"/proc/{pid}/comm").read().strip()
+        except OSError:
+            continue
+        if comm not in APPS:
+            continue
+        files = list(fds(pid))
+        writes = [pos for _, pos, acc, _ in files if acc in (1, 2)]
+        if not writes:
+            continue
+        for path, pos, acc, size in files:
+            if acc != 0 or size < MIN_SIZE or pos >= size:
+                continue
+            tol = max(1 << 20, size // 50)
+            if any(abs(w - pos) <= tol for w in writes):
+                out.append({"pid": int(pid), "app": comm, "name": os.path.basename(path), "pos": pos, "size": size})
+    return out
+
+
+if __name__ == "__main__":
+    json.dump(scan(), sys.stdout)
+    print()
