@@ -32,7 +32,7 @@ PanelWindow {
         if (!active || !active.activated) return "Islet";
         const id = active.appId ?? "";
         if (id === "org.quickshell") return active.title || "Islet";      // cửa sổ của chính Islet (Cài đặt)
-        return appNames[id] ?? (id.split(".").pop() || "Islet");
+        return appNames[id] ?? (id.replace(/\.exe$/i, "").split(".").pop() || "Islet");
     }
 
     // Lớp tối rất nhẹ phía trên để chữ trắng luôn đọc được.

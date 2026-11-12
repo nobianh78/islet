@@ -22,7 +22,7 @@ Singleton {
         "mpv": "video", "islet-store": "store", "islet-settings": "settings", "org.gnome.Settings": "settings",
         "islet-installer": "islet", "islet": "islet"
     })
-    function appKey(id) { return appKeys[id] ?? appKeys[(id || "").toLowerCase()] ?? ""; }
+    function appKey(id) { return appKeys[id] ?? appKeys[(id || "").toLowerCase()] ?? (/\.exe$/i.test(id || "") ? "windows" : ""); }
     function tint(a) { return Qt.rgba(violet.r, violet.g, violet.b, a); }
     readonly property color pink: "#FF6B97"
     readonly property color teal: "#5EEAD4"
@@ -55,8 +55,8 @@ Singleton {
     readonly property color faint: light ? "#8E8E93" : "#636366"
     readonly property color window: light ? Qt.rgba(0.95, 0.95, 0.97, 1 - 0.4 * Prefs.glass) : Qt.rgba(0.05, 0.05, 0.08, 1 - 0.45 * Prefs.glass)      // nền cửa sổ
     // viên kính (Liquid Glass): nút, thanh trượt, widget — mờ trong, hai chế độ đều có độ sáng riêng
-    readonly property color glassFill: light ? Qt.rgba(1, 1, 1, 0.42) : Qt.rgba(1, 1, 1, 0.13)
-    readonly property color glassHover: light ? Qt.rgba(1, 1, 1, 0.62) : Qt.rgba(1, 1, 1, 0.22)
+    readonly property color glassFill: light ? Qt.rgba(1, 1, 1, 0.42) : Qt.rgba(0.04, 0.04, 0.07, 0.26)
+    readonly property color glassHover: light ? Qt.rgba(1, 1, 1, 0.62) : Qt.rgba(0.12, 0.12, 0.18, 0.4)
     // icon thư mục của Islet là navy tối; chế độ sáng dùng bản sáng
     function icon(name) { return light && name === "folder" ? "file:///usr/share/icons/Islet-Light/scalable/places/folder.svg" : Quickshell.iconPath(name, true); }
     function fg(a) { return light ? Qt.rgba(0, 0, 0, a) : Qt.rgba(1, 1, 1, a); }          // lớp phủ nhẹ (hover, thẻ, đường kẻ)

@@ -1,0 +1,74 @@
+#!/bin/bash
+# Chạy app Windows trên Islet (Wine bên trong, người dùng không phải biết). Mỗi app một "môi trường" riêng
+# để app này hỏng không kéo app khác.
+#
+#   islet-win run [--prefix TÊN] <file.exe|.msi|.bat> [đối số…]   chạy (mặc định dùng môi trường "default")
+#   islet-win apps                                  app Windows đã cài (id<TAB>tên), từ menu Wine
+#   islet-win prefixes                              các môi trường: tên<TAB>dung lượng
+#   islet-win reset <tên>                           xoá một môi trường (và app trong đó)
+#   islet-win doctor                                kiểm tra Wine đã sẵn sàng chưa
+set -uo pipefail
+BASE="${XDG_DATA_HOME:-$HOME/.local/share}/islet/windows"
+cmd=${1:-}; shift || true
+
+have_wine() { command -v wine >/dev/null 2>&1; }
+note() { command -v notify-send >/dev/null 2>&1 && notify-send -a "Islet" "$1" "${2:-}" 2>/dev/null; true; }
+# tên môi trường an toàn: chỉ chữ, số, gạch
+safe() { sed -E 's/[^A-Za-z0-9._-]+/-/g; s/^-+|-+$//g' <<<"$1"; }
+
+case "$cmd" in
+run)
+    prefix=""
+    if [ "${1:-}" = "--prefix" ]; then prefix=$(safe "${2:?tên môi trường}"); shift 2; fi
+    file=${1:?đường dẫn file}; shift
+    [ -f "$file" ] || { echo "Không thấy file: $file" >&2; exit 1; }
+    have_wine || { note "Windows apps need Wine" "Wine isn't installed on this system"; echo "Wine chưa được cài" >&2; exit 2; }
+    [ -n "$prefix" ] || prefix=default    # mỗi môi trường ~440 MB: dùng chung trừ khi chọn --prefix
+    export WINEPREFIX="$BASE/$prefix" WINEDEBUG=-all
+    mkdir -p "$BASE"
+    # Chạy qua X11 (XWayland): cửa sổ không có thanh tiêu đề kiểu Windows của Wine, Islet vẽ ba nút của nó
+    # shortcut: nếu cần Wayland gốc (HiDPI sắc nét hơn), đặt ISLET_WIN_WAYLAND=1
+    if [ "${ISLET_WIN_WAYLAND:-0}" != 1 ]; then unset WAYLAND_DISPLAY; export DISPLAY="${DISPLAY:-:0}"; fi
+    if [ ! -d "$WINEPREFIX" ]; then
+        note "Setting up Windows environment" "First run for $prefix — this takes a moment"
+        wineboot -u >/dev/null 2>&1
+    fi
+    # giao diện hiện đại (Wine kèm sẵn "aero") thay cho kiểu Windows 95; chỉ áp một lần cho mỗi môi trường
+    if [ ! -f "$WINEPREFIX/.islet-style" ]; then
+        k='HKCU\Software\Microsoft\Windows\CurrentVersion\ThemeManager'
+        wine reg add "$k" /v ThemeActive /d 1 /f >/dev/null 2>&1
+        wine reg add "$k" /v DllName /d 'C:\windows\resources\themes\aero\aero.msstyles' /f >/dev/null 2>&1
+        wine reg add "$k" /v ColorName /d NormalColor /f >/dev/null 2>&1
+        wine reg add "$k" /v SizeName /d NormalSize /f >/dev/null 2>&1
+        : > "$WINEPREFIX/.islet-style"
+    fi
+    case "${file,,}" in
+        *.msi) exec wine msiexec /i "$(winepath -w "$file")" "$@" ;;
+        *.bat|*.cmd) exec wine cmd /c "$(winepath -w "$file")" "$@" ;;
+        *) exec wine start /unix "$file" "$@" ;;
+    esac
+    ;;
+apps)
+    d="${XDG_DATA_HOME:-$HOME/.local/share}/applications/wine"
+    [ -d "$d" ] || exit 0
+    find "$d" -name '*.desktop' -print0 | while IFS= read -r -d '' f; do
+        n=$(sed -n 's/^Name=//p' "$f" | head -1)
+        [ -n "$n" ] && printf '%s\t%s\n' "${f#"$d"/}" "$n"
+    done
+    ;;
+prefixes)
+    [ -d "$BASE" ] || exit 0
+    for p in "$BASE"/*/; do [ -d "$p" ] && printf '%s\t%s\n' "$(basename "$p")" "$(du -sh "$p" 2>/dev/null | cut -f1)"; done
+    ;;
+reset)
+    name=$(safe "${1:?tên môi trường}")
+    [ -n "$name" ] && [ -d "$BASE/$name" ] || { echo "Không có môi trường: $name" >&2; exit 1; }
+    rm -rf -- "${BASE:?}/$name"
+    ;;
+doctor)
+    if have_wine; then echo "wine $(wine --version 2>/dev/null)"; else echo "Wine chưa được cài"; exit 2; fi
+    ;;
+*)
+    sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 1
+    ;;
+esac

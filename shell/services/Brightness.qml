@@ -16,7 +16,10 @@ Singleton {
         Quickshell.execDetached(["brightnessctl", "-q", "-c", "backlight", "set", Math.round(v * 100) + "%"]);
     }
 
+    // đọc lại mỗi khi mở Control Center: phím độ sáng của laptop đổi giá trị mà không báo cho shell
+    Connections { target: Ui; function onControlCenterOpenChanged() { if (Ui.controlCenterOpen && !probe.running) probe.running = true; } }
     Process {
+        id: probe
         running: true
         command: ["brightnessctl", "-m", "-c", "backlight", "info"]
         stdout: SplitParser {

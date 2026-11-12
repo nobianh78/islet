@@ -45,6 +45,18 @@ Column {
                     Repeater { model: ["06:00", "07:00", "08:00"]; Chip { required property string modelData; label: modelData; on: Prefs.dndTo === modelData; onClicked: Prefs.set("dndTo", modelData) } }
                 }
             }
+            Item {
+                width: parent.width; height: 52
+                Text { x: 18; anchors.verticalCenter: parent.verticalCenter; text: "Focus mode"; color: Theme.label; font.family: Theme.font; font.pixelSize: 13 }
+                Row {
+                    anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter
+                    spacing: 6
+                    Repeater {
+                        model: ["work", "sleep"]
+                        Chip { required property string modelData; label: Ui.focusProfiles[modelData].label; on: Prefs.focusKind === modelData; onClicked: { Prefs.set("focusKind", modelData); if (Ui.focusMode) { Ui.focusMode = false; Ui.focusMode = true; } } }
+                    }
+                }
+            }
             Row2 { divider: true; title: "Show message previews"; sub: "Otherwise banners only say “New notification”"; checked: Prefs.notifPreview; onToggled: Prefs.set("notifPreview", !Prefs.notifPreview) }
             Row2 { divider: true; title: "Notification sound"; sub: "A soft chime when a banner appears"; checked: Prefs.notifSounds; onToggled: Prefs.set("notifSounds", !Prefs.notifSounds) }
         }

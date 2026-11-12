@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<defs>
+  <linearGradient id="win-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4BA3FF"/><stop offset="0.55" stop-color="#3B7BFF"/><stop offset="1" stop-color="#5B5CFF"/></linearGradient>
+  <radialGradient id="win-hl" cx=".22" cy=".12" r=".75">
+    <stop offset="0" stop-color="#fff" stop-opacity=".42"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="win-lo" x1="0" y1="0" x2="0" y2="1">
+    <stop offset=".6" stop-color="#1E2F9A" stop-opacity="0"/><stop offset="1" stop-color="#1E2F9A" stop-opacity=".22"/>
+  </linearGradient>
+  <filter id="win-sh" x="-25%" y="-25%" width="150%" height="150%">
+    <feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#1E2F9A" flood-opacity=".35"/>
+  </filter>
+  
+</defs>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#win-bg)"/>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#win-hl)"/>
+<path d="M41.6352 6 H86.3648 C111.30944 6 122 16.690559999999998 122 41.6352 V86.3648 C122 111.30944 111.30944 122 86.3648 122 H41.6352 C16.690559999999998 122 6 111.30944 6 86.3648 V41.6352 C6 16.690559999999998 16.690559999999998 6 41.6352 6Z" fill="url(#win-lo)"/>
+<g filter="url(#win-sh)">
+<rect x="22" y="28" width="84" height="72" rx="14" fill="#FFFFFF" fill-opacity=".22"/>
+<circle cx="35" cy="40" r="3.4" fill="#FFFFFF"/><circle cx="45" cy="40" r="3.4" fill="#FFFFFF" fill-opacity=".7"/><circle cx="55" cy="40" r="3.4" fill="#FFFFFF" fill-opacity=".45"/>
+<rect x="33" y="54" width="29" height="19" rx="5" fill="#FFFFFF"/><rect x="66" y="54" width="29" height="19" rx="5" fill="#FFFFFF" fill-opacity=".8"/>
+<rect x="33" y="77" width="29" height="15" rx="5" fill="#FFFFFF" fill-opacity=".8"/><rect x="66" y="77" width="29" height="15" rx="5" fill="#FFFFFF"/></g>
+</svg>

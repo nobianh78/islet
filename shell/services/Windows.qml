@@ -77,7 +77,7 @@ Singleton {
     })
     function nameOf(t) {
         const id = appIdOf(t);
-        return appNames[id] ?? (t?.title || id.split(".").pop() || "Apps");
+        return appNames[id] ?? (t?.title || id.replace(/\.exe$/i, "").split(".").pop() || "Apps");
     }
     function focusWin(t) {
         Hyprland.dispatch('hl.dsp.focus({ window = "' + addr(t) + '" })');

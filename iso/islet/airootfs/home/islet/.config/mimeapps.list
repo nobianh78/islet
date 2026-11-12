@@ -1,4 +1,8 @@
 [Default Applications]
+application/x-ms-dos-executable=islet-win.desktop
+application/vnd.microsoft.portable-executable=islet-win.desktop
+application/x-msdownload=islet-win.desktop
+application/x-msi=islet-win.desktop
 inode/directory=org.gnome.Nautilus.desktop
 text/plain=org.gnome.TextEditor.desktop
 text/markdown=org.gnome.TextEditor.desktop

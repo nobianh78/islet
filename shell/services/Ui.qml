@@ -23,8 +23,16 @@ Singleton {
     Timer { interval: 30000; running: true; repeat: true; onTriggered: root.clockNow = Date.now() }
     // Chế độ Tập trung: không banner, ẩn widget/file màn hình nền, tối hình nền và cửa sổ không đang dùng
     property bool focusMode: false
-    onFocusModeChanged: Quickshell.execDetached(["hyprctl", "eval",
-        `hl.config({ decoration = { dim_inactive = ${focusMode}, dim_strength = 0.55 } })`])
+    // Hồ sơ: hình nền riêng (""= giữ nguyên), độ tối hình nền, dock tự ẩn
+    readonly property var focusProfiles: ({
+        work:  { label: "Work",  wall: "",                                       dim: 0.6, dockHide: true },
+        sleep: { label: "Sleep", wall: "/usr/share/islet/wallpapers/midnight.jpg", dim: 0.75, dockHide: true }
+    })
+    readonly property var focusProfile: focusProfiles[Prefs.focusKind] ?? focusProfiles.work
+    onFocusModeChanged: {
+        Prefs.focusWall = focusMode ? focusProfile.wall : "";
+        Quickshell.execDetached(["hyprctl", "eval", `hl.config({ decoration = { dim_inactive = ${focusMode}, dim_strength = 0.55 } })`]);
+    }
     readonly property bool dndNow: {
         if (focusMode) return true;
         if (!Prefs.dndScheduled) return false;

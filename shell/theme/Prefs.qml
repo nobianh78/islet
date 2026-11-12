@@ -114,7 +114,9 @@ Singleton {
 
     // hình nền đang dùng: ban đêm (giờ của Night Light) có thể là hình khác
     property bool nightNow: false
-    readonly property string wallpaperEff: nightNow && wallNight !== "" ? wallNight : wallpaper
+    property string focusKind: "work"        // hồ sơ Tập trung đang chọn: work | sleep
+    property string focusWall: ""            // hình nền do Tập trung đặt (Ui điền, không lưu)
+    readonly property string wallpaperEff: focusWall !== "" ? focusWall : nightNow && wallNight !== "" ? wallNight : wallpaper
     readonly property bool wallpaperIsImage: !wallpaperEff.startsWith("preset:")
     readonly property var preset: presets.find(p => "preset:" + p.id === wallpaperEff) ?? presets[0]
 
@@ -138,7 +140,7 @@ Singleton {
 
     readonly property var simpleKeys: ["dimAfter", "lockAfter", "screenOffAfter", "sleepAfterBattery", "sleepAfterAC", "lidAction", "autoSaver",
         "nightMode", "nightFrom", "nightTo", "nightTemp", "naturalScroll", "tapToClick", "disableWhileTyping", "pointerSpeed", "scrollSpeed",
-        "dockSize", "dockAutohide", "islandMedia", "islandLive", "ccLayout", "glass", "blurSize", "islandAgents", "islandLyrics", "wsCount", "wsAnim", "clock24", "clockSeconds",
+        "dockSize", "dockAutohide", "focusKind", "islandMedia", "islandLive", "ccLayout", "glass", "blurSize", "islandAgents", "islandLyrics", "wsCount", "wsAnim", "clock24", "clockSeconds",
         "notifPreview", "notifSounds", "notifMuted", "dndScheduled", "dndFrom", "dndTo", "systemSounds", "reduceMotion", "zoom",
         "cursorSize", "textScale", "highContrast", "kbLayout", "repeatDelay", "repeatRate", "imeEnabled", "imeMethod", "wallNight", "fontFamily",
         "backupDrive", "backupLabel", "backupAuto", "backupLast", "themeMode", "welcomeDone", "desktopWidgets", "weatherCity", "tempF"]

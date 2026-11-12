@@ -44,7 +44,8 @@ PanelWindow {
     readonly property var bt: Bluetooth.defaultAdapter
 
     property bool editing: false
-    onOpenChanged: if (!open) editing = false
+    property string detail: ""          // bảng nhanh đang mở: "wifi" | "bt" | ""
+    onOpenChanged: if (!open) { editing = false; detail = ""; }
 
     // Danh mục: wide = chiếm cả hàng. Thêm mục mới = thêm một Component bên dưới và một dòng ở đây.
     readonly property var defs: ({
@@ -88,7 +89,7 @@ PanelWindow {
     function afterClose(fn) { Ui.controlCenterOpen = false; later.fn = fn; later.restart(); }
     Timer { id: later; property var fn; interval: 450; onTriggered: fn() }
 
-    // Không có nền: mỗi ô tự là một viên kính (giống Control Center của macOS mới)
+    // Nền kính mờ + mỗi ô là một viên kính nhỏ
     Item {
         id: panel
         anchors.right: parent.right
@@ -104,6 +105,13 @@ PanelWindow {
         Keys.onEscapePressed: Ui.controlCenterOpen = false
         focus: win.open
 
+        // nền kính mờ phía sau (Hyprland làm nhoè) để các nút dễ nhìn, dễ bấm
+        Glass {
+            anchors.fill: parent
+            radius: 30
+            color: Theme.light ? Qt.rgba(1, 1, 1, 0.5) : Qt.rgba(0.04, 0.04, 0.07, 0.45)
+        }
+
         Column {
             id: content
             x: win.pad
@@ -114,6 +122,7 @@ PanelWindow {
             // Các mục do người dùng sắp xếp (Prefs.ccLayout). Khi sửa: kéo để đổi chỗ, bấm dấu − để bỏ.
             Flow {
                 id: grid
+                visible: win.detail === ""
                 width: parent.width
                 spacing: win.gap
                 Repeater {
@@ -180,8 +189,19 @@ PanelWindow {
                 }
             }
 
+            // Bảng nhanh Wi-Fi / Bluetooth (thay lưới khi mở)
+            Loader {
+                id: detailLoader
+                visible: win.detail !== ""
+                active: win.detail !== ""
+                width: parent.width
+                sourceComponent: win.detail === "wifi" ? wifiPanel : btPanel
+            }
+            Connections { target: detailLoader.item; ignoreUnknownSignals: true; function onBack() { win.detail = ""; } }
+
             // Chân: Edit + Cài đặt, mỗi nút là một viên kính
             Item {
+                visible: win.detail === ""
                 width: parent.width
                 height: 30
                 Glass {
@@ -214,8 +234,12 @@ PanelWindow {
             subtitle: Net.label
             checked: Net.connected
             available: Net.wifiPresent || Net.connected
+            detail: Net.wifiPresent
             onToggled: if (Net.wifiPresent) Net.toggleWifi()
+            onOpened: win.detail = "wifi"
         } }
+        Component { id: wifiPanel; WifiPanel {} }
+        Component { id: btPanel; BtPanel {} }
         Component { id: cBt; Tile {
             icon: "bluetooth"
             title: "Bluetooth"
@@ -223,7 +247,9 @@ PanelWindow {
             checked: win.bt?.enabled ?? false
             available: win.bt !== null
             onColor: Theme.violet
+            detail: win.bt !== null
             onToggled: if (win.bt) win.bt.enabled = !win.bt.enabled
+            onOpened: win.detail = "bt"
         } }
         Component { id: cAir; Tile {
             icon: "wifi-off"
@@ -252,7 +278,7 @@ PanelWindow {
         Component { id: cFocus; Tile {
             icon: "sparkle"
             title: "Focus"
-            subtitle: Ui.focusMode ? "On" : "Off"
+            subtitle: Ui.focusMode ? Ui.focusProfile.label : "Off"
             checked: Ui.focusMode
             onColor: Theme.violet
             onToggled: Ui.focusMode = !Ui.focusMode

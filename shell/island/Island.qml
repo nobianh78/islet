@@ -385,20 +385,6 @@ PanelWindow {
             Behavior on opacity { NumberAnimation { duration: 220 } }
         }
 
-        // vầng sáng chạy quanh island khi đang có việc (ghi hình, hẹn giờ, tải, agent, nhạc)
-        Item {
-            id: halo
-            readonly property bool on: !win.expanded && (win.liveActive || win.agentActive || (win.mode === "media" && Media.playing))
-            property real spin: 0
-            anchors.fill: parent
-            opacity: on ? 1 : 0
-            visible: opacity > 0.01
-            Behavior on opacity { NumberAnimation { duration: 600; easing.type: Easing.InOutQuad } }
-            NumberAnimation on spin { from: 0; to: 360; duration: 4200; loops: Animation.Infinite; running: halo.visible }
-            Halo { soft: true; x: -8; width: parent.width + 16; height: parent.height + 8; r: win.cornerR + 6; spin: halo.spin; opacity: 0.55 }
-            Halo { x: -2; width: parent.width + 4; height: parent.height + 2; r: win.cornerR + 2; spin: halo.spin }
-        }
-
         Rectangle {
             id: shape
             anchors.fill: parent

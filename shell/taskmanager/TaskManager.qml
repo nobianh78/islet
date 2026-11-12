@@ -42,7 +42,7 @@ PanelWindow {
         id: panel
         anchors.fill: parent
         radius: 28
-        color: Theme.surface(0.85)
+        color: Theme.light ? Theme.glassFill : Theme.surface(0.6)
 
         opacity: win.open ? 1 : 0
         scale: win.open ? 1 : 0.94

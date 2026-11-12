@@ -22,7 +22,7 @@ PanelWindow {
     Rectangle {      // Tập trung: hình nền tối đi để mắt chỉ còn cửa sổ đang làm
         anchors.fill: parent
         color: "#000000"
-        opacity: Ui.focusMode ? 0.6 : 0
+        opacity: Ui.focusMode ? Ui.focusProfile.dim : 0
         Behavior on opacity { NumberAnimation { duration: 600; easing.type: Easing.InOutQuad } }
     }
 

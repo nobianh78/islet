@@ -121,6 +121,8 @@ var apps = [
     { pkg: "devhelp",           name: "Devhelp",           cat: "dev", desc: "Read API docs offline" },
 
     // Trò chơi
+    { pkg: "lutris",            name: "Lutris",            cat: "games", desc: "Game launcher that sets up Windows and Linux games (uses Wine)" },
+    { pkg: "bottles",           name: "Bottles",           cat: "tools", aur: true, desc: "Make separate Windows environments for apps and games" },
     { pkg: "supertuxkart",      name: "SuperTuxKart",      cat: "games", desc: "Fun kart racing with friends", featured: true },
     { pkg: "luanti",            name: "Luanti",            cat: "games", desc: "Block-building sandbox (like Minecraft)" },
     { pkg: "0ad",               name: "0 A.D.",            cat: "games", desc: "Real-time strategy in ancient times" },

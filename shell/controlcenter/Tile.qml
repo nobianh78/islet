@@ -14,8 +14,10 @@ Item {
     property bool available: true
     property bool compact: false
     property color onColor: Theme.violet
+    property bool detail: false        // viên thuốc có bảng nhanh: bấm phần chữ để mở, bấm nút tròn để bật/tắt
 
     signal toggled()
+    signal opened()
 
     implicitHeight: 52
     opacity: available ? 1 : 0.45
@@ -46,8 +48,23 @@ Item {
         Text { width: parent.width; visible: text !== ""; text: root.subtitle; color: Theme.fg(0.6); font.family: Theme.font; font.pixelSize: 10; elide: Text.ElideRight }
     }
 
+    Text { visible: root.detail && !root.compact; anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter; text: "›"; color: Theme.fg(0.5); font.pixelSize: 16 }
+
     // chỉ nút tròn
     TIcon { visible: root.compact; anchors.centerIn: parent; name: root.icon; size: 20; color: root.checked ? "#FFFFFF" : Theme.label }
+
+    // tên chức năng khi rê chuột (nút tròn không có chữ)
+    z: mouse.containsMouse ? 10 : 0
+    Timer { id: tipDelay; interval: 350; running: mouse.containsMouse && root.compact }
+    Rectangle {
+        visible: root.compact && tipDelay.running === false && mouse.containsMouse
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: parent.height + 6
+        width: tip.implicitWidth + 20; height: 26; radius: 13
+        color: Theme.light ? Qt.rgba(1, 1, 1, 0.92) : Qt.rgba(0.08, 0.08, 0.12, 0.92)
+        border.width: 1; border.color: Theme.fg(0.15)
+        Text { id: tip; anchors.centerIn: parent; text: root.title + (root.subtitle ? " · " + root.subtitle : ""); color: Theme.label; font.family: Theme.font; font.pixelSize: 11; font.weight: Font.DemiBold }
+    }
 
     MouseArea {
         id: mouse
@@ -55,6 +72,6 @@ Item {
         hoverEnabled: true
         enabled: root.available
         cursorShape: Qt.PointingHandCursor
-        onClicked: root.toggled()
+        onClicked: m => { if (root.detail && !root.compact && m.x > 50) root.opened(); else root.toggled(); }
     }
 }

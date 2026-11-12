@@ -217,89 +217,22 @@ Scope {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: Time.dateLong
-                    color: Qt.rgba(1, 1, 1, 0.78)
+                    color: Qt.rgba(1, 1, 1, 0.7)
                     font.family: Theme.font
-                    font.pixelSize: 20
+                    font.pixelSize: 19
                     font.weight: Font.Medium
                 }
                 RollingClock {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: Time.time
                     pixelSize: Math.round(Math.min(surf.width, 1600) * 0.105)
-                    weight: Font.Bold
-                    colonColor: Theme.accent
+                    weight: Font.Light
+                    color: Qt.rgba(1, 1, 1, 0.95)      // chữ kính: thấy hình nền mờ qua nét chữ
+                    colonColor: Qt.rgba(1, 1, 1, 0.5)
                 }
             }
 
-            // ---------- đang phát ----------
-            Rectangle {
-                id: media
-                readonly property var player: Media.hasPlayer ? Media.active : null
-                visible: player !== null
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: clockCol.bottom
-                anchors.topMargin: 18
-                width: 340
-                height: 64
-                radius: 22
-                color: Qt.rgba(1, 1, 1, 0.1)
-                border.width: 1
-                border.color: Qt.rgba(1, 1, 1, 0.12)
-                opacity: surf.clockIn
-
-                Rectangle {
-                    id: cover
-                    x: 10; anchors.verticalCenter: parent.verticalCenter
-                    width: 44; height: 44; radius: 12
-                    color: Qt.rgba(1, 1, 1, 0.1)
-                    clip: true
-                    Image { anchors.fill: parent; source: media.player?.trackArtUrl ?? ""; fillMode: Image.PreserveAspectCrop; asynchronous: true }
-                }
-                Column {
-                    anchors.left: cover.right; anchors.leftMargin: 12
-                    anchors.right: playBtn.left; anchors.rightMargin: 8
-                    anchors.verticalCenter: parent.verticalCenter
-                    Text { width: parent.width; elide: Text.ElideRight; text: media.player?.trackTitle ?? ""; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 13; font.weight: Font.DemiBold }
-                    Text { width: parent.width; elide: Text.ElideRight; text: media.player?.trackArtist ?? ""; color: Qt.rgba(1, 1, 1, 0.6); font.family: Theme.font; font.pixelSize: 11 }
-                }
-                Rectangle {
-                    id: playBtn
-                    anchors.right: parent.right; anchors.rightMargin: 12
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 36; height: 36; radius: 18
-                    color: pm.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(1, 1, 1, 0.1)
-                    Icon { anchors.centerIn: parent; name: media.player?.isPlaying ? "pause" : "play"; size: 16 }
-                    MouseArea { id: pm; anchors.fill: parent; hoverEnabled: true; onClicked: media.player?.togglePlaying() }
-                }
-            }
-
-            // ---------- ảnh đại diện: vòng sáng (con mèo bay vào giữa vòng) ----------
             readonly property real avatarCY: height * 0.6 + 46
-            Rectangle {
-                id: halo
-                anchors.horizontalCenter: parent.horizontalCenter
-                y: surf.avatarCY - 46
-                width: 92; height: 92; radius: 46
-                color: Qt.rgba(1, 1, 1, 0.06)
-                border.width: 2
-                border.color: root.error ? Theme.red : Theme.accent
-                Behavior on border.color { ColorAnimation { duration: 200 } }
-                opacity: surf.authIn * (root.checking ? 1 : breath)
-                scale: (0.6 + 0.4 * surf.authIn) * (root.checking ? pulse : 1)
-                property real breath: 1
-                property real pulse: 1
-                SequentialAnimation on breath {
-                    loops: Animation.Infinite
-                    NumberAnimation { to: 0.5; duration: 1600; easing.type: Easing.InOutSine }
-                    NumberAnimation { to: 1.0; duration: 1600; easing.type: Easing.InOutSine }
-                }
-                SequentialAnimation on pulse {
-                    loops: Animation.Infinite
-                    running: root.checking
-                    NumberAnimation { to: 1.1; duration: 420; easing.type: Easing.InOutSine }
-                    NumberAnimation { to: 1.0; duration: 420; easing.type: Easing.InOutSine }
-                }
-            }
 
             // quầng sáng tím sau lưng mèo (giống Plymouth), co lại khi mèo bay xuống
             Rectangle {
@@ -461,46 +394,12 @@ Scope {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: root.error || (root.live ? "Live session · just press Enter"
-                        : Power.present ? "Battery " + Math.round(Power.percent) + "%" + (Power.charging ? " · charging" : "")
-                        : "Press Enter to unlock")
+                    visible: text !== ""
+                    text: root.error || (root.live ? "Live session · just press Enter" : "")
                     color: root.error ? "#FF8A8A" : Qt.rgba(1, 1, 1, 0.55)
                     font.family: Theme.font
                     font.pixelSize: 12
                 }
-            }
-
-            // ---------- nút nguồn góc phải dưới ----------
-            Row {
-                anchors.right: parent.right; anchors.rightMargin: 28
-                anchors.bottom: parent.bottom; anchors.bottomMargin: 26 - 20 * (1 - surf.authIn)
-                spacing: 10
-                opacity: surf.authIn * 0.9
-                Repeater {
-                    model: [
-                        { icon: "sleep", cmd: ["systemctl", "suspend"] },
-                        { icon: "restart", cmd: ["systemctl", "reboot"] },
-                        { icon: "power", cmd: ["systemctl", "poweroff"] }
-                    ]
-                    Rectangle {
-                        required property var modelData
-                        width: 40; height: 40; radius: 20
-                        color: bm.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(1, 1, 1, 0.09)
-                        Behavior on color { ColorAnimation { duration: 140 } }
-                        Icon { anchors.centerIn: parent; name: parent.modelData.icon; size: 17 }
-                        MouseArea { id: bm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Quickshell.execDetached(parent.modelData.cmd) }
-                    }
-                }
-            }
-
-            // ---------- mạng góc trái dưới ----------
-            Row {
-                anchors.left: parent.left; anchors.leftMargin: 28
-                anchors.bottom: parent.bottom; anchors.bottomMargin: 36 - 20 * (1 - surf.authIn)
-                spacing: 8
-                opacity: surf.authIn * 0.75
-                Icon { name: Net.icon; size: 15; anchors.verticalCenter: parent.verticalCenter }
-                Text { text: Net.label; color: "#FFFFFF"; font.family: Theme.font; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
             }
         }
     }

@@ -18,7 +18,7 @@ PanelWindow {
     // làm Hyprland đặt nó lệch xuống dưới mép màn hình (mất dock).
     implicitHeight: 180
     // tự ẩn: không giữ chỗ dưới đáy màn hình (cửa sổ dùng được hết chiều cao)
-    exclusiveZone: Prefs.dockAutohide ? 0 : 78
+    exclusiveZone: dockHides ? 0 : 78
     color: "transparent"
 
     WlrLayershell.namespace: "islet-dock"
@@ -26,6 +26,7 @@ PanelWindow {
 
     mask: Region { item: hit }
 
+    readonly property bool dockHides: Prefs.dockAutohide || (Ui.focusMode && Ui.focusProfile.dockHide)
     readonly property real base: Prefs.dockSize
     readonly property real gap: 8
     readonly property real pad: 8
@@ -49,7 +50,7 @@ PanelWindow {
         const k = known[id] ?? known[e?.id ?? ""];
         return {
             key: e?.id ?? id,
-            label: k?.label ?? e?.name ?? id,
+            label: k?.label ?? e?.name ?? id.replace(/\.exe$/i, ""),
             icon: k?.icon ?? Theme.appKey(e?.id ?? id),
             iconUrl: (k || Theme.appKey(e?.id ?? id)) ? "" : (Quickshell.iconPath(e?.icon ?? id, true) || Quickshell.iconPath("application-x-executable", true)),
             tile: k?.tile ?? Theme.violet,
@@ -192,7 +193,7 @@ PanelWindow {
     Item {
         id: autoHide
         property bool hidden: false
-        readonly property bool wantHidden: Prefs.dockAutohide && !hover.hovered && !Ui.launcherOpen && !menu.visible
+        readonly property bool wantHidden: dockHides && !hover.hovered && !Ui.launcherOpen && !menu.visible
         onWantHiddenChanged: { if (wantHidden) hideLater.restart(); else { hideLater.stop(); hidden = false; } }
         Timer { id: hideLater; interval: 700; onTriggered: autoHide.hidden = autoHide.wantHidden }
         property real v: hidden ? 0 : 1
@@ -221,7 +222,7 @@ PanelWindow {
         width: row.width + win.pad * 2
         height: win.base + win.pad * 2
         radius: win.base * 0.3 + win.pad
-        color: Ui.dockDropHover ? Qt.rgba(1, 1, 1, 0.16) : Theme.light ? Qt.rgba(1, 1, 1, 0.4) : Qt.rgba(1, 1, 1, 0.09)
+        color: Ui.dockDropHover ? Qt.rgba(1, 1, 1, 0.16) : Theme.light ? Qt.rgba(1, 1, 1, 0.4) : Qt.rgba(0.04, 0.04, 0.07, 0.3)
         border.color: Ui.dockDropHover ? Theme.accent : Theme.light ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(1, 1, 1, 0.16)
         border.width: Ui.dockDropHover ? 2 : 1
         scale: Ui.dockDropHover ? 1.05 : 1

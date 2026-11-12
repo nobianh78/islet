@@ -282,6 +282,13 @@ STORE_ART = f"""
 <path d="M30 52a6 6 0 0 1 6-6h56a6 6 0 0 1 6 6l-4 38a10 10 0 0 1-10 9H44a10 10 0 0 1-10-9z" fill="{W}" fill-opacity=".9"/>
 <path d="M64 60l3.6 8 8.4 1-6.2 5.8 1.7 8.4L64 79l-7.5 4.2 1.7-8.4L52 69l8.4-1z" fill="#8B5CFF"/>"""
 
+# App Windows — cửa sổ có thanh tiêu đề và bốn ô (hình chung, không phải logo của hãng nào)
+WIN_ART = f"""
+<rect x="22" y="28" width="84" height="72" rx="14" fill="{W}" fill-opacity=".22"/>
+<circle cx="35" cy="40" r="3.4" fill="{W}"/><circle cx="45" cy="40" r="3.4" fill="{W}" fill-opacity=".7"/><circle cx="55" cy="40" r="3.4" fill="{W}" fill-opacity=".45"/>
+<rect x="33" y="54" width="29" height="19" rx="5" fill="{W}"/><rect x="66" y="54" width="29" height="19" rx="5" fill="{W}" fill-opacity=".8"/>
+<rect x="33" y="77" width="29" height="15" rx="5" fill="{W}" fill-opacity=".8"/><rect x="66" y="77" width="29" height="15" rx="5" fill="{W}"/>"""
+
 # Trình soạn code — cửa sổ kính mờ, ba chấm, ký hiệu </> trắng
 CODE_ART = f"""
 <rect x="22" y="28" width="84" height="72" rx="16" fill="{W}" fill-opacity=".22"/>
@@ -324,6 +331,7 @@ APP_SET = {
     "apps":     app_icon("apps", [(0, "#4BE3E8"), (.5, "#8B7CFF"), (1, "#F472B6")], APPS_ART, shade="#3B2A9A"),
     "video":    app_icon("vid", [(0, "#FF5C7A"), (.55, "#FF6B5C"), (1, "#FF9F43")], VIDEO_ART, shade="#A1202F"),
     "code":     app_icon("code", [(0, "#38BDF8"), (.5, "#3B6BFF"), (1, "#7B5CFF")], CODE_ART, shade="#1E2F9A"),
+    "windows":  app_icon("win", [(0, "#4BA3FF"), (.55, "#3B7BFF"), (1, "#5B5CFF")], WIN_ART, shade="#1E2F9A"),
     "islet":    app_icon("islet", [(0, "#A78BFA"), (.55, "#8B7CFF"), (1, "#6D4AFF")], ISLET_ART, shade="#3B1FA0"),
 }
 
@@ -403,6 +411,12 @@ MIN_ART = {
 <path d="M50 58l-14 13 14 13" fill="none" stroke="{WH}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M78 58l14 13-14 13" fill="none" stroke="{WH}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M68 54l-8 34" stroke="{A}" stroke-width="7" stroke-linecap="round"/>""",
+    # App Windows — khung cửa sổ trắng, bốn ô, một ô màu nhấn
+    "windows": lambda A: f"""
+<rect x="26" y="30" width="76" height="68" rx="13" fill="none" stroke="{WH}" stroke-width="6"/>
+<circle cx="39" cy="43" r="3.4" fill="{A}"/><circle cx="49" cy="43" r="3.4" fill="{WH}" fill-opacity=".5"/>
+<rect x="37" y="57" width="24" height="15" rx="4" fill="{WH}"/><rect x="67" y="57" width="24" height="15" rx="4" fill="{A}"/>
+<rect x="37" y="76" width="24" height="12" rx="4" fill="{A}"/><rect x="67" y="76" width="24" height="12" rx="4" fill="{WH}"/>""",
     # Islet — mèo trắng, mặt nạ mực, mắt màu nhấn
     "islet": lambda A: f"""
 <g transform="translate(14 12) scale(.5)">

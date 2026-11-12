@@ -184,7 +184,7 @@ PanelWindow {
     Rectangle {
         id: bg
         anchors.fill: parent
-        color: Theme.surface(0.55)
+        color: Theme.light ? Qt.rgba(1, 1, 1, 0.12) : Theme.surface(0.4)
         opacity: win.open ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: win.open ? 220 : 180; easing.type: Easing.OutCubic } }
 

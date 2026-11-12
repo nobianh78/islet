@@ -102,6 +102,8 @@ PanelWindow {
             property real dragY: 0
             readonly property real wx: dragging ? dragX : (o.at?.[0] ?? 0) - (win.screen?.x ?? 0)
             readonly property real wy: dragging ? dragY : (o.at?.[1] ?? 0) - (win.screen?.y ?? 0)
+            // app Windows (Wine, class *.exe) không có thanh tiêu đề: viên kính nằm hẳn phía trên, không đè menu
+            readonly property real pillTop: wy - ((o.class ?? "").toLowerCase().endsWith(".exe") ? win.pillH + 2 : win.pillH / 2)
             readonly property real ww: o.size?.[0] ?? 0
             readonly property real wh: o.size?.[1] ?? 0
             readonly property int order: o.focusHistoryID ?? 99
@@ -131,10 +133,10 @@ PanelWindow {
                     const d = win.minDotFor(o.class ?? "");
                     return Qt.rect(wx + d.x - 11, wy + d.y - 11, 22, 22);
                 }
-                if (style === "pill") return Qt.rect(wx + 18, wy - win.pillH / 2, pill.width, win.pillH);
+                if (style === "pill") return Qt.rect(wx + 18, pillTop, pill.width, win.pillH);
                 return Qt.rect(0, 0, 0, 0);
             }
-            readonly property bool pillRoom: wy - win.pillH / 2 >= win.barH + 2
+            readonly property bool pillRoom: pillTop >= win.barH + 2
             readonly property bool active: onScreen && style !== "none"
                 && (style !== "pill" || pillRoom)
                 && !coveredAt(area.x, area.y, area.width, area.height)
@@ -246,7 +248,7 @@ PanelWindow {
                 id: pill
                 visible: w.style === "pill" && opacity > 0.01
                 x: w.wx + 18
-                y: w.wy - win.pillH / 2
+                y: w.pillTop
                 width: pillLights.implicitWidth + 20
                 height: win.pillH
                 opacity: w.active ? 1 : 0

@@ -3,7 +3,7 @@ import "../theme"
 
 // Khung kính mờ như trong thiết kế. Phần nhoè phía sau do Hyprland lo (layer_rule blur).
 Rectangle {
-    color: Qt.rgba(1, 1, 1, 0.10)
+    color: Theme.light ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(0.04, 0.04, 0.07, 0.28)
     border.color: Qt.rgba(1, 1, 1, 0.18 + 0.22 * Prefs.glass)
     border.width: 1
     radius: 24

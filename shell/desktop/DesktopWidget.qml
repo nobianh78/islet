@@ -65,7 +65,7 @@ Item {
         Glass {
             anchors.fill: parent
             radius: 30
-            color: Theme.light ? Qt.rgba(1, 1, 1, 0.36) : Qt.rgba(0.1, 0.1, 0.16, 0.34)
+            color: Theme.light ? Qt.rgba(1, 1, 1, 0.36) : Qt.rgba(0.04, 0.04, 0.07, 0.3)
         }
         WidgetContent {
             anchors.fill: parent

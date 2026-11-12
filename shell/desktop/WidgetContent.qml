@@ -612,7 +612,7 @@ Item {
         Item {
             readonly property real pct: Power.present ? Power.percent : 1
             readonly property real secsLeft: Power.charging ? (Power.dev?.timeToFull ?? 0) : (Power.dev?.timeToEmpty ?? 0)
-            function left() {
+            function remaining() {
                 const s = secsLeft;
                 if (!Power.present) return "No battery";
                 if (s <= 0) return Power.charging ? "Charging" : "Calculating…";
@@ -638,7 +638,7 @@ Item {
                     value: bt.pct
                     fill: Power.charging ? "#34C77B" : bt.pct < 0.15 ? "#FF5F57" : bt.pct < 0.3 ? "#FFB547" : Theme.accent
                 }
-                Text { text: bt.left(); color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
+                Text { text: bt.remaining(); color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
             }
         }
     }

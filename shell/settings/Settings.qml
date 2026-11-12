@@ -69,6 +69,7 @@ FloatingWindow {
         { id: "input",     g: 1, label: "Mouse & Touchpad",    icon: "mouse",     tint: "#A78BFA", d: "Pointer speed, scrolling and gestures", k: "gestures scroll tap click natural pointer speed" },
         { id: "keyboard",  g: 1, label: "Keyboard & Typing",   icon: "keyboard",  tint: "#34C77B", d: "Vietnamese typing, keyboard layout and key repeat", k: "vietnamese telex vni typing input method layout repeat language tiếng việt" },
         { id: "printers",  g: 1, label: "Printers",            icon: "document",  tint: "#7A8396", d: "Printers and saving as PDF", k: "print scanner cups pdf" },
+        { id: "windows",   g: 1, label: "Windows apps",        icon: "layers",    tint: "#3B8BFF", d: "Run Windows programs (.exe, .msi)", k: "wine exe msi windows compatibility proton" },
         { id: "power",     g: 1, label: "Battery & Power",     icon: "bolt",      tint: "#34C77B", d: "Power mode, when to sleep, and battery health", k: "sleep lock idle lid battery saver charge limit performance" },
         { id: "wallpaper", g: 2, label: "Wallpaper",           icon: "palette",   tint: "#B65CFF", d: "Islet wallpapers, live wallpapers and your own photos", k: "background image picture live" },
         { id: "accent",    g: 2, label: "Appearance",          icon: "sparkle",   tint: "#FF6B97", d: "Accent color, icon style and font", k: "accent color theme icon style font" },
@@ -276,7 +277,7 @@ FloatingWindow {
     property var isletWalls: []
     Process {
         id: islWalls
-        command: ["sh", "-c", "ls /usr/share/islet/wallpapers/*.jpg /usr/share/islet/wallpapers/*.png 2>/dev/null"]
+        command: ["sh", "-c", "ls /usr/share/islet/wallpapers/*.jpg /usr/share/islet/wallpapers/*.png \"$HOME\"/.local/share/islet/wallpapers/*.jpg 2>/dev/null"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const key = p => p.split("/").pop().replace(/\.[^.]+$/, "");
@@ -1085,6 +1086,7 @@ FloatingWindow {
                 KeyboardPage { visible: win.page === "keyboard" }
 
                 PrintersPage { visible: win.page === "printers" }
+                WindowsPage { visible: win.page === "windows" }
 
                 // ================= NGUỒN ĐIỆN =================
                 Column {

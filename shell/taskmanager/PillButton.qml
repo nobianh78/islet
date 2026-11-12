@@ -13,8 +13,8 @@ Rectangle {
     height: 28
     radius: 14
     color: armed ? "#FF5F57"
-        : m.containsMouse ? (danger ? Qt.rgba(1, 0.37, 0.34, 0.85) : Qt.rgba(1, 1, 1, 0.18))
-        : Qt.rgba(1, 1, 1, 0.08)
+        : m.containsMouse ? (danger ? Qt.rgba(1, 0.37, 0.34, 0.85) : Theme.fg(0.18))
+        : Theme.fg(0.08)
     Behavior on color { ColorAnimation { duration: 140 } }
     scale: m.pressed ? 0.92 : 1
     Behavior on scale { SpringAnimation { spring: 6; damping: 0.35; epsilon: 0.003 } }
@@ -23,7 +23,7 @@ Rectangle {
         id: t
         anchors.centerIn: parent
         text: root.label
-        color: "#FFFFFF"
+        color: root.armed || (danger && m.containsMouse) ? "#FFFFFF" : Theme.label
         font.family: Theme.font
         font.pixelSize: 11
         font.weight: Font.DemiBold
